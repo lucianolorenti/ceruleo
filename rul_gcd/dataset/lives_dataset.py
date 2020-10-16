@@ -15,3 +15,6 @@ class AbstractLivesDataset:
 
     def __len__(self):
         raise NotImplementedError
+
+    def toPandas(self):
+        raise NotImplementedError

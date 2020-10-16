@@ -4,8 +4,7 @@ import numpy as np
 from rul_gcd.dataset.lives_dataset import AbstractLivesDataset
 from rul_gcd.iterators.utils import (windowed_element_list,
                                      windowed_signal_generator)
-from rul_gcd.transformation.transformers import SimpleTransformer
-from rul_gcd.transformers.transformers import Transformer
+from rul_gcd.transformation.transformers import Transformer
 from rul_gcd.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
@@ -16,7 +15,7 @@ CACHE_SIZE = 20
 class DatasetIterator:
     def __init__(self,
                  dataset: AbstractLivesDataset,
-                 transformer: Transformer = SimpleTransformer(),
+                 transformer: Transformer,
                  shuffle=False,
                  complete=False):
         self.dataset = dataset
@@ -41,7 +40,7 @@ class DatasetIterator:
 class LifeDatasetIterator(DatasetIterator):
     def __init__(self,
                  dataset: AbstractLivesDataset,
-                 transformer: Transformer = SimpleTransformer(),
+                 transformer: Transformer,
                  shuffle=False):
         super().__init__(dataset, transformer, shuffle)
         self.i = 0
@@ -65,7 +64,7 @@ class WindowedDatasetIterator(DatasetIterator):
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  window_size,
-                 transformer: Transformer = SimpleTransformer(),
+                 transformer: Transformer,
                  step=1,
                  shuffle=False):
         super().__init__(dataset, transformer, shuffle)

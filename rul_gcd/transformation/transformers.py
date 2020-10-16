@@ -46,7 +46,7 @@ def transformer_info(transformer):
 
 
 class Transformer:
-    def __init__(self, target_column, transformerX, transformerY):
+    def __init__(self, target_column, transformerX, transformerY=None):
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.target_column = target_column
@@ -62,7 +62,8 @@ class Transformer:
     def fit(self, dataset):
         logger.info('Fitting Transformer')
         df = dataset.toPandas()
-        self.transformerY.fit(df[self.target_column].values.reshape(-1, 1))        
+        if self.transformerY is not None:
+            self.transformerY.fit(df[self.target_column].values.reshape(-1, 1))        
         self.transformerX.fit(df)
 
         X = self.transformerX.transform(df.head(n=2))
@@ -72,8 +73,11 @@ class Transformer:
 
     def transform(self, df):     
         check_is_fitted(self, 'fitted_')
-        return (self.transformerX.transform(df),
-                np.squeeze(self.transformerY.transform((df[self.target_column].values.reshape(-1, 1)))))
+        X = self.transformerX.transform(df)
+        y = df[self.target_column].values.reshape(-1, 1)
+        if self.transformerY is not None:
+            y = self.transformerY.transform(y)
+        return (X, y)        
 
     @property
     def n_features(self):
