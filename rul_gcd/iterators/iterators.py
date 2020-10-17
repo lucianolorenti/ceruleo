@@ -2,8 +2,7 @@ import pickle
 
 import numpy as np
 from rul_gcd.dataset.lives_dataset import AbstractLivesDataset
-from rul_gcd.iterators.utils import (windowed_element_list,
-                                     windowed_signal_generator)
+from rul_gcd.iterators.utils import (windowed_signal_generator)
 from rul_gcd.transformation.transformers import Transformer
 from rul_gcd.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
@@ -71,11 +70,31 @@ class WindowedDatasetIterator(DatasetIterator):
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
-        self.elements = windowed_element_list(self.dataset,
-                                              self.window_size,
-                                              step=self.step,
-                                              shuffle=self.shuffle)
+
+        self.elements = self._windowed_element_list()
         self.i = 0
+
+    def _windowed_element_list(self):
+        ofiles = []
+        oelements = []
+        for path in self.ds.files:
+            with open(path, 'rb') as file:
+                _, data = pickle.load(file)
+                X, _ = self.transformer.transform(data)
+            list_ranges = list(range(0, X.shape[0], self.step))
+            oelements_ = []
+            for i in list_ranges:
+                if i - self.window_size >= 0:
+                    ofiles.append(path)
+                    oelements_.append(i)
+            if self.shuffle == 'signal':
+                np.random.shuffle(oelements_)
+            oelements.extend(oelements_)
+        if self.shuffle == 'all':
+            shuffler = np.random.permutation(len(ofiles))
+            ofiles = [ofiles[i] for i in shuffler]
+            oelements = [oelements[i] for i in shuffler]
+        return ofiles, oelements
 
     def __iter__(self):
         self.i = 0

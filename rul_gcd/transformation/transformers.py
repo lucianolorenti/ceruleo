@@ -24,15 +24,16 @@ class PandasToNumpy(BaseEstimator, TransformerMixin):
 
 
 def transformation_pipeline(outlier=IQROutlierRemover(), imputer=NaNRemovalImputer(),
-                            scaler=RobustScaler(), features=[]):
+                            scaler=RobustScaler(), resampler=None, features=[]):
     return Pipeline(steps=[
         ('initial_selection', ByNameFeatureSelector(features)),
+        ('resampler', resampler if resampler is not None else 'passthrough'),
         ('to_numpy', PandasToNumpy()),
-        ('outlier_removal', outlier),
+        ('outlier_removal', outlier if outlier is not None else 'passthrough'),
         ('NullProportionSelector', NullProportionSelector()),
         ('selector_1', VarianceThreshold(0.01)),
-        ('scaler', scaler),
-        ('imputer', imputer),
+        ('scaler', scaler if scaler is not None else 'passthrough'),
+        ('imputer', imputer if imputer is not None else 'passthrough'),
         ('selector_2', VarianceThreshold(0.01))
     ])
 
