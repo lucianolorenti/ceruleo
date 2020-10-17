@@ -77,15 +77,14 @@ class WindowedDatasetIterator(DatasetIterator):
     def _windowed_element_list(self):
         ofiles = []
         oelements = []
-        for path in self.ds.files:
-            with open(path, 'rb') as file:
-                _, data = pickle.load(file)
-                X, _ = self.transformer.transform(data)
+        for life in range(self.dataset.nlives):
+            data = self.dataset[life]                
+            X, _ = self.transformer.transform(data)
             list_ranges = list(range(0, X.shape[0], self.step))
             oelements_ = []
             for i in list_ranges:
                 if i - self.window_size >= 0:
-                    ofiles.append(path)
+                    ofiles.append(life)
                     oelements_.append(i)
             if self.shuffle == 'signal':
                 np.random.shuffle(oelements_)

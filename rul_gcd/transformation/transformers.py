@@ -74,11 +74,17 @@ class Transformer:
 
     def transform(self, df):     
         check_is_fitted(self, 'fitted_')
-        X = self.transformerX.transform(df)
+        return (self.transformX(df),  self.transformY(df))       
+
+    def transformX(self, df):
+        return self.transformerX.transform(df)
+
+    def transformY(self, df):
         y = df[self.target_column].values.reshape(-1, 1)
         if self.transformerY is not None:
             y = self.transformerY.transform(y)
-        return (X, y)        
+        return y
+
 
     @property
     def n_features(self):
