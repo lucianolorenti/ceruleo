@@ -18,13 +18,11 @@ class DatasetIterator:
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
                  shuffle=False,
-                 complete=False,
                  cache_size=CACHE_SIZE):
         self.dataset = dataset
         self.shuffle = shuffle
         self.transformer = transformer
-        self.cache = LRUDataCache(cache_size)
-        self.complete = complete
+        self.cache = LRUDataCache(cache_size)        
 
         try:
             check_is_fitted(transformer)
@@ -65,9 +63,9 @@ class LifeDatasetIterator(DatasetIterator):
 class WindowedDatasetIterator(DatasetIterator):
     def __init__(self,
                  dataset: AbstractLivesDataset,
-                 window_size,
+                 window_size: int,
                  transformer: Transformer,
-                 step=1,
+                 step: int = 1,
                  shuffle=False):
         super().__init__(dataset, transformer, shuffle)
         self.window_size = window_size
@@ -81,7 +79,7 @@ class WindowedDatasetIterator(DatasetIterator):
         ofiles = []
         oelements = []
         for life in range(self.dataset.nlives):
-            data = self.dataset[life]                
+            data = self.dataset[life]
             X, _ = self.transformer.transform(data)
             list_ranges = list(range(0, X.shape[0], self.step))
             for i in list_ranges:
@@ -90,25 +88,31 @@ class WindowedDatasetIterator(DatasetIterator):
                     oelements.append(i)
         return ofiles, oelements
 
-
     def _shuffle(self):
         if not self.shuffle:
             return
-        valid_shuffle = ((self.shuffle == False) or (self.shuffle in ('signal', 'life', 'all', 'signal_life')))
-        df = pd.DataFrame({'life': self.orig_lifes, 'elements' :self.orig_elements})
+        valid_shuffle = ((self.shuffle == False)
+                         or (self.shuffle
+                             in ('signal', 'life', 'all', 'signal_life')))
+        df = pd.DataFrame({
+            'life': self.orig_lifes,
+            'elements': self.orig_elements
+        })
         if not valid_shuffle:
-            raise ValueError("shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life'")
+            raise ValueError(
+                "shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life'"
+            )
         if self.shuffle == 'signal':
-           groups = [df.sample(frac=1) for _, df in df.groupby('life')] 
-           df = pd.concat(groups).reset_index(drop=True)   
+            groups = [df.sample(frac=1) for _, df in df.groupby('life')]
+            df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'life':
             groups = [df for _, df in df.groupby('life')]
             random.shuffle(groups)
-            df = pd.concat(groups).reset_index(drop=True)            
+            df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'signal_life':
-            groups = [df.sample(frac=1) for _, df in df.groupby('life')] 
+            groups = [df.sample(frac=1) for _, df in df.groupby('life')]
             random.shuffle(groups)
-            df = pd.concat(groups).reset_index(drop=True) 
+            df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'all':
             df = df.sample(frac=1)
         self.files = df['life'].values.tolist()
@@ -122,7 +126,7 @@ class WindowedDatasetIterator(DatasetIterator):
     def __len__(self):
         return len(self.elements)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int):
         (life, timestamp) = self.elements[i]
         X, y = self._load_data(life)
         return windowed_signal_generator(X, y, timestamp, self.window_size)
