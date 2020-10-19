@@ -86,7 +86,7 @@ class Transformer:
 
     def fitY(self, df):
         if self.disable_resampling_when_fitting:
-            step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)        
+            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)        
         self.transformerY.fit(df[[self.time_feature, self.target_column]]) 
         step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, True)
 

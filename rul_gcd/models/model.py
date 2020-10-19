@@ -53,7 +53,7 @@ def json_to_str(elem):
     
 
 class TrainableModel(Model):
-    def __init__(self, window, batch_size, step, transformer, shuffle, models_path, patience=4, ):
+    def __init__(self, window, batch_size, step, transformer, shuffle, models_path, patience=4, cache_size=30 ):
         super().__init__()
         self.window = window
         self.batch_size = batch_size
@@ -64,6 +64,7 @@ class TrainableModel(Model):
         self.models_path = models_path
         self.model_filename_ = None
         self.checkpoint_filepath_ = None
+        self.cache_size = cache_size
 
     @property
     def model_filename(self):
@@ -157,7 +158,7 @@ class TrainableModel(Model):
         step = self.step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset, self.window, 512,
-                                  self.transformer, step, shuffle=False)
+                                  self.transformer, step, shuffle=False, cache_size=self.cache_size)
         batcher.restart_at_end = False
         def gen_dataset():
             for X, y in batcher:
@@ -180,9 +181,11 @@ class TrainableModel(Model):
             self.transformer.fit(train_dataset)
         logger.info('Creating batchers')
         train_batcher = get_batcher(train_dataset,  self.window, self.batch_size,
-                                    self.transformer, self.step, shuffle=self.shuffle)
+                                    self.transformer, self.step, shuffle=self.shuffle,
+                                    cache_size=self.cache_size)
         val_batcher = get_batcher(validation_dataset, self.window, self.batch_size,
-                                  self.transformer, self.step, shuffle=False)
+                                  self.transformer, self.step, shuffle=False,
+                                  cache_size=self.cache_size)
         val_batcher.restart_at_end = False
 
         early_stopping = EarlyStopping(patience=self.patience)

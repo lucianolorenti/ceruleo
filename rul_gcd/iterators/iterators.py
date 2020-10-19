@@ -1,16 +1,16 @@
 import pickle
+import random
 
 import numpy as np
+import pandas as pd
 from rul_gcd.dataset.lives_dataset import AbstractLivesDataset
-from rul_gcd.iterators.utils import (windowed_signal_generator)
+from rul_gcd.iterators.utils import windowed_signal_generator
 from rul_gcd.transformation.transformers import Transformer
 from rul_gcd.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
-import pandas as pd
-import random
 
-CACHE_SIZE = 20
+CACHE_SIZE = 30
 
 
 class DatasetIterator:
@@ -66,8 +66,9 @@ class WindowedDatasetIterator(DatasetIterator):
                  window_size: int,
                  transformer: Transformer,
                  step: int = 1,
-                 shuffle=False):
-        super().__init__(dataset, transformer, shuffle)
+                 shuffle=False,
+                 cache_size:int = CACHE_SIZE):
+        super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
@@ -78,9 +79,8 @@ class WindowedDatasetIterator(DatasetIterator):
     def _windowed_element_list(self):
         olifes = []
         oelements = []
-        for life in range(self.dataset.nlives):
-            data = self.dataset[life]
-            X, _ = self.transformer.transform(data)
+        for life in range(self.dataset.nlives):            
+            X, _ = self._load_data(life)            
             list_ranges = list(range(0, X.shape[0], self.step))
             for i in list_ranges:
                 if i - self.window_size >= 0:
@@ -103,19 +103,19 @@ class WindowedDatasetIterator(DatasetIterator):
                 "shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life'"
             )
         if self.shuffle == 'signal':
-            groups = [df.sample(frac=1) for _, df in df.groupby('life')]
+            groups = [d.sample(frac=1, axis=0) for _, d in df.groupby('life')]
             df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'life':
-            groups = [df for _, df in df.groupby('life')]
+            groups = [d for _, d in df.groupby('life')]
             random.shuffle(groups)
             df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'signal_life':
-            groups = [df.sample(frac=1) for _, df in df.groupby('life')]
+            groups = [d.sample(frac=1, axis=0) for _, d in df.groupby('life')]
             random.shuffle(groups)
             df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'all':
-            df = df.sample(frac=1)
-        self.files = df['life'].values.tolist()
+            df = df.sample(frac=1, axis=0)
+        self.lifes = df['life'].values.tolist()
         self.elements = df['elements'].values.tolist()
 
     def __iter__(self):

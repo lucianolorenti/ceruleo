@@ -2,11 +2,11 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class ResamplerTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, time_feature, time='40s', interpolation_method='linear'):
+    def __init__(self, time_feature, time='40s', interpolation_method='linear', enabled=True):
         self.time = time
         self.interpolation_method = interpolation_method
         self.time_feature = time_feature
-        self.enabled = True
+        self.enabled = enabled
 
     def fit(self, X, y=None):
         return self

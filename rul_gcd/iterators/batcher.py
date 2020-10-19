@@ -49,10 +49,12 @@ def get_batcher(dataset: AbstractLivesDataset,
                 batch_size: int,
                 transformer: Transformer,
                 step: int,
-                shuffle: bool = False) -> Batcher:
+                shuffle: bool = False,
+                cache_size: int = 20) -> Batcher:
     iterator = WindowedDatasetIterator(dataset,
                                        window,
                                        transformer,
                                        step=step,
-                                       shuffle=shuffle)
+                                       shuffle=shuffle,
+                                       cache_size=cache_size)
     return Batcher(iterator, batch_size)
