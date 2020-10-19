@@ -7,6 +7,8 @@ from rul_gcd.transformation.transformers import Transformer
 from rul_gcd.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
+import pandas as pd
+import random
 
 CACHE_SIZE = 20
 
@@ -16,11 +18,12 @@ class DatasetIterator:
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
                  shuffle=False,
-                 complete=False):
+                 complete=False,
+                 cache_size=CACHE_SIZE):
         self.dataset = dataset
         self.shuffle = shuffle
         self.transformer = transformer
-        self.cache = LRUDataCache(CACHE_SIZE)
+        self.cache = LRUDataCache(cache_size)
         self.complete = complete
 
         try:
@@ -70,8 +73,8 @@ class WindowedDatasetIterator(DatasetIterator):
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
-
-        self.elements = self._windowed_element_list()
+        self.orig_lifes, self.orig_elements = self._windowed_element_list()
+        self.lifes, self.elements = self.orig_lifes, self.orig_elements
         self.i = 0
 
     def _windowed_element_list(self):
@@ -81,22 +84,39 @@ class WindowedDatasetIterator(DatasetIterator):
             data = self.dataset[life]                
             X, _ = self.transformer.transform(data)
             list_ranges = list(range(0, X.shape[0], self.step))
-            oelements_ = []
             for i in list_ranges:
                 if i - self.window_size >= 0:
                     ofiles.append(life)
-                    oelements_.append(i)
-            if self.shuffle == 'signal':
-                np.random.shuffle(oelements_)
-            oelements.extend(oelements_)
-        if self.shuffle == 'all':
-            shuffler = np.random.permutation(len(ofiles))
-            ofiles = [ofiles[i] for i in shuffler]
-            oelements = [oelements[i] for i in shuffler]
+                    oelements.append(i)
         return ofiles, oelements
+
+
+    def _shuffle(self):
+        if not self.shuffle:
+            return
+        valid_shuffle = ((self.shuffle == False) or (self.shuffle in ('signal', 'life', 'all', 'signal_life')))
+        df = pd.DataFrame({'life': self.orig_lifes, 'elements' :self.orig_elements})
+        if not valid_shuffle:
+            raise Exception()
+        if self.shuffle == 'signal':
+           groups = [df.sample(frac=1) for _, df in df.groupby('life')] 
+           df = pd.concat(groups).reset_index(drop=True)   
+        elif self.shuffle == 'life':
+            groups = [df for _, df in df.groupby('life')]
+            random.shuffle(groups)
+            df = pd.concat(groups).reset_index(drop=True)            
+        elif self.shuffle == 'signal_life':
+            groups = [df.sample(frac=1) for _, df in df.groupby('life')] 
+            random.shuffle(groups)
+            df = pd.concat(groups).reset_index(drop=True) 
+        elif self.shuffle == 'all':
+            df = df.sample(frac=1)
+        self.files = df['life'].values.tolist()
+        self.elements = df['elements'].values.tolist()
 
     def __iter__(self):
         self.i = 0
+        self._shuffle()
         return self
 
     def __len__(self):
