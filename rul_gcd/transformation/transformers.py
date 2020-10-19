@@ -2,8 +2,7 @@ import logging
 
 import numpy as np
 from rul_gcd.transformation.feature_selection import (ByNameFeatureSelector,
-                                                      NullProportionSelector,
-                                                      UsefulFeatureSelector)
+                                                      NullProportionSelector)
 from rul_gcd.transformation.imputers import NaNRemovalImputer
 from rul_gcd.transformation.outliers import IQROutlierRemover
 from rul_gcd.transformation.utils import PandasToNumpy

@@ -9,6 +9,7 @@ class NullProportionSelector(BaseEstimator, TransformerMixin):
         self.min_null_proportion = min_null_proportion
 
     def fit(self, X):
+        print(X)
         self.not_null_proportion = np.mean(np.isfinite(X), axis=0)
         self.mask = self.not_null_proportion > self.min_null_proportion
         return self
@@ -32,13 +33,7 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return X.iloc[:, self.features_indices]
 
-
     @property
     def n_features(self):
         return len(self.features)
 
-
-
-class UsefulFeatureSelector(ByNameFeatureSelector):
-    def __init__(self):
-        super().__init__(useful_features)
