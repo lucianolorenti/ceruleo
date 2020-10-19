@@ -76,7 +76,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i = 0
 
     def _windowed_element_list(self):
-        ofiles = []
+        olifes = []
         oelements = []
         for life in range(self.dataset.nlives):
             data = self.dataset[life]
@@ -84,9 +84,9 @@ class WindowedDatasetIterator(DatasetIterator):
             list_ranges = list(range(0, X.shape[0], self.step))
             for i in list_ranges:
                 if i - self.window_size >= 0:
-                    ofiles.append(life)
+                    olifes.append(life)
                     oelements.append(i)
-        return ofiles, oelements
+        return olifes, oelements
 
     def _shuffle(self):
         if not self.shuffle:
@@ -127,7 +127,7 @@ class WindowedDatasetIterator(DatasetIterator):
         return len(self.elements)
 
     def __getitem__(self, i: int):
-        (life, timestamp) = self.elements[i]
+        (life, timestamp) = (self.lifes[i], self.elements[i])
         X, y = self._load_data(life)
         return windowed_signal_generator(X, y, timestamp, self.window_size)
 

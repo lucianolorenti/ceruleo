@@ -5,7 +5,7 @@ class NaNRemovalImputer(BaseEstimator, TransformerMixin):
     def fit(self, X):
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         mask = np.all(~np.isfinite(X), axis=1)
         return X[~mask]
 
@@ -14,7 +14,7 @@ class RollingImputer(BaseEstimator, TransformerMixin):
         self.window_size = window_size
         self.function = func
     
-    def fit(self, X):
+    def fit(self, X, y=None):
         self.default_value = np.mean(X,  axis=0)
         self.default_value[~np.isfinite(self.default_value)] = 0
         return self
@@ -42,7 +42,7 @@ class RollingMeanImputer(RollingImputer):
 
 
 class ForwardFillImputer(BaseEstimator, TransformerMixin):
-    def fit(self, X):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X):
