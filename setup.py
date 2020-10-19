@@ -10,6 +10,9 @@ setup(
         'pandas',
         'numpy',
         'tqdm',
+        'scikit-learn',
+        'tensorflow',
+        'seaborn'
     ],
     license='MIT',
     package_data={'data': ['raw/*']},

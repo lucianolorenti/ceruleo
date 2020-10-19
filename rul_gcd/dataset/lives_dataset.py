@@ -1,5 +1,6 @@
 class AbstractLivesDataset:
-    def __getitem__(self, i):
+
+    def __getitem__(self, i:int):
         """
 
         Returns
@@ -11,10 +12,36 @@ class AbstractLivesDataset:
 
     @property
     def nlives(self):
+        """
+        Return
+        ------
+        int:
+            The number of lives in the dataset
+        """
         raise NotImplementedError
 
     def __len__(self):
-        raise NotImplementedError
+        """
+        Return
+        ------
+        int: 
+            The number of lives in the dataset
+        """
+        raise self.nlives
 
     def toPandas(self, proportion=1.0):
+        """
+        Create a dataset with the lives concatenated
+
+        Parameters
+        ----------
+        proportion: float
+                    Proportion of lives to use.
+
+        Returns
+        -------
+        
+        pd.DataFrame:
+            Return a DataFrame with all the lives concatenated
+        """
         raise NotImplementedError
