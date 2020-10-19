@@ -13,4 +13,4 @@ class TargetIdentity(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        return X[:, 1].values
+        return X.iloc[:, 1].values
