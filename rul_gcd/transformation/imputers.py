@@ -41,4 +41,13 @@ class RollingMeanImputer(RollingImputer):
         super().__init__(window_size, np.mean)
 
 
+class ForwardFillImputer(BaseEstimator, TransformerMixin):
+    def fit(self, X):
+        return self
 
+    def transform(self, X):
+        mask = np.isnan(X)
+        idx = np.where(~mask,np.arange(mask.shape[1]),0)
+        np.maximum.accumulate(idx,axis=1, out=idx)
+        X[mask] = X[np.nonzero(mask)[0], idx[mask]]
+        return X
