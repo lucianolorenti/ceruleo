@@ -5,7 +5,7 @@ from rul_gcd.transformation.feature_selection import (ByNameFeatureSelector,
                                                       NullProportionSelector)
 from rul_gcd.transformation.imputers import NaNRemovalImputer
 from rul_gcd.transformation.outliers import IQROutlierRemover
-from rul_gcd.transformation.utils import PandasToNumpy
+from rul_gcd.transformation.utils import PandasToNumpy, TargetIdentity
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
@@ -52,7 +52,7 @@ def transformer_info(transformer):
 
 
 class Transformer:
-    def __init__(self, target_column, time_feature, transformerX, transformerY, disable_resampling_when_fitting=True):
+    def __init__(self, target_column, time_feature, transformerX, transformerY=TargetIdentity(), disable_resampling_when_fitting=True):
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.target_column = target_column
