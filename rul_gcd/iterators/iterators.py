@@ -97,7 +97,7 @@ class WindowedDatasetIterator(DatasetIterator):
         valid_shuffle = ((self.shuffle == False) or (self.shuffle in ('signal', 'life', 'all', 'signal_life')))
         df = pd.DataFrame({'life': self.orig_lifes, 'elements' :self.orig_elements})
         if not valid_shuffle:
-            raise Exception()
+            raise ValueError("shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life'")
         if self.shuffle == 'signal':
            groups = [df.sample(frac=1) for _, df in df.groupby('life')] 
            df = pd.concat(groups).reset_index(drop=True)   
