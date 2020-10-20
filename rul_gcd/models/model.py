@@ -10,13 +10,17 @@ import numpy as np
 import tensorflow as tf
 from rul_gcd.iterators.batcher import Batcher, get_batcher
 from rul_gcd.iterators.iterators import WindowedDatasetIterator
-from tensorflow.keras import Input, Model
+from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
-from tensorflow.keras import optimizers
+from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-
-tf.keras.backend.set_floatx('float32')
-
+from tensorflow.keras.layers import (GRU, LSTM, Activation, Add,
+                                     AveragePooling1D, BatchNormalization,
+                                     Bidirectional, Concatenate, Conv1D, Dense,
+                                     Dropout, Flatten, GaussianNoise, Lambda,
+                                     Layer, LayerNormalization, Masking,
+                                     MaxPool1D, Reshape, SpatialDropout1D,
+                                     UpSampling1D)
 
 logger = logging.getLogger(__name__)
 
@@ -167,13 +171,13 @@ class TrainableModel(Model):
         b = tf.data.Dataset.from_generator(gen_dataset,
                             (tf.float32),
                             (tf.TensorShape([None, self.window, n_features])))
-        return super().predict_generator(b)
+        return super().predict(b)
 
     def input_shape(self):
         n_features = self.transformer.n_features
         return (self.window, n_features)
 
-    def fit(self, train_dataset, validation_dataset, epochs=50, verbose=1):
+    def fit(self, train_dataset, validation_dataset, epochs=50, verbose=1, model=None):
         #if Path(self.results_filename).resolve().is_file():
         #    logger.info(f'Results already present {self.results_filename}')
         #    return None
@@ -209,7 +213,9 @@ class TrainableModel(Model):
 
         logger.info('Start fitting')
         logger.info(self.checkpoint_filepath)
-        self.history = super().fit(a,
+        if model is None:
+            model = super()
+        self.history = model.fit(a,
                                    verbose=verbose,
                                    steps_per_epoch=len(train_batcher),
                                    epochs=epochs,
@@ -219,5 +225,93 @@ class TrainableModel(Model):
                                               # lr_callback,
                                               TerminateOnNaN(train_batcher),
                                               model_checkpoint_callback])
+        
         self.save_results()
         return self.load_results()
+
+
+
+class FCN(TrainableModel):
+    def __init__(self, layers, dropout, l2, window, batch_size, step, transformer, shuffle, models_path, patience=7):
+        super(FCN, self).__init__(window, batch_size, step, transformer, shuffle, models_path, patience=patience)        
+        self.layers_ = []
+        self.layers_sizes_ = layers
+        self.dropout = dropout
+        self.l2 = l2
+        self.layers_.append(Flatten())
+        for l in self.layers_sizes_:
+            self.layers_.append(Dense(l, 
+                                      activation='relu',
+                                      kernel_regularizer=regularizers.l2(self.l2)))
+            self.layers_.append(Dropout(self.dropout))
+            self.layers_.append(BatchNormalization())
+            
+        self.output_ = Dense(1, activation='relu')
+
+    @property
+    def name(self):
+        return 'FCN'
+    
+    def parameters(self):
+        params = super().parameters()
+        params.update({
+            'dropout': self.dropout,
+            'l2': self.l2,
+            'layers': self.layers_sizes_
+        })
+        return params
+        
+    def call(self, input):
+        x = input
+        for l in self.layers_:
+            x = l(x)
+        return self.output_(x)
+
+
+class ConvolutionalSimple(TrainableModel):
+    """
+    The network contains stacked layers of 1-dimensional convolutional layers
+    followed by max poolings
+
+    Parameters
+    ----------
+    self: list of tuples (filters: int, kernel_size: int)
+          Each element of the list is a layer of the network. The first element of the tuple contaings
+          the number of filters, the second one, the kernel size.
+    """
+    def __init__(self, layers, dropout, l2, window, batch_size, step, transformer, shuffle, models_path, patience=7):
+        super(ConvolutionalSimple, self).__init__(window, batch_size, step, transformer, shuffle, models_path, patience=patience)        
+        self.layers_ = []
+        self.layers_sizes_ = layers
+        self.dropout = dropout
+        self.l2 = l2
+        
+        for filters, kernel_size in self.layers_sizes_:
+            self.layers_.append(Conv1D(filters=filters, strides=1, kernel_size=kernel_size, padding='same', activation='relu'))            
+            self.layers_.append(MaxPool1D(pool_size=2, strides=2))
+        self.layers_.append(Flatten())
+        self.layers_.append(Dense(50, activation='relu'))
+        self.layers_.append(Dropout(self.dropout))
+        self.layers_.append(BatchNormalization())
+        
+        
+        self.output_ = Dense(1, activation='relu')
+
+    @property
+    def name(self):
+        return 'ConvolutionalSimple'
+    
+    def parameters(self):
+        params = super().parameters()
+        params.update({
+            'dropout': self.dropout,
+            'l2': self.l2,
+            'layers': self.layers_sizes_
+        })
+        return params
+        
+    def call(self, input):
+        x = input
+        for l in self.layers_:
+            x = l(x)
+        return self.output_(x)
