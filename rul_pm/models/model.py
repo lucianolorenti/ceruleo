@@ -8,8 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
-from rul_gcd.iterators.batcher import Batcher, get_batcher
-from rul_gcd.iterators.iterators import WindowedDatasetIterator
+from rul_pm.iterators.batcher import Batcher, get_batcher
+from rul_pm.iterators.iterators import WindowedDatasetIterator
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
@@ -59,6 +59,10 @@ def json_to_str(elem):
 class TrainableModel(Model):
     def __init__(self, window, batch_size, step, transformer, shuffle, models_path, patience=4, cache_size=30 ):
         super().__init__()
+
+        if isinstance(models_path, str):
+            models_path = Path(models_path)
+
         self.window = window
         self.batch_size = batch_size
         self.step = step

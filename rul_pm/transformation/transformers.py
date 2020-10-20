@@ -1,11 +1,11 @@
 import logging
 
 import numpy as np
-from rul_gcd.transformation.feature_selection import (ByNameFeatureSelector,
+from rul_pm.transformation.feature_selection import (ByNameFeatureSelector,
                                                       NullProportionSelector)
-from rul_gcd.transformation.imputers import NaNRemovalImputer
-from rul_gcd.transformation.outliers import IQROutlierRemover
-from rul_gcd.transformation.utils import PandasToNumpy, TargetIdentity
+from rul_pm.transformation.imputers import NaNRemovalImputer
+from rul_pm.transformation.outliers import IQROutlierRemover
+from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
@@ -78,8 +78,8 @@ class Transformer:
     """
     def __init__(self,
                  target_column: str,
-                 time_feature: str,
                  transformerX: TransformerMixin,
+                 time_feature: str = None,
                  transformerY: TransformerMixin = TargetIdentity(),
                  disable_resampling_when_fitting: bool = True):
         self.transformerX = transformerX
@@ -112,10 +112,17 @@ class Transformer:
         self.transformerX.fit(df)
         step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, True)
 
+    def _target(self, df):
+        if self.time_feature is not None:
+            return df[[self.time_feature, self.target_column]]
+        else:
+            return df[self.target_column]
+
+
     def fitY(self, df):
         if self.disable_resampling_when_fitting:
-            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)
-        self.transformerY.fit(df[[self.time_feature, self.target_column]])
+            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)   
+        self.transformerY.fit(self._target(df))
         step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, True)
 
     def transform(self, df):
@@ -124,8 +131,7 @@ class Transformer:
 
     def transformY(self, df):
         return np.squeeze(
-            self.transformerY.transform(
-                (df[[self.time_feature, self.target_column]])))
+            self.transformerY.transform(self._target(df)))
 
     def transformX(self, df):
         return self.transformerX.transform(df)
@@ -144,6 +150,6 @@ class Transformer:
 
 
 class SimpleTransformer(Transformer):
-    def __init__(self, target_column: str, time_feature: str):
-        super().__init__(target_column, time_feature, simple_pipeline(), TargetIdentity(), True)
+    def __init__(self, target_column: str, time_feature: str=None):
+        super().__init__(target_column, simple_pipeline(), transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
                  

@@ -3,10 +3,10 @@ import random
 
 import numpy as np
 import pandas as pd
-from rul_gcd.dataset.lives_dataset import AbstractLivesDataset
-from rul_gcd.iterators.utils import windowed_signal_generator
-from rul_gcd.transformation.transformers import Transformer
-from rul_gcd.utils.lrucache import LRUDataCache
+from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.iterators.utils import windowed_signal_generator
+from rul_pm.transformation.transformers import Transformer
+from rul_pm.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 

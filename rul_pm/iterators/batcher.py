@@ -1,8 +1,8 @@
 import math
 import numpy as np
-from rul_gcd.dataset.lives_dataset import AbstractLivesDataset
-from rul_gcd.transformation.transformers import Transformer
-from rul_gcd.iterators.iterators import WindowedDatasetIterator
+from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.transformation.transformers import Transformer
+from rul_pm.iterators.iterators import WindowedDatasetIterator
 
 
 class Batcher:

@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 class AbstractLivesDataset:
 
     def __getitem__(self, i:int):
@@ -44,4 +47,10 @@ class AbstractLivesDataset:
         pd.DataFrame:
             Return a DataFrame with all the lives concatenated
         """
-        raise NotImplementedError
+        df = []
+        for i in range(self.nlives):
+            if proportion < 1.0 and np.random.rand() > proportion:
+                continue
+            df.append(self[i])
+        return pd.concat(df)
+
