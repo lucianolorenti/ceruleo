@@ -27,7 +27,7 @@ class AbstractLivesDataset:
         int: 
             The number of lives in the dataset
         """
-        raise self.nlives
+        return self.nlives
 
     def toPandas(self, proportion=1.0):
         """

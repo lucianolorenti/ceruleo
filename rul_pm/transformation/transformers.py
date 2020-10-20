@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 RESAMPLER_STEP_NAME = 'resampler'
 
 
+def simple_pipeline(features=[]):
+    return Pipeline(steps=[
+        ('initial_selection', ByNameFeatureSelector(features)),
+        ('to_numpy', PandasToNumpy())
+    ])
+
+
 def transformation_pipeline(outlier=IQROutlierRemover(),
                             imputer=NaNRemovalImputer(),
                             scaler=RobustScaler(),
@@ -134,3 +141,9 @@ class Transformer:
             'transformerX': transformer_info(self.transformerX),
             'transformerY': transformer_info(self.transformerY),
         }
+
+
+class SimpleTransformer(Transformer):
+    def __init__(self, target_column: str, time_feature: str):
+        super().__init__(target_column, time_feature, simple_pipeline(), TargetIdentity(), True)
+                 
