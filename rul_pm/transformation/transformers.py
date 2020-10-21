@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 from rul_pm.transformation.feature_selection import (ByNameFeatureSelector,
+                                                    DiscardByNameFeatureSelector,
                                                       NullProportionSelector)
 from rul_pm.transformation.imputers import NaNRemovalImputer
 from rul_pm.transformation.outliers import IQROutlierRemover
@@ -28,9 +29,17 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
                             imputer=NaNRemovalImputer(),
                             scaler=RobustScaler(),
                             resampler=None,
-                            features=[]):
+                            features=None,
+                            discard=None):
+    if features is not None and discard is not None:
+        raise ValueError('Features and discard cannot be setted at the same time')
+    selector = 'passthrough'
+    if features is not None:
+        selector = ByNameFeatureSelector(features)
+    if discard is not None:
+        selector = DiscardByNameFeatureSelector(discard)
     return Pipeline(steps=[
-        ('initial_selection', ByNameFeatureSelector(features)),
+        ('initial_selection', selector),
         (RESAMPLER_STEP_NAME,
          resampler if resampler is not None else 'passthrough'),
         ('to_numpy', PandasToNumpy()),
