@@ -2,12 +2,12 @@ import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
 
 class NaNRemovalImputer(BaseEstimator, TransformerMixin):
-    def fit(self, X):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, X, y=None):
-        mask = np.all(~np.isfinite(X), axis=1)
-        return X[~mask]
+    def transform(self, X):
+        return X[~np.isnan(X).any(axis=1)]
+
 
 class RollingImputer(BaseEstimator, TransformerMixin):
     def __init__(self, window_size, func):
