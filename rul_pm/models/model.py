@@ -158,4 +158,3 @@ class TrainableModel:
         raise NotImplementedError
 
 
-class XGBoostModel(TrainableModel):
