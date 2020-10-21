@@ -234,3 +234,11 @@ class WindowedDatasetIterator(DatasetIterator):
         ret = self.__getitem__(self.i)
         self.i += 1
         return ret
+
+    def toArray(self):
+        XX = []
+        yy = []
+        for X, y in self:
+            XX.append(np.expand_dims(X, axis=0))
+            yy.append(y)
+        return np.concatenate(XX, axis=0), np.array(yy)
