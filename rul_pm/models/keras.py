@@ -1,3 +1,37 @@
+from tensorflow.keras import Input, Model, Sequential
+from tensorflow.keras import backend as K
+from tensorflow.keras import layers, optimizers, regularizers
+from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from tensorflow.keras.layers import (
+    GRU, LSTM, Activation, Add, AveragePooling1D, BatchNormalization,
+    Bidirectional, Concatenate, Conv1D, Dense, Dropout, Flatten, GaussianNoise,
+    Lambda, Layer, LayerNormalization, Masking, MaxPool1D, Reshape,
+    SpatialDropout1D, UpSampling1D)
+
+from rul_pm.models.model import TrainableModel
+import numpy as np
+import logging 
+import  tensorflow as tf
+from rul_pm.iterators.batcher import get_batcher
+
+logger = logging.getLogger(__name__)
+class TerminateOnNaN(Callback):
+    """Callback that terminates training when a NaN loss is encountered.
+    """
+    def __init__(self, batcher):
+        super().__init__()
+        self.batcher = batcher
+
+    def on_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        loss = logs.get('loss')
+        if loss is not None:
+            if np.isnan(loss) or np.isinf(loss):
+                logger.info('Batch %d: Invalid loss, terminating training' %
+                            (batch))
+                self.model.stop_training = True
+                self.batcher.stop = True
+
 
 class KerasTrainableModel(TrainableModel):
     def __init__(self,
@@ -19,7 +53,7 @@ class KerasTrainableModel(TrainableModel):
                          cache_size=cache_size)
 
     def load_best_model(self):
-        self._model.load_weights(self.model_filepath)
+        self.model.load_weights(self.model_filepath)
 
     def _checkpoint_callback(self):
         return ModelCheckpoint(filepath=self.model_filepath,
@@ -107,7 +141,7 @@ class KerasTrainableModel(TrainableModel):
 
         logger.info('Start fitting')
         logger.info(self.model_filepath)
-        self.history = self._model.fit(
+        self.history = self.model.fit(
             a,
             verbose=verbose,
             steps_per_epoch=len(train_batcher),
@@ -149,7 +183,8 @@ class FCN(KerasTrainableModel):
         self.dropout = dropout
         self.l2 = l2
 
-    def model(self):
+    
+    def build_model(self):
         s = Sequential()
         s.add(Flatten())
         for l in self.layers_sizes_:
@@ -210,7 +245,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         self.dropout = dropout
         self.l2 = l2
 
-    def model(self):
+    def build_model(self):
         s = Sequential()
         for filters, kernel_size in self.layers_sizes_:
             s.add(

@@ -9,35 +9,12 @@ import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import Batcher, get_batcher
 from rul_pm.iterators.iterators import WindowedDatasetIterator
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras import backend as K
-from tensorflow.keras import layers, optimizers, regularizers
-from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import (
-    GRU, LSTM, Activation, Add, AveragePooling1D, BatchNormalization,
-    Bidirectional, Concatenate, Conv1D, Dense, Dropout, Flatten, GaussianNoise,
-    Lambda, Layer, LayerNormalization, Masking, MaxPool1D, Reshape,
-    SpatialDropout1D, UpSampling1D)
+
 
 logger = logging.getLogger(__name__)
 
 
-class TerminateOnNaN(Callback):
-    """Callback that terminates training when a NaN loss is encountered.
-    """
-    def __init__(self, batcher):
-        super().__init__()
-        self.batcher = batcher
 
-    def on_batch_end(self, batch, logs=None):
-        logs = logs or {}
-        loss = logs.get('loss')
-        if loss is not None:
-            if np.isnan(loss) or np.isinf(loss):
-                logger.info('Batch %d: Invalid loss, terminating training' %
-                            (batch))
-                self.model.stop_training = True
-                self.batcher.stop = True
 
 
 def json_to_str(elem):
@@ -73,7 +50,7 @@ class TrainableModel:
         self.model_filename_ = None
         self._model_filepath = None
         self.cache_size = cache_size
-        self._model = self.model()
+    
 
     @property
     def model_filename(self):
@@ -154,7 +131,14 @@ class TrainableModel:
     def predict(self, df):
         raise NotImplementedError
 
-    def model(self):
+    def build_model(self):
         raise NotImplementedError
+
+    @property
+    def model(self):
+        if self._model is None:
+            self._model = self.build_model()
+        return self._model
+        
 
 
