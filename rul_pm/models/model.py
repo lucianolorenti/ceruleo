@@ -50,6 +50,7 @@ class TrainableModel:
         self.model_filename_ = None
         self._model_filepath = None
         self.cache_size = cache_size
+        self._model = None
     
 
     @property

@@ -10,14 +10,17 @@ from tensorflow.keras.layers import (
 
 from rul_pm.models.model import TrainableModel
 import numpy as np
-import logging 
-import  tensorflow as tf
+import logging
+import tensorflow as tf
 from rul_pm.iterators.batcher import get_batcher
 
 logger = logging.getLogger(__name__)
+
+
 class TerminateOnNaN(Callback):
     """Callback that terminates training when a NaN loss is encountered.
     """
+
     def __init__(self, batcher):
         super().__init__()
         self.batcher = batcher
@@ -90,16 +93,16 @@ class KerasTrainableModel(TrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_dataset, (tf.float32),
             (tf.TensorShape([None, self.window, n_features])))
-        return super().predict(b)
+        return self.model.predict(b)
 
     def input_shape(self):
         n_features = self.transformer.n_features
         return (self.window, n_features)
 
-    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50):
-        #if Path(self.results_filename).resolve().is_file():
-        #    logger.info(f'Results already present {self.results_filename}')
-        #    return None
+    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True):
+        if not overwrite and Path(self.results_filename).resolve().is_file():
+            logger.info(f'Results already present {self.results_filename}')
+            return
         if not self.transformer.fitted_:
             self.transformer.fit(train_dataset)
         logger.info('Creating batchers')
@@ -183,7 +186,6 @@ class FCN(KerasTrainableModel):
         self.dropout = dropout
         self.l2 = l2
 
-    
     def build_model(self):
         s = Sequential()
         s.add(Flatten())
@@ -222,24 +224,18 @@ class ConvolutionalSimple(KerasTrainableModel):
           Each element of the list is a layer of the network. The first element of the tuple contaings
           the number of filters, the second one, the kernel size.
     """
-    def __init__(self,
-                 layers,
-                 dropout,
-                 l2,
-                 window,
-                 batch_size,
-                 step,
-                 transformer,
-                 shuffle,
-                 models_path,
-                 patience=7):
+
+    def __init__(self, layers, dropout, l2, window,
+                 batch_size, step, transformer, shuffle, models_path,
+                 patience=4, cache_size=30):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
                                                   step,
                                                   transformer,
                                                   shuffle,
                                                   models_path,
-                                                  patience=patience)
+                                                  patience=4,
+                                                  cache_size=30)
         self.layers_ = []
         self.layers_sizes_ = layers
         self.dropout = dropout
@@ -265,6 +261,71 @@ class ConvolutionalSimple(KerasTrainableModel):
     @property
     def name(self):
         return 'ConvolutionalSimple'
+
+    def parameters(self):
+        params = super().parameters()
+        params.update({
+            'dropout': self.dropout,
+            'l2': self.l2,
+            'layers': self.layers_sizes_
+        })
+        return params
+
+
+class CNLSTM(KerasTrainableModel):
+    """
+    The network contains stacked layers of 1-dimensional convolutional layers
+    followed by max poolings
+
+    Parameters
+    ----------
+    self: list of tuples (filters: int, kernel_size: int)
+          Each element of the list is a layer of the network. The first element of the tuple contaings
+          the number of filters, the second one, the kernel size.
+    """
+
+    def __init__(self, layers_convolutionals,
+                 layers_recurrent,
+                 dropout, window,
+                 batch_size, step, transformer, shuffle, models_path,
+                 patience=4, cache_size=30):
+        super(CNLSTM, self).__init__(window,
+                                     batch_size,
+                                     step,
+                                     transformer,
+                                     shuffle,
+                                     models_path,
+                                     patience=4,
+                                     cache_size=30)
+        self.layers_convolutionals = layers_convolutionals
+        self.layers_recurrent = layers_recurrent
+        self.dropout = dropout
+
+    def build_model(self):
+        model = Sequential()
+        model.add(Input(shape=(window, n_features)))
+        for n_filters in self.layers_convolutionals:
+            model.add(Conv1D(filters=n_filters, strides=1,
+                             kernel_size=2, padding='same', activation='relu'))
+            model.add(MaxPool1D(pool_size=2, strides=2))
+
+        model.add(Flatten())
+        model.add(Dense(window * n_features, activation='relu'))
+        model.add(Dropout(self.dropout))
+        model.add(Reshape((window, n_features)))
+
+        for n_filters in self.layers_recurrent:
+            model.add(LSTM(n_filters*3, dropout=0.2))
+
+        model.add(Flatten())
+        model.add(Dense(50, activation='relu'))
+        model.add(Dropout(self.dropout))
+        model.add(Dense(1, activation='relu'))
+        return model
+
+    @property
+    def name(self):
+        return 'CNLSTM'
 
     def parameters(self):
         params = super().parameters()
