@@ -11,7 +11,6 @@ setup(
         'numpy',
         'tqdm',
         'scikit-learn',
-        'tensorflow',
         'seaborn'
     ],
     license='MIT',
