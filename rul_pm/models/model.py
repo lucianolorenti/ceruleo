@@ -68,19 +68,30 @@ class TrainableModel:
         return hashlib.md5(self._parameter_to_json()).hexdigest()
 
     def _parameter_to_json(self):
-        return json.dumps(self.parameters(),
+        return json.dumps(self.get_params(),
                           sort_keys=True,
                           default=json_to_str).encode('utf-8')
 
-    def parameters(self):
+    def get_params(self, deep=False):
         return {
             'window': self.window,
             'batch_size': self.batch_size,
             'step': self.step,
             'shuffle': self.shuffle,
             'patience': self.patience,
-            'transformer': self.transformer.description()
+            'transformer': self.transformer,
+            'models_path': self.models_path
         }
+
+    def set_params(self, **parameters):                
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+        return self
+
+    def _get_params_serializable(self):
+        params = self.get_params()
+        params['transformer'] = params['transformer'].description()
+        return params
 
     @property
     def model_filepath(self):
@@ -98,7 +109,7 @@ class TrainableModel:
 
     def _results(self):
         return {
-            'parameters': self.parameters(),
+            'parameters': self._get_params_serializable(),
             'model_file': self.model_filepath
         }
 

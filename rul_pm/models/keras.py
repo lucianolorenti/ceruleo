@@ -13,6 +13,7 @@ import numpy as np
 import logging
 import tensorflow as tf
 from rul_pm.iterators.batcher import get_batcher
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class KerasTrainableModel(TrainableModel):
         batcher.restart_at_end = False
 
         def gen_dataset():
-            for X, y in batcher:
+            for X, _ in batcher:
                 yield X
 
         b = tf.data.Dataset.from_generator(
@@ -99,12 +100,17 @@ class KerasTrainableModel(TrainableModel):
         n_features = self.transformer.n_features
         return (self.window, n_features)
 
+
+    def compile(self):
+        self.model.compile(loss='mse', optimizer=optimizers.Adam(lr=0.001))
+
     def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
-        if not self.transformer.fitted_:
-            self.transformer.fit(train_dataset)
+        
+        self.transformer.fit(train_dataset)
+        self.compile()
         logger.info('Creating batchers')
         train_batcher = get_batcher(train_dataset,
                                     self.window,
@@ -203,12 +209,12 @@ class FCN(KerasTrainableModel):
     def name(self):
         return 'FCN'
 
-    def parameters(self):
-        params = super().parameters()
+    def get_params(self):
+        params = super().get_params()
         params.update({
             'dropout': self.dropout,
             'l2': self.l2,
-            'layers': self.layers_sizes_
+            'layers_sizes_': self.layers_sizes_
         })
         return params
 
@@ -263,12 +269,12 @@ class ConvolutionalSimple(KerasTrainableModel):
     def name(self):
         return 'ConvolutionalSimple'
 
-    def parameters(self):
-        params = super().parameters()
+    def get_params(self, deep=False):
+        params = super().get_params()
         params.update({
             'dropout': self.dropout,
             'l2': self.l2,
-            'layers': self.layers_sizes_,
+            'layers_sizes_': self.layers_sizes_,
             'padding': self.padding
         })
         return params
@@ -320,8 +326,8 @@ class SimpleRecurrent(KerasTrainableModel):
     def name(self):
         return 'Recurrent'
 
-    def parameters(self):
-        params = super().parameters()
+    def get_params(self, deep=False):
+        params = super().get_params(deep)
         params.update({
             'dropout': self.dropout,
             'layers': self.layers,
@@ -411,8 +417,8 @@ class CNLSTM(KerasTrainableModel):
     def name(self):
         return 'CNLSTM'
 
-    def parameters(self):
-        params = super().parameters()
+    def get_params(self, deep=False):
+        params = super().get_params(deep)
         params.update({
             'dropout': self.dropout,
             'layers_convolutionals': self.layers_convolutionals,
