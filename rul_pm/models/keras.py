@@ -5,8 +5,8 @@ from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import (
     GRU, LSTM, Activation, Add, AveragePooling1D, BatchNormalization,
     Bidirectional, Concatenate, Conv1D, Dense, Dropout, Flatten, GaussianNoise,
-    Lambda, Layer, LayerNormalization, Masking, MaxPool1D, Reshape,
-    SpatialDropout1D, UpSampling1D)
+    Lambda, Layer, LayerNormalization, Masking, MaxPool1D, Reshape, StackedRNNCells, LSTMCell,
+    SpatialDropout1D, UpSampling1D, RNN)
 
 from rul_pm.models.model import TrainableModel
 import numpy as np
@@ -154,7 +154,7 @@ class KerasTrainableModel(TrainableModel):
             callbacks=[
                 early_stopping,
                 # lr_callback,
-                TerminateOnNaN(train_batcher),
+                # TerminateOnNaN(train_batcher),
                 model_checkpoint_callback
             ])
 
@@ -225,9 +225,9 @@ class ConvolutionalSimple(KerasTrainableModel):
           the number of filters, the second one, the kernel size.
     """
 
-    def __init__(self, layers, dropout, l2, window,
+    def __init__(self, layers, dropout, l2,  window,
                  batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30):
+                 patience=4, cache_size=30, padding='same'):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
                                                   step,
@@ -240,6 +240,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         self.layers_sizes_ = layers
         self.dropout = dropout
         self.l2 = l2
+        self.padding = padding
 
     def build_model(self):
         s = Sequential()
@@ -248,7 +249,7 @@ class ConvolutionalSimple(KerasTrainableModel):
                 Conv1D(filters=filters,
                        strides=1,
                        kernel_size=kernel_size,
-                       padding='same',
+                       padding=self.padding,
                        activation='relu'))
             s.add(MaxPool1D(pool_size=2, strides=2))
         s.add(Flatten())
@@ -267,7 +268,64 @@ class ConvolutionalSimple(KerasTrainableModel):
         params.update({
             'dropout': self.dropout,
             'l2': self.l2,
-            'layers': self.layers_sizes_
+            'layers': self.layers_sizes_,
+            'padding': self.padding
+        })
+        return params
+
+
+class SimpleRecurrent(KerasTrainableModel):
+    def __init__(self,
+                 layers,                 
+                 recurrent_type: str,
+                 dropout: float, window: int,
+                 batch_size: int, step: int, transformer, shuffle, models_path,
+                 patience: int = 4, cache_size: int = 30):
+        super(SimpleRecurrent, self).__init__(window,
+                                     batch_size,
+                                     step,
+                                     transformer,
+                                     shuffle,
+                                     models_path,
+                                     patience=4,
+                                     cache_size=30)
+        self.layers = layers
+        self.recurrent_type = recurrent_type
+        self.dropout = dropout
+
+    def layer_type(self):
+        if self.recurrent_type == 'LSTM':
+            return LSTM
+        elif self.recurrent_type == 'GRU':
+            return GRU
+        raise ValueError('Invalid recurrent layer type')
+
+    def build_model(self):
+        n_features = self.transformer.n_features
+        model = Sequential()
+        model.add(Input(shape=(self.window, n_features)))
+        for i, n_filters in enumerate(self.layers):
+            if i == len(self.layers) - 1:
+                model.add(self.layer_type()(n_filters, recurrent_dropout=self.dropout))
+            else:
+                model.add(self.layer_type()(n_filters, return_sequences=True , recurrent_dropout=self.dropout))
+
+        model.add(Flatten())
+        model.add(Dense(50, activation='relu'))
+        model.add(Dropout(self.dropout))
+        model.add(Dense(1, activation='relu'))
+        return model
+
+    @property
+    def name(self):
+        return 'Recurrent'
+
+    def parameters(self):
+        params = super().parameters()
+        params.update({
+            'dropout': self.dropout,
+            'layers': self.layers,
+            'recurrent_type': self.recurrent_type
         })
         return params
 
@@ -277,18 +335,34 @@ class CNLSTM(KerasTrainableModel):
     The network contains stacked layers of 1-dimensional convolutional layers
     followed by max poolings
 
+    * Temporal Convolutional Memory Networks forRemaining Useful Life Estimation of Industrial Machinery
+    * Lahiru Jayasinghe∗, Tharaka Samarasinghe†, Chau Yuen∗, Jenny Chen Ni Low§, Shuzhi Sam Ge‡
+
+
     Parameters
     ----------
-    self: list of tuples (filters: int, kernel_size: int)
-          Each element of the list is a layer of the network. The first element of the tuple contaings
-          the number of filters, the second one, the kernel size.
+    layers_convolutionals: list of int
+        Number of convolutional layers. Each convolutional layers is composed by:
+        * 1D-convolution:  kernelsize=2, strides=1,padding=same, activation=ReLu
+        * 1D-max-pooling   poolsize=2, strides=2, padding=same         
+    layers_recurrent: list of int
+        Number of current layers. Each recurrent layer is composed by:
+        * LSTM
+    dropout:float 
+    window: int
+    batch_size: int 
+    step: int 
+    transformer, shuffle, models_path,
+    patience:int. Default:4
+    cache_size:int. Default 30
     """
 
-    def __init__(self, layers_convolutionals,
+    def __init__(self,
+                 layers_convolutionals,
                  layers_recurrent,
-                 dropout, window,
-                 batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30):
+                 dropout: float, window: int,
+                 batch_size: int, step: int, transformer, shuffle, models_path,
+                 patience: int = 4, cache_size: int = 30):
         super(CNLSTM, self).__init__(window,
                                      batch_size,
                                      step,
@@ -302,20 +376,30 @@ class CNLSTM(KerasTrainableModel):
         self.dropout = dropout
 
     def build_model(self):
+        n_features = self.transformer.n_features
         model = Sequential()
-        model.add(Input(shape=(window, n_features)))
+        model.add(Input(shape=(self.window, n_features)))
         for n_filters in self.layers_convolutionals:
             model.add(Conv1D(filters=n_filters, strides=1,
                              kernel_size=2, padding='same', activation='relu'))
             model.add(MaxPool1D(pool_size=2, strides=2))
 
-        model.add(Flatten())
-        model.add(Dense(window * n_features, activation='relu'))
-        model.add(Dropout(self.dropout))
-        model.add(Reshape((window, n_features)))
+        #model.add(Flatten())
+        #w = 10
+        #n = 1
+        #model.add(Dense(w*n, activation='relu'))
+        #model.add(Dropout(self.dropout))
+        #model.add(Reshape((w, n)))
 
+        recurrents = []
         for n_filters in self.layers_recurrent:
-            model.add(LSTM(n_filters*3, dropout=0.2))
+            recurrents.append(
+                LSTMCell(n_filters, recurrent_dropout=0.5, dropout=0.5))
+
+        stacked_lstm = tf.keras.layers.StackedRNNCells(recurrents)
+        model.add(RNN(stacked_lstm))
+
+        model.add(Dropout(self.dropout))
 
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
@@ -331,7 +415,7 @@ class CNLSTM(KerasTrainableModel):
         params = super().parameters()
         params.update({
             'dropout': self.dropout,
-            'l2': self.l2,
-            'layers': self.layers_sizes_
+            'layers_convolutionals': self.layers_convolutionals,
+            'layers_recurrent': self.layers_recurrent
         })
         return params
