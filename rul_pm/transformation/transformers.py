@@ -12,6 +12,8 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from sklearn.utils.validation import check_is_fitted
+import copy 
+
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,9 @@ class Transformer:
             selected_columns = (self.transformerX['selector'].get_support(
                 indices=True))
             self.features = [self.features[i] for i in selected_columns]
+
+    def clone(self):
+        return copy.deepcopy(self)
 
     def fit(self, dataset):
         logger.info('Fitting Transformer')

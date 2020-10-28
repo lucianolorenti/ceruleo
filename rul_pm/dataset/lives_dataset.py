@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 class AbstractLivesDataset:
-
     def __getitem__(self, i:int):
         """
 

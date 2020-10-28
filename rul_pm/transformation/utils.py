@@ -17,3 +17,15 @@ class TargetIdentity(BaseEstimator, TransformerMixin):
             return X.iloc[:, -1].values            
         else:
             return X.values
+
+
+
+class IdentityTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+    
+    def fit(self, input_array, y=None):
+        return self
+    
+    def transform(self, input_array, y=None):
+        return input_array*1
