@@ -41,6 +41,7 @@ class RULGridSearchCV:
 
         for p in tqdm(list(ParameterGrid(self.params))):
             model = clone(self.model)
+            model.reset()
             model.set_params(**p)
             params_results = []
             for train, validation in tqdm(self.folds_genereator.split(dataset)):

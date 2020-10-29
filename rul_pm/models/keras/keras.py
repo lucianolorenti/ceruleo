@@ -129,6 +129,7 @@ class KerasTrainableModel(TrainableModel):
         return a,b
 
     def reset(self):
+        tf.keras.backend.clear_session()
         self._model = None
         self.compile()
 
