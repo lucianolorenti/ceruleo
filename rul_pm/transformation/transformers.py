@@ -109,9 +109,9 @@ class Transformer:
     def clone(self):
         return copy.deepcopy(self)
 
-    def fit(self, dataset):
+    def fit(self, dataset, proportion=1.0):
         logger.info('Fitting Transformer')
-        df = dataset.toPandas()
+        df = dataset.toPandas(proportion)
         self.fitX(df)
         self.fitY(df)
 
