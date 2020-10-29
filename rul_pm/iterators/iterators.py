@@ -1,5 +1,6 @@
 import pickle
 import random
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -26,7 +27,7 @@ class DatasetIterator:
                   Dataset with the lives data
     transformer : Transformer
                   Transformer to apply to each life
-    shuffle     : default: False
+    shuffle     : Union[bool, str] default: False
                   If the data returned for the iterator should be shuffle.
                   The possible values depends on the iterator
     cache_size  : int. default: CACHE_SIZE
@@ -35,7 +36,7 @@ class DatasetIterator:
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
-                 shuffle=False,
+                 shuffle: Union[bool, str]=False,
                  cache_size:int =CACHE_SIZE):
 
         self.dataset = dataset
@@ -82,7 +83,7 @@ class LifeDatasetIterator(DatasetIterator):
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
-                 shuffle=False):
+                 shuffle: Union[bool, str]=False):
         super().__init__(dataset, transformer, shuffle)
         self.elements = list(range(0, len(self.dataset)))
         self.i = 0
@@ -157,7 +158,7 @@ class WindowedDatasetIterator(DatasetIterator):
                  window_size: int,
                  transformer: Transformer,
                  step: int = 1,
-                 shuffle=False,
+                 shuffle : Union[str, bool]=False,
                  cache_size:int = CACHE_SIZE):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.window_size = window_size

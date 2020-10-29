@@ -4,24 +4,22 @@ import logging
 import pickle
 from datetime import datetime
 from pathlib import Path
+from typing import Tuple, TypeVar, Union
 
 import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import Batcher, get_batcher
 from rul_pm.iterators.iterators import WindowedDatasetIterator
-from typing import TypeVar, Union, Tuple
+from rul_pm.transformation.transformers import Transformer
 
 logger = logging.getLogger(__name__)
-
-
-
 
 
 def json_to_str(elem):
     if callable(elem):
         return elem.__name__
     elif isinstance(elem, np.ndarray):
-        #return elem.tolist()
+        # return elem.tolist()
         return []
     else:
         return str(elem)
@@ -29,19 +27,36 @@ def json_to_str(elem):
 
 class TrainableModel:
     """
+    Base Model class to fit and predict 
 
     Parameters
     -----------
+    window: int
+            Lookback window size
+    batch_size:int
+            Batch size
+    step: Union[int, Tuple[str, int]]
+    transformer : Transformer
+                  Transformer to be applied on the dataset
+    shuffle: Union[bool, str]
+             Check rul_pm.iterators.iterator
+    models_path:Path
+             Location where the models are stored
+    patience: int. Default 4
+             Patiente of the Early stopping
+    cache_size:int. Default 30
+             LRU Cache size of the iterator
     """
+
     def __init__(self,
-                 window:int,
-                 batch_size:int,
-                 step:Union[int, Tuple[str, int]],
-                 transformer,
-                 shuffle:Union[bool, str],
-                 models_path:Path,
-                 patience:int=4,
-                 cache_size:int=30):
+                 window: int,
+                 batch_size: int,
+                 step: Union[int, Tuple[str, int]],
+                 transformer : Transformer,
+                 shuffle: Union[bool, str],
+                 models_path: Path,
+                 patience: int = 4,
+                 cache_size: int = 30):
         if isinstance(models_path, str):
             models_path = Path(models_path)
 
@@ -56,7 +71,7 @@ class TrainableModel:
         self._model_filepath = None
         self.cache_size = cache_size
         self._model = None
-    
+
     @property
     def computed_step(self):
         if isinstance(self.step, int):
@@ -96,7 +111,7 @@ class TrainableModel:
             'models_path': self.models_path
         }
 
-    def set_params(self, **parameters):                
+    def set_params(self, **parameters):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
@@ -167,6 +182,3 @@ class TrainableModel:
 
     def reset(self):
         pass
-        
-
-
