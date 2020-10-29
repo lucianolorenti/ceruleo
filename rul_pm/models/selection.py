@@ -52,6 +52,27 @@ class RULGridSearchCV:
             self.param_list.append(p)
             self.results.append(params_results)
 
+
+class RULGridSearchPredefinedValidation:
+    def __init__(self, model, params:dict):
+        self.params = params
+        self.model = model
+        self.param_list = []
+        self.results = []
+
+
+    def fit(self, dataset_train, dataset_validation, verbose=1):
+        self.param_list = []
+        self.results = []
+
+        for p in tqdm(list(ParameterGrid(self.params))):
+            model = clone(self.model)
+            model.reset()
+            model.set_params(**p)            
+            r = model.fit(dataset_train, dataset_validation, verbose=verbose)
+            self.param_list.append(p)
+            self.results.append([r])
+
         
 
 
