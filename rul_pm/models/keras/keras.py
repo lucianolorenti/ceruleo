@@ -126,17 +126,18 @@ class KerasTrainableModel(TrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None])))
-        return a,b       
+        return a,b
 
     def reset(self):
-        self.transformer.fit(train_dataset)
         self._model = None
         self.compile()
 
-    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True, reset=True):
+    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True, reset=True, refit_transformer=True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
+        if refit_transformer:
+            self.transformer.fit(train_dataset)
         if reset:
             self.reset()
 
@@ -367,14 +368,14 @@ class CNLSTM(KerasTrainableModel):
     layers_convolutionals: list of int
         Number of convolutional layers. Each convolutional layers is composed by:
         * 1D-convolution:  kernelsize=2, strides=1,padding=same, activation=ReLu
-        * 1D-max-pooling   poolsize=2, strides=2, padding=same         
+        * 1D-max-pooling   poolsize=2, strides=2, padding=same
     layers_recurrent: list of int
         Number of current layers. Each recurrent layer is composed by:
         * LSTM
-    dropout:float 
+    dropout:float
     window: int
-    batch_size: int 
-    step: int 
+    batch_size: int
+    step: int
     transformer, shuffle, models_path,
     patience:int. Default:4
     cache_size:int. Default 30
@@ -458,7 +459,7 @@ class MultiTaskRUL(KerasTrainableModel):
         layers_dense : List[int]
                        Number of dense layers
         window: int
-                 
+
         batch_size: int
         step: int
         transformer
@@ -472,7 +473,7 @@ class MultiTaskRUL(KerasTrainableModel):
                  layers_lstm : List[int],
                  layers_dense : List[int],
                  window: int,
-                 batch_size: int, 
+                 batch_size: int,
                  step: int, transformer, shuffle, models_path,
                  patience: int = 4, cache_size: int = 30):
         super().__init__(window,
@@ -547,4 +548,4 @@ class MultiTaskRUL(KerasTrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None, 2])))
-        return a,b 
+        return a,b
