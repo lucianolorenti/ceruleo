@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import Batcher, get_batcher
 from rul_pm.iterators.iterators import WindowedDatasetIterator
-
+from typing import TypeVar, Union, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,20 @@ def json_to_str(elem):
 
 
 class TrainableModel:
+    """
+
+    Parameters
+    -----------
+    """
     def __init__(self,
-                 window,
-                 batch_size,
-                 step,
+                 window:int,
+                 batch_size:int,
+                 step:Union[int, Tuple[str, int]],
                  transformer,
-                 shuffle,
-                 models_path,
-                 patience=4,
-                 cache_size=30):
+                 shuffle:Union[bool, str],
+                 models_path:Path,
+                 patience:int=4,
+                 cache_size:int=30):
         if isinstance(models_path, str):
             models_path = Path(models_path)
 
@@ -52,6 +57,14 @@ class TrainableModel:
         self.cache_size = cache_size
         self._model = None
     
+    @property
+    def computed_step(self):
+        if isinstance(self.step, int):
+            return self.step
+        elif isinstance(self.step, tuple):
+            if self.step[0] == 'auto':
+                return int(self.window / self.step[1])
+        raise ValueError('Invalid step parameter')
 
     @property
     def model_filename(self):
@@ -151,6 +164,9 @@ class TrainableModel:
         if self._model is None:
             self._model = self.build_model()
         return self._model
+
+    def reset(self):
+        pass
         
 
 

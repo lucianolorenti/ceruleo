@@ -83,7 +83,7 @@ class KerasTrainableModel(TrainableModel):
         return params
 
     def predict(self, dataset, step=None):
-        step = self.step if step is None else step
+        step = self.computed_step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset,
                               self.window,
@@ -126,29 +126,33 @@ class KerasTrainableModel(TrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None])))
-        return a,b 
+        return a,b       
 
+    def reset(self):
+        self.transformer.fit(train_dataset)
+        self._model = None
+        self.compile()
 
-    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True):
+    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True, reset=True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
+        if reset:
+            self.reset()
 
-        self.transformer.fit(train_dataset)
-        self.compile()
         logger.info('Creating batchers')
         train_batcher = get_batcher(train_dataset,
                                     self.window,
                                     self.batch_size,
                                     self.transformer,
-                                    self.step,
+                                    self.computed_step,
                                     shuffle=self.shuffle,
                                     cache_size=self.cache_size)
         val_batcher = get_batcher(validation_dataset,
                                   self.window,
                                   self.batch_size,
                                   self.transformer,
-                                  self.step,
+                                  self.computed_step,
                                   shuffle=False,
                                   cache_size=self.cache_size)
         val_batcher.restart_at_end = False
@@ -181,7 +185,7 @@ class KerasTrainableModel(TrainableModel):
 
 class FCN(KerasTrainableModel):
     def __init__(self,
-                 layers,
+                 layers_sizes,
                  dropout,
                  l2,
                  window,
@@ -199,14 +203,14 @@ class FCN(KerasTrainableModel):
                                   models_path,
                                   patience=patience)
         self.layers_ = []
-        self.layers_sizes_ = layers
+        self.layers_sizes = layers
         self.dropout = dropout
         self.l2 = l2
 
     def build_model(self):
         s = Sequential()
         s.add(Flatten())
-        for l in self.layers_sizes_:
+        for l in self.layers_sizes:
             s.add(
                 Dense(l,
                       activation='relu',
@@ -225,7 +229,7 @@ class FCN(KerasTrainableModel):
         params.update({
             'dropout': self.dropout,
             'l2': self.l2,
-            'layers_sizes_': self.layers_sizes_
+            'layers_sizes': self.layers_sizes
         })
         return params
 
@@ -242,7 +246,7 @@ class ConvolutionalSimple(KerasTrainableModel):
           the number of filters, the second one, the kernel size.
     """
 
-    def __init__(self, layers, dropout, l2,  window,
+    def __init__(self, layers_sizes, dropout, l2,  window,
                  batch_size, step, transformer, shuffle, models_path,
                  patience=4, cache_size=30, padding='same'):
         super(ConvolutionalSimple, self).__init__(window,
@@ -254,14 +258,14 @@ class ConvolutionalSimple(KerasTrainableModel):
                                                   patience=4,
                                                   cache_size=30)
         self.layers_ = []
-        self.layers_sizes_ = layers
+        self.layers_sizes = layers_sizes
         self.dropout = dropout
         self.l2 = l2
         self.padding = padding
 
     def build_model(self):
         s = Sequential()
-        for filters, kernel_size in self.layers_sizes_:
+        for filters, kernel_size in self.layers_sizes:
             s.add(
                 Conv1D(filters=filters,
                        strides=1,
@@ -285,7 +289,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         params.update({
             'dropout': self.dropout,
             'l2': self.l2,
-            'layers_sizes_': self.layers_sizes_,
+            'layers_sizes': self.layers_sizes,
             'padding': self.padding
         })
         return params
@@ -470,7 +474,8 @@ class MultiTaskRUL(KerasTrainableModel):
                  layers_lstm : List[int],
                  layers_dense : List[int],
                  window: int,
-                 batch_size: int, step: int, transformer, shuffle, models_path,
+                 batch_size: int, 
+                 step: int, transformer, shuffle, models_path,
                  patience: int = 4, cache_size: int = 30):
         super().__init__(window,
                          batch_size,
