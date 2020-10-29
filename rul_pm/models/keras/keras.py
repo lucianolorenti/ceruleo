@@ -452,6 +452,8 @@ class MultiTaskRUL(KerasTrainableModel):
         Two Birds with One Network: Unifying Failure Event Prediction and Time-to-failure Modeling
         Karan Aggarwal, Onur Atan, Ahmed K. Farahat, Chi Zhang, Kosta Ristovski, Chetan Gupta
 
+        The target
+
         Parameters
         -----------
         layers_lstm : List[int]
