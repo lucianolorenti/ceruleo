@@ -23,18 +23,33 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
 
     def fit(self, df, y=None):
         if len(self.features) > 0:
-            features = list(set(df.columns).intersection(set(self.features)))
+            features = [f for f in self.features if f in set(df.columns)]
         else:
-            features= list(set(df.columns))
+            features = list(set(df.columns))
         self.features_indices = [i for i, c in enumerate(df.columns) if c in features]
         return self
 
-    def transform(self, X):
+    def transform(self, X):          
         return X.iloc[:, self.features_indices]
 
     @property
     def n_features(self):
         return len(self.features)
+
+class LocateFeatures(BaseEstimator, TransformerMixin):
+    def __init__(self, features):
+        self.features = features
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):                  
+        cols = list(X.columns)
+        for name, pos in self.features.items():            
+            a, b = cols.index(name), pos
+            cols[b], cols[a] = cols[a], cols[b]
+            X = X[cols]
+        return X
 
 
 class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):

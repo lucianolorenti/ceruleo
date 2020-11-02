@@ -32,7 +32,9 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
                             scaler=RobustScaler(),
                             resampler=None,
                             features=None,
-                            discard=None):
+                            discard=None,
+                            locater=None,
+                            pandas_transformation=None):
     if features is not None and discard is not None:
         raise ValueError('Features and discard cannot be setted at the same time')
     selector = 'passthrough'
@@ -44,6 +46,8 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
         ('initial_selection', selector),
         (RESAMPLER_STEP_NAME,
          resampler if resampler is not None else 'passthrough'),
+        ('locater',  locater if locater is not None else 'passthrough'),
+        ('pandas_transformation', pandas_transformation if pandas_transformation is not None else 'passthrough'),
         ('to_numpy', PandasToNumpy()),
         ('outlier_removal', outlier if outlier is not None else 'passthrough'),
         ('NullProportionSelector', NullProportionSelector()),
@@ -57,7 +61,7 @@ def step_set_enable(transformer, step_name, enabled):
     if not (isinstance(transformer, Pipeline)):
         return
     for (name, step) in transformer.steps:
-        if name == step_name and not isinstance(step, str):
+        if name == step_name and not isinstance(step, str) and step is not None:
             step.enabled = enabled
 
 
@@ -129,7 +133,11 @@ class Transformer:
 
     def _target(self, df):
         if self.time_feature is not None:
-            return df[[self.time_feature, self.target_column]]
+            if isinstance(self.target_column, list):
+                select_features = [self.time_feature]  + self.target_column
+            else:
+                select_features = [self.time_feature,  self.target_column]
+            return df[select_features]
         else:
             return df[self.target_column]
 

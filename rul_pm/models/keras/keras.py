@@ -62,6 +62,7 @@ class KerasTrainableModel(TrainableModel):
                          models_path,
                          patience=patience,
                          cache_size=cache_size)
+        self.compiled = False
 
     def load_best_model(self):
         self.model.load_weights(self.model_filepath)
@@ -82,12 +83,12 @@ class KerasTrainableModel(TrainableModel):
         })
         return params
 
-    def predict(self, dataset, step=None):
+    def predict(self, dataset, step=None, batch_size=512):
         step = self.computed_step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset,
                               self.window,
-                              512,
+                              batch_size,
                               self.transformer,
                               step,
                               shuffle=False,
@@ -108,6 +109,7 @@ class KerasTrainableModel(TrainableModel):
         return (self.window, n_features)
 
     def compile(self):
+        self.compiled=  True
         self.model.compile(loss='mse', optimizer=optimizers.Adam(lr=0.001))
 
     def _generate_batcher(self, train_batcher, val_batcher):
@@ -131,7 +133,8 @@ class KerasTrainableModel(TrainableModel):
     def reset(self):
         tf.keras.backend.clear_session()
         self._model = None
-        self.compile()
+        self.compiled = False
+        
 
     def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True, reset=True, refit_transformer=True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
@@ -141,6 +144,8 @@ class KerasTrainableModel(TrainableModel):
             self.transformer.fit(train_dataset)
         if reset:
             self.reset()
+        if not self.compiled:
+            self.compile()
 
         logger.info('Creating batchers')
         train_batcher = get_batcher(train_dataset,
@@ -154,7 +159,7 @@ class KerasTrainableModel(TrainableModel):
                                   self.window,
                                   self.batch_size,
                                   self.transformer,
-                                  self.computed_step,
+                                  20,
                                   shuffle=False,
                                   cache_size=self.cache_size)
         val_batcher.restart_at_end = False
@@ -250,7 +255,7 @@ class ConvolutionalSimple(KerasTrainableModel):
 
     def __init__(self, layers_sizes, dropout, l2,  window,
                  batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30, padding='same'):
+                 patience=4, cache_size=30, padding='same', activation='relu'):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
                                                   step,
@@ -264,6 +269,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         self.dropout = dropout
         self.l2 = l2
         self.padding = padding
+        self.activation = activation
 
     def build_model(self):
         s = Sequential()
@@ -279,7 +285,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         s.add(Dense(50, activation='relu'))
         s.add(Dropout(self.dropout))
         s.add(BatchNormalization())
-        s.add(Dense(1, activation='relu'))
+        s.add(Dense(1, activation=self.activation))
         return s
 
     @property
@@ -318,7 +324,7 @@ class SimpleRecurrent(KerasTrainableModel):
 
     def layer_type(self):
         if self.recurrent_type == 'LSTM':
-            return LSTM
+            return tf.compat.v1.keras.layers.CuDNNLSTM
         elif self.recurrent_type == 'GRU':
             return GRU
         raise ValueError('Invalid recurrent layer type')
@@ -330,10 +336,10 @@ class SimpleRecurrent(KerasTrainableModel):
         for i, n_filters in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 model.add(self.layer_type()(
-                    n_filters, recurrent_dropout=self.dropout))
+                    n_filters))
             else:
                 model.add(self.layer_type()(
-                    n_filters, return_sequences=True, recurrent_dropout=self.dropout))
+                    n_filters, return_sequences=True))
 
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
@@ -491,6 +497,7 @@ class MultiTaskRUL(KerasTrainableModel):
         self.layers_lstm = layers_lstm
 
     def compile(self):
+        super().compile()
         self.model.compile(
             optimizer=optimizers.Adam(lr=0.001),
             loss=time_to_failure_rul(weights={

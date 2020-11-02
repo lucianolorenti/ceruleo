@@ -58,3 +58,18 @@ def get_batcher(dataset: AbstractLivesDataset,
                                        shuffle=shuffle,
                                        cache_size=cache_size)
     return Batcher(iterator, batch_size)
+
+
+def dataset_map(fun, dataset, step, transformer, window):    
+    batcher = get_batcher(dataset,
+                          window,
+                          512,
+                          transformer,
+                          step,
+                          shuffle=False)
+    batcher.restart_at_end = False    
+    for X, y in batcher:
+        fun(X, y)
+
+
+
