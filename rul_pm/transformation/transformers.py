@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 RESAMPLER_STEP_NAME = 'resampler'
 
 
-def simple_pipeline(features=[]):
+def simple_pipeline(features=[], to_numpy: bool = True):
     return Pipeline(steps=[
         ('initial_selection', ByNameFeatureSelector(features)),
-        ('to_numpy', PandasToNumpy())
+        ('to_numpy', PandasToNumpy() if to_numpy else 'passthrough')
     ])
 
 
@@ -123,6 +123,7 @@ class Transformer:
     def fitX(self, df):
         if self.disable_resampling_when_fitting:
             step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)
+        self.original_columns = df.columns
         self.transformerX.fit(df)
         step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, True)
 
@@ -150,6 +151,9 @@ class Transformer:
     def transformX(self, df):
         return self.transformerX.transform(df)
 
+    def columns(self):
+        pass
+
     @property
     def n_features(self):
         return self.number_of_features_
@@ -164,6 +168,6 @@ class Transformer:
 
 
 class SimpleTransformer(Transformer):
-    def __init__(self, target_column: str, time_feature: str=None):
-        super().__init__(target_column, simple_pipeline(), transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
+    def __init__(self, target_column: str, time_feature: str=None, to_numpy : bool = True):
+        super().__init__(target_column, simple_pipeline(to_numpy=to_numpy), transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
                  
