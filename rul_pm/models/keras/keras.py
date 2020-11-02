@@ -83,12 +83,12 @@ class KerasTrainableModel(TrainableModel):
         })
         return params
 
-    def predict(self, dataset, step=None):
+    def predict(self, dataset, step=None, batch_size=512):
         step = self.computed_step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset,
                               self.window,
-                              512,
+                              batch_size,
                               self.transformer,
                               step,
                               shuffle=False,
@@ -159,7 +159,7 @@ class KerasTrainableModel(TrainableModel):
                                   self.window,
                                   self.batch_size,
                                   self.transformer,
-                                  self.computed_step,
+                                  20,
                                   shuffle=False,
                                   cache_size=self.cache_size)
         val_batcher.restart_at_end = False
@@ -255,7 +255,7 @@ class ConvolutionalSimple(KerasTrainableModel):
 
     def __init__(self, layers_sizes, dropout, l2,  window,
                  batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30, padding='same'):
+                 patience=4, cache_size=30, padding='same', activation='relu'):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
                                                   step,
@@ -269,6 +269,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         self.dropout = dropout
         self.l2 = l2
         self.padding = padding
+        self.activation = activation
 
     def build_model(self):
         s = Sequential()
@@ -284,7 +285,7 @@ class ConvolutionalSimple(KerasTrainableModel):
         s.add(Dense(50, activation='relu'))
         s.add(Dropout(self.dropout))
         s.add(BatchNormalization())
-        s.add(Dense(1, activation='relu'))
+        s.add(Dense(1, activation=self.activation))
         return s
 
     @property

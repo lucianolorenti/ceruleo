@@ -14,6 +14,10 @@ from sklearn.utils.validation import check_is_fitted
 CACHE_SIZE = 30
 
 
+    
+
+
+
 class DatasetIterator:
     """
 
@@ -178,6 +182,10 @@ class WindowedDatasetIterator(DatasetIterator):
                 if i - self.window_size >= 0:
                     olifes.append(life)
                     oelements.append(i)
+            i = X.shape[0] - 1
+            if i - self.window_size >= 0:
+                olifes.append(life)
+                oelements.append(i)
         return olifes, oelements
 
     def _shuffle(self):

@@ -147,12 +147,12 @@ class TrainableModel:
         with open(self.results_filename, 'wb') as outfile:
             pickle.dump(self._results(), outfile)
 
-    def true_values(self, dataset, step=None):
+    def true_values(self, dataset, step=None, transformer=None):
         step = self.step if step is None else step
         batcher = get_batcher(dataset,
                               self.window,
                               512,
-                              self.transformer,
+                              transformer if transformer is not None else self.transformer,
                               step,
                               shuffle=False)
         batcher.restart_at_end = False
