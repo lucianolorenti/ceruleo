@@ -1,7 +1,10 @@
 import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
 import pandas as pd
+import logging 
 
+
+logger = logging.getLogger(__name__)
 
 
 class NullProportionSelector(BaseEstimator, TransformerMixin):
@@ -9,11 +12,15 @@ class NullProportionSelector(BaseEstimator, TransformerMixin):
         self.min_null_proportion = min_null_proportion
 
     def fit(self, X, y=None):        
+        logger.info(f'Features before NullProportionSelector {X.shape[1]}')
         self.not_null_proportion = np.mean(np.isfinite(X), axis=0)
         self.mask = self.not_null_proportion > self.min_null_proportion
+        
+        logger.info(f'Features before NullProportionSelector {np.sum(self.mask)}')
         return self
 
     def transform(self, X):
+        
         return X[:, self.mask]
 
 class ByNameFeatureSelector(BaseEstimator, TransformerMixin):

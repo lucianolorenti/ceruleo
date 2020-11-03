@@ -1,5 +1,8 @@
 import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
+import logging 
+
+logger = logging.getLogger(__name__)
 
 class NaNRemovalImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
@@ -51,3 +54,21 @@ class ForwardFillImputer(BaseEstimator, TransformerMixin):
         np.maximum.accumulate(idx,axis=1, out=idx)
         X[mask] = X[np.nonzero(mask)[0], idx[mask]]
         return X
+
+
+class MedianImputer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.median = np.nanmedian(X, axis=0)
+        for i in range(len(self.median)):
+            if np.isnan(self.median[i]):
+                logger.info(f'Feature {i} is nan')
+                self.median[i] = 0
+        return self
+        
+    def transform(self, X, y=None):
+        mask = np.isnan(X)
+        rows, cols = np.where(mask)
+        for r, c in zip (rows, cols):
+            X[r, c] = self.median[c]
+        return X
+        

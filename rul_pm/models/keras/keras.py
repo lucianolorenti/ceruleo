@@ -144,8 +144,13 @@ class KerasTrainableModel(TrainableModel):
             self.transformer.fit(train_dataset)
         if reset:
             self.reset()
-        if not self.compiled:
+        if not self.compiled:            
             self.compile()
+
+        self.print_summary = True
+
+        if self.print_summary:
+            self.model.summary()
 
         logger.info('Creating batchers')
         train_batcher = get_batcher(train_dataset,
@@ -391,6 +396,7 @@ class CNLSTM(KerasTrainableModel):
     def __init__(self,
                  layers_convolutionals,
                  layers_recurrent,
+                 hidden_size,
                  dropout: float, window: int,
                  batch_size: int, step: int, transformer, shuffle, models_path,
                  patience: int = 4, cache_size: int = 30):
@@ -405,32 +411,30 @@ class CNLSTM(KerasTrainableModel):
         self.layers_convolutionals = layers_convolutionals
         self.layers_recurrent = layers_recurrent
         self.dropout = dropout
+        self.hidden_size = hidden_size
 
     def build_model(self):
         n_features = self.transformer.n_features
         model = Sequential()
         model.add(Input(shape=(self.window, n_features)))
-        for n_filters in self.layers_convolutionals:
-            model.add(Conv1D(filters=n_filters, strides=1,
+        f = n_features 
+        for n_filters in range(self.layers_convolutionals):            
+            model.add(Conv1D(filters=f, strides=1,
                              kernel_size=2, padding='same', activation='relu'))
             model.add(MaxPool1D(pool_size=2, strides=2))
+            f = f * 2
 
-        # model.add(Flatten())
-        #w = 10
-        #n = 1
-        #model.add(Dense(w*n, activation='relu'))
-        # model.add(Dropout(self.dropout))
-        #model.add(Reshape((w, n)))
-
-        recurrents = []
-        for n_filters in self.layers_recurrent:
-            recurrents.append(
-                LSTMCell(n_filters, recurrent_dropout=0.5, dropout=0.5))
-
-        stacked_lstm = tf.keras.layers.StackedRNNCells(recurrents)
-        model.add(RNN(stacked_lstm))
-
+        model.add(Flatten())        
+        model.add(Dense(self.hidden_size[0] * self.hidden_size[1], activation='relu'))
         model.add(Dropout(self.dropout))
+        model.add(Reshape(self.hidden_size))
+
+        
+        for n_filters in self.layers_recurrent:
+            model.add(tf.compat.v1.keras.layers.CuDNNLSTM(n_filters))
+            
+
+        #model.add(Dropout(self.dropout))
 
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
