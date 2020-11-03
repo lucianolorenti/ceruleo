@@ -33,19 +33,20 @@ class TrainableModel:
     -----------
     window: int
             Lookback window size
-    batch_size:int
-            Batch size
+    batch_size: int
+                Batch size
     step: Union[int, Tuple[str, int]]
+          Stride
     transformer : Transformer
                   Transformer to be applied on the dataset
     shuffle: Union[bool, str]
              Check rul_pm.iterators.iterator
-    models_path:Path
-             Location where the models are stored
+    models_path: Path
+                 Location where the models are stored
     patience: int. Default 4
-             Patiente of the Early stopping
-    cache_size:int. Default 30
-             LRU Cache size of the iterator
+              Patiente of the Early stopping
+    cache_size: int. Default 30
+                LRU Cache size of the iterator
     """
 
     def __init__(self,

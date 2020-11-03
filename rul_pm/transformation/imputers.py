@@ -11,6 +11,15 @@ class NaNRemovalImputer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return X[~np.isnan(X).any(axis=1)]
 
+class PandasMedianImputer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.median = X.median()
+        return self
+        
+    def transform(self, X, y=None):
+        return X.fillna(self.median)
+
+
 
 class RollingImputer(BaseEstimator, TransformerMixin):
     def __init__(self, window_size, func):

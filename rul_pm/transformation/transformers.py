@@ -2,9 +2,9 @@ import logging
 
 import numpy as np
 from rul_pm.transformation.feature_selection import (ByNameFeatureSelector,
-                                                    DiscardByNameFeatureSelector,
-                                                      NullProportionSelector)
-from rul_pm.transformation.imputers import NaNRemovalImputer
+                                                     DiscardByNameFeatureSelector,
+                                                     NullProportionSelector)
+from rul_pm.transformation.imputers import NaNRemovalImputer,PandasMedianImputer
 from rul_pm.transformation.outliers import IQROutlierRemover
 from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -12,7 +12,10 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from sklearn.utils.validation import check_is_fitted
-import copy 
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline, FeatureUnion
+import pandas as pd
+import copy
 
 
 logger = logging.getLogger(__name__)
@@ -20,11 +23,26 @@ logger = logging.getLogger(__name__)
 RESAMPLER_STEP_NAME = 'resampler'
 
 
-def simple_pipeline(features=[]):
+def simple_pipeline(features=[], to_numpy: bool = True):
     return Pipeline(steps=[
         ('initial_selection', ByNameFeatureSelector(features)),
-        ('to_numpy', PandasToNumpy())
+        ('to_numpy', PandasToNumpy() if to_numpy else 'passthrough')
     ])
+
+
+class OneHotCategoricalPanads(BaseEstimator, TransformerMixin):
+    def __init__(self, features):
+        self.features = features
+
+    def fit(self, X, y=None):        
+        self.columns = [c for c in X.columns if c in self.features]
+        self.enconder = OneHotEncoder(handle_unknown='ignore', sparse=False).fit(X[self.columns])
+        logger.info(f'Categorical featuers {self.columns}')
+        return self
+
+    def transform(self, X, y=None):
+        return self.enconder.transform(X[self.columns])
+        
 
 
 def transformation_pipeline(outlier=IQROutlierRemover(),
@@ -34,26 +52,60 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
                             features=None,
                             discard=None,
                             locater=None,
-                            pandas_transformation=None):
+                            pandas_transformation=None,
+                            final=None,
+                            categoricals=None):
+    def mixed_pipeline():
+        return ('split', FeatureUnion([
+            ('numeric_features', Pipeline(steps=[
+                ('numeric_selection', ByNameFeatureSelector(
+                    set(features)-set(categoricals))),
+                ('pandas_transformation',
+                 pandas_transformation if pandas_transformation is not None else 'passthrough'),
+                ('to_numpy', PandasToNumpy()),
+                ('outlier_removal', outlier if outlier is not None else 'passthrough'),
+                ('NullProportionSelector', NullProportionSelector()),
+                ('selector', VarianceThreshold(0)),
+                ('scaler', scaler if scaler is not None else 'passthrough'),
+                ('imputer', imputer if imputer is not None else 'passthrough'),
+                ('final', final if final is not None else 'passthrough')
+            ])),
+            ('categorical_features', Pipeline(steps=[
+                ('selection', ByNameFeatureSelector(categoricals)),
+                ('imputer', PandasMedianImputer()),
+                ('dummy', OneHotCategoricalPanads(categoricals))
+            ]))]))
+
+    def only_numericals_pipeline():
+        return  Pipeline(steps=[
+                ('numeric_selection', ByNameFeatureSelector(set(features))),
+                ('pandas_transformation',
+                 pandas_transformation if pandas_transformation is not None else 'passthrough'),
+                ('to_numpy', PandasToNumpy()),
+                ('outlier_removal', outlier if outlier is not None else 'passthrough'),
+                ('NullProportionSelector', NullProportionSelector()),
+                ('selector', VarianceThreshold(0)),
+                ('scaler', scaler if scaler is not None else 'passthrough'),
+                ('imputer', imputer if imputer is not None else 'passthrough'),
+                ('final', final if final is not None else 'passthrough')
+        ])
     if features is not None and discard is not None:
-        raise ValueError('Features and discard cannot be setted at the same time')
+        raise ValueError(
+            'Features and discard cannot be setted at the same time')
     selector = 'passthrough'
     if features is not None:
         selector = ByNameFeatureSelector(features)
     if discard is not None:
         selector = DiscardByNameFeatureSelector(discard)
+    categoricals = set(features).intersection(set(categoricals))
+    if (len(categoricals)) == 0:
+        categoricals = None
     return Pipeline(steps=[
         ('initial_selection', selector),
         (RESAMPLER_STEP_NAME,
          resampler if resampler is not None else 'passthrough'),
         ('locater',  locater if locater is not None else 'passthrough'),
-        ('pandas_transformation', pandas_transformation if pandas_transformation is not None else 'passthrough'),
-        ('to_numpy', PandasToNumpy()),
-        ('outlier_removal', outlier if outlier is not None else 'passthrough'),
-        ('NullProportionSelector', NullProportionSelector()),
-        ('selector', VarianceThreshold(0)),
-        ('scaler', scaler if scaler is not None else 'passthrough'),
-        ('imputer', imputer if imputer is not None else 'passthrough'),
+        mixed_pipeline() if categoricals is not None else only_numericals_pipeline()
     ])
 
 
@@ -91,6 +143,7 @@ class Transformer:
                                      Wether to disable the resampling when the model is being fit.
                                      This can reduce the memory requirements when fitting
     """
+
     def __init__(self,
                  target_column: str,
                  transformerX: TransformerMixin,
@@ -127,23 +180,23 @@ class Transformer:
     def fitX(self, df):
         if self.disable_resampling_when_fitting:
             step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)
+        self.original_columns = df.columns
         self.transformerX.fit(df)
         step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, True)
 
     def _target(self, df):
         if self.time_feature is not None:
             if isinstance(self.target_column, list):
-                select_features = [self.time_feature]  + self.target_column
+                select_features = [self.time_feature] + self.target_column
             else:
                 select_features = [self.time_feature,  self.target_column]
             return df[select_features]
         else:
             return df[self.target_column]
 
-
     def fitY(self, df):
         if self.disable_resampling_when_fitting:
-            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)   
+            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)
         self.transformerY.fit(self._target(df))
         step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, True)
 
@@ -157,6 +210,9 @@ class Transformer:
 
     def transformX(self, df):
         return self.transformerX.transform(df)
+
+    def columns(self):
+        pass
 
     @property
     def n_features(self):
@@ -172,6 +228,6 @@ class Transformer:
 
 
 class SimpleTransformer(Transformer):
-    def __init__(self, target_column: str, time_feature: str=None):
-        super().__init__(target_column, simple_pipeline(), transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
-                 
+    def __init__(self, target_column: str, time_feature: str = None, to_numpy: bool = True):
+        super().__init__(target_column, simple_pipeline(to_numpy=to_numpy),
+                         transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
