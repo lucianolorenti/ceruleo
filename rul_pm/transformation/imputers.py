@@ -11,6 +11,20 @@ class NaNRemovalImputer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return X[~np.isnan(X).any(axis=1)]
 
+
+class MedianImputer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.col_median = np.nanmean(X, axis=0)
+        return self
+        
+    def transform(self, X, y=None):
+        inds = np.where(np.isnan(X))
+        X[inds] = np.take(self.col_median, inds[1])
+        return X
+
+
+
+
 class PandasMedianImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         self.median = X.median()
