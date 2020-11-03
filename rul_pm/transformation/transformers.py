@@ -4,7 +4,7 @@ import numpy as np
 from rul_pm.transformation.feature_selection import (ByNameFeatureSelector,
                                                      DiscardByNameFeatureSelector,
                                                      NullProportionSelector)
-from rul_pm.transformation.imputers import NaNRemovalImputer,PandasMedianImputer
+from rul_pm.transformation.imputers import NaNRemovalImputer, PandasMedianImputer, MedianImputer
 from rul_pm.transformation.outliers import IQROutlierRemover
 from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -34,15 +34,15 @@ class OneHotCategoricalPanads(BaseEstimator, TransformerMixin):
     def __init__(self, features):
         self.features = features
 
-    def fit(self, X, y=None):        
+    def fit(self, X, y=None):
         self.columns = [c for c in X.columns if c in self.features]
-        self.enconder = OneHotEncoder(handle_unknown='ignore', sparse=False).fit(X[self.columns])
+        self.enconder = OneHotEncoder(
+            handle_unknown='ignore', sparse=False).fit(X[self.columns])
         logger.info(f'Categorical featuers {self.columns}')
         return self
 
     def transform(self, X, y=None):
         return self.enconder.transform(X[self.columns])
-        
 
 
 def transformation_pipeline(outlier=IQROutlierRemover(),
@@ -77,8 +77,8 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
             ]))]))
 
     def only_numericals_pipeline():
-        return  Pipeline(steps=[
-                ('numeric_selection', ByNameFeatureSelector(set(features))),
+        return ('numeric_pipe', Pipeline(steps=[
+                #('numeric_selection', selector),
                 ('pandas_transformation',
                  pandas_transformation if pandas_transformation is not None else 'passthrough'),
                 ('to_numpy', PandasToNumpy()),
@@ -86,18 +86,22 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
                 ('NullProportionSelector', NullProportionSelector()),
                 ('selector', VarianceThreshold(0)),
                 ('scaler', scaler if scaler is not None else 'passthrough'),
-                ('imputer', imputer if imputer is not None else 'passthrough'),
+                ('imputer', Pipeline(steps=[
+                    ('user_imputer', imputer if imputer is not None else 'passthrough'),
+                    ('fill_remaining_na', MedianImputer())
+                ])),
                 ('final', final if final is not None else 'passthrough')
-        ])
+                ]))
     if features is not None and discard is not None:
         raise ValueError(
             'Features and discard cannot be setted at the same time')
     selector = 'passthrough'
     if features is not None:
         selector = ByNameFeatureSelector(features)
+        categoricals = set(features).intersection(set(categoricals))
     if discard is not None:
         selector = DiscardByNameFeatureSelector(discard)
-    categoricals = set(features).intersection(set(categoricals))
+
     if (len(categoricals)) == 0:
         categoricals = None
     return Pipeline(steps=[
