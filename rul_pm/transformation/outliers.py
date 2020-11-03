@@ -54,3 +54,23 @@ class ZScoreOutlierRemover(BaseEstimator, TransformerMixin):
         X[np.abs(X) > self.number_of_std_allowed] = np.nan
         return X
 
+
+
+class EWMAOutlierRemover(BaseEstimator, TransformerMixin):
+    def __init__(self, lambda_=1.5):
+        self.lambda_ = lambda_
+
+    def fit(self, X, y=None):
+        mean = np.mean(X, axis=0)
+        s = np.sqrt(self.lambda_ /(2-self.lambda_))*np.std(X, axis=0)    
+        self.UCL = mean + 3*s
+        self.LCL = mean - 3*s
+        return self
+
+    def transform(self, X):
+        mask = (
+            (X < (self.LCL)) |
+            (X > (self.UCL))
+        )
+        X[mask] = np.nan
+        return X
