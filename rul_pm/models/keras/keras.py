@@ -53,6 +53,7 @@ class KerasTrainableModel(TrainableModel):
                  shuffle,
                  models_path,
                  patience=4,
+                 output_size:int=1,
                  cache_size=30):
         super().__init__(window,
                          batch_size,
@@ -61,6 +62,7 @@ class KerasTrainableModel(TrainableModel):
                          shuffle,
                          models_path,
                          patience=patience,
+                         output_size=output_size,
                          cache_size=cache_size)
         self.compiled = False
 
@@ -278,6 +280,7 @@ class ConvolutionalSimple(KerasTrainableModel):
 
     def build_model(self):
         s = Sequential()
+        
         for filters, kernel_size in self.layers_sizes:
             s.add(
                 Conv1D(filters=filters,
