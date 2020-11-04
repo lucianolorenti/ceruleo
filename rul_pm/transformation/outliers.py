@@ -61,8 +61,8 @@ class EWMAOutlierRemover(BaseEstimator, TransformerMixin):
         self.lambda_ = lambda_
 
     def fit(self, X, y=None):
-        mean = np.mean(X, axis=0)
-        s = np.sqrt(self.lambda_ /(2-self.lambda_))*np.std(X, axis=0)    
+        mean = np.nanmean(X, axis=0)
+        s = np.sqrt(self.lambda_ /(2-self.lambda_))*np.nanstd(X, axis=0)    
         self.UCL = mean + 3*s
         self.LCL = mean - 3*s
         return self
