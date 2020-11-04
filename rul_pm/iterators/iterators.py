@@ -162,6 +162,7 @@ class WindowedDatasetIterator(DatasetIterator):
                  window_size: int,
                  transformer: Transformer,
                  step: int = 1,
+                 output_size: int = 1,
                  shuffle : Union[str, bool]=False,
                  cache_size:int = CACHE_SIZE):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
@@ -171,6 +172,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.orig_lifes, self.orig_elements = self._windowed_element_list()
         self.lifes, self.elements = self.orig_lifes, self.orig_elements
         self.i = 0
+        self.output_size = output_size
 
     def _windowed_element_list(self):
         olifes = []
@@ -230,7 +232,7 @@ class WindowedDatasetIterator(DatasetIterator):
     def __getitem__(self, i: int):
         (life, timestamp) = (self.lifes[i], self.elements[i])
         X, y = self._load_data(life)
-        return windowed_signal_generator(X, y, timestamp, self.window_size)
+        return windowed_signal_generator(X, y, timestamp, self.window_size, self.output_size)
 
     def at_end(self):
         return self.i == len(self.elements)
