@@ -3,7 +3,7 @@ import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.transformers import Transformer
 from rul_pm.iterators.iterators import WindowedDatasetIterator
-
+from tqdm.auto import tqdm
 
 class Batcher:
     def __init__(self,
@@ -68,7 +68,7 @@ def dataset_map(fun, dataset, step, transformer, window):
                           step,
                           shuffle=False)
     batcher.restart_at_end = False    
-    for X, y in batcher:
+    for X, y in tqdm(batcher):
         fun(X, y)
 
 
