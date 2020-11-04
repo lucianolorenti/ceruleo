@@ -57,6 +57,7 @@ class TrainableModel:
                  shuffle: Union[bool, str],
                  models_path: Path,
                  patience: int = 4,
+                 output_size: int=1,                 
                  cache_size: int = 30):
         if isinstance(models_path, str):
             models_path = Path(models_path)
@@ -72,6 +73,7 @@ class TrainableModel:
         self._model_filepath = None
         self.cache_size = cache_size
         self._model = None
+        self.output_size = 1
 
     @property
     def computed_step(self):
