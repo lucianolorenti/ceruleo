@@ -179,13 +179,11 @@ class WindowedDatasetIterator(DatasetIterator):
             X, _ = self._load_data(life)
             list_ranges = list(range(0, X.shape[0], self.step))
             for i in list_ranges:
-                if i - self.window_size >= 0:
-                    olifes.append(life)
-                    oelements.append(i)
-            i = X.shape[0] - 1
-            if i - self.window_size >= 0:
                 olifes.append(life)
                 oelements.append(i)
+            i = X.shape[0] - 1
+            olifes.append(life)
+            oelements.append(i)
         return olifes, oelements
 
     def _shuffle(self):
