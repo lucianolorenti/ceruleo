@@ -94,6 +94,7 @@ class KerasTrainableModel(TrainableModel):
                               self.transformer,
                               step,
                               shuffle=False,
+                              output_size=self.output_size,
                               cache_size=self.cache_size)
         batcher.restart_at_end = False
 
@@ -126,10 +127,10 @@ class KerasTrainableModel(TrainableModel):
 
         a = tf.data.Dataset.from_generator(
             gen_train, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None])))
+                [None, self.window, n_features]), tf.TensorShape([None, self.output_size])))
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None])))
+                [None, self.window, n_features]), tf.TensorShape([None, self.output_size])))
         return a,b
 
     def reset(self):
@@ -161,6 +162,7 @@ class KerasTrainableModel(TrainableModel):
                                     self.transformer,
                                     self.computed_step,
                                     shuffle=self.shuffle,
+                                    output_size=self.output_size,
                                     cache_size=self.cache_size)
         val_batcher = get_batcher(validation_dataset,
                                   self.window,
@@ -168,6 +170,7 @@ class KerasTrainableModel(TrainableModel):
                                   self.transformer,
                                   20,
                                   shuffle=False,
+                                  output_size=self.output_size,
                                   cache_size=self.cache_size)
         val_batcher.restart_at_end = False
 

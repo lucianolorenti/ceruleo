@@ -36,11 +36,11 @@ class Batcher:
             for _ in range(self.batch_size):
                 X_t, y_t = next(self.iterator)
                 X.append(np.expand_dims(X_t, axis=0))
-                y.append(y_t)
+                y.append(np.expand_dims(y_t, axis=0))
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
-        y = np.array(y)
+        y = np.concatenate(y, axis=0)      
         return X.astype(np.float32), y.astype(np.float32)
 
 

@@ -73,7 +73,7 @@ class TrainableModel:
         self._model_filepath = None
         self.cache_size = cache_size
         self._model = None
-        self.output_size = 1
+        self.output_size = output_size
 
     @property
     def computed_step(self):
