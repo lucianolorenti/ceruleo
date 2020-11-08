@@ -21,7 +21,7 @@ from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      SpatialDropout1D, StackedRNNCells,
                                      UpSampling1D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
-
+from  tensorflow.keras import metrics
 logger = logging.getLogger(__name__)
 
 
@@ -54,7 +54,8 @@ class KerasTrainableModel(TrainableModel):
                  models_path,
                  patience=4,
                  output_size:int=1,
-                 cache_size=30):
+                 cache_size=30,
+                 callbacks:list = []):
         super().__init__(window,
                          batch_size,
                          step,
@@ -65,6 +66,7 @@ class KerasTrainableModel(TrainableModel):
                          output_size=output_size,
                          cache_size=cache_size)
         self.compiled = False
+        self.callbacks = callbacks
 
     def load_best_model(self):
         self.model.load_weights(self.model_filepath)
@@ -194,7 +196,8 @@ class KerasTrainableModel(TrainableModel):
                 # lr_callback,
                 # TerminateOnNaN(train_batcher),
                 model_checkpoint_callback
-            ])
+            ] +
+            self.callbacks)
 
         self.save_results()
         return self.load_results()
