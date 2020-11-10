@@ -1,8 +1,9 @@
 import math
 import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.transformers import Transformer
+from rul_pm.transformation.transformers import Transformer, simple_pipeline
 from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.transformation.utils import PandasToNumpy
 from tqdm.auto import tqdm
 
 class Batcher:
@@ -36,7 +37,10 @@ class Batcher:
             for _ in range(self.batch_size):
                 X_t, y_t = next(self.iterator)
                 X.append(np.expand_dims(X_t, axis=0))
-                y.append(np.expand_dims(y_t, axis=0))
+                
+                if len(y_t.shape) == 1:
+                    y_t = np.expand_dims(y_t, axis=0)
+                y.append(y_t)
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
@@ -76,5 +80,16 @@ def dataset_map(fun, dataset, step, transformer, window):
     for X, y in tqdm(batcher):
         fun(X, y)
 
-
-
+def get_features(dataset, step, window, features):
+    t = simple_pipeline(features)
+    data = {f:[] for f in features}
+    def populate_data(X, y):
+        for i, f in enumerate(features):   
+            data[f].extend(np.squeeze(y[:, i]).tolist())
+    t = Transformer(
+        features,
+        t,
+        transformerY=PandasToNumpy()
+    )
+    dataset_map(populate_data, dataset, step, t, window)
+    return data
