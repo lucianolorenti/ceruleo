@@ -141,7 +141,9 @@ class KerasTrainableModel(TrainableModel):
         self.compiled = False
         
 
-    def fit(self, train_dataset, validation_dataset, verbose=1, epochs=50, overwrite=True, reset=True, refit_transformer=True):
+    def fit(self, train_dataset, validation_dataset, verbose=1, 
+            epochs=50, overwrite=True, reset=True, refit_transformer=True,
+            class_weight=None):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
@@ -197,7 +199,8 @@ class KerasTrainableModel(TrainableModel):
                 # TerminateOnNaN(train_batcher),
                 model_checkpoint_callback
             ] +
-            self.callbacks)
+            self.callbacks,
+            class_weight=class_weight)
 
         self.save_results()
         return self.load_results()

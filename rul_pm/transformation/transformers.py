@@ -45,6 +45,7 @@ class OneHotCategoricalPanads(BaseEstimator, TransformerMixin):
         return self.enconder.transform(X[self.columns])
 
 
+
 def transformation_pipeline(outlier=IQROutlierRemover(),
                             imputer=NaNRemovalImputer(),
                             scaler=RobustScaler(),
@@ -136,7 +137,7 @@ class Transformer:
     Parameters
     ----------
     target_column : str
-                    Column name with the target. Usually where the RUL resides         
+                    Column name with the target. Usually where the RUL resides
     time_feature: str
                   Column name of the timestamp feature
     transformerX: TransformerMixin,
