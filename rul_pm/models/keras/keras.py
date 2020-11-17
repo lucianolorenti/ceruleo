@@ -14,7 +14,6 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
 from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      AveragePooling1D, BatchNormalization,
                                      Bidirectional, Concatenate, Conv1D,
@@ -668,23 +667,18 @@ class XiangQiangJianQiaoModel(KerasTrainableModel):
         x = input
 
         x = ExpandDimension()(x)
-        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
         x = Conv2D(self.n_filters, (self.filter_size, 1),
-                   padding='valid', activation='tanh',
+                   padding='same', activation='tanh',
                    )(x)
-        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
         x = Conv2D(self.n_filters, (self.filter_size, 1),
-                   padding='valid', activation='tanh',
+                   padding='same', activation='tanh',
                    )(x)
-        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
         x = Conv2D(self.n_filters, (self.filter_size, 1),
-                   padding='valid', activation='tanh',
+                   padding='same', activation='tanh',
                    )(x)
-        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
         x = Conv2D(self.n_filters, (self.filter_size, 1),
-                   padding='valid', activation='tanh')(x)
-        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
-        x = Conv2D(1, (3, 1), padding='valid', activation='tanh')(x)
+                   padding='same', activation='tanh')(x)
+        x = Conv2D(1, (3, 1), padding='same', activation='tanh')(x)
 
         x = Flatten()(x)
         x = Dropout(self.dropout)(x)
