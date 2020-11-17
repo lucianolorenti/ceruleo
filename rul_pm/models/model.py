@@ -53,11 +53,11 @@ class TrainableModel:
                  window: int,
                  batch_size: int,
                  step: Union[int, Tuple[str, int]],
-                 transformer : Transformer,
+                 transformer: Transformer,
                  shuffle: Union[bool, str],
                  models_path: Path,
                  patience: int = 4,
-                 output_size: int=1,                 
+                 output_size: int = 1,
                  cache_size: int = 30):
         if isinstance(models_path, str):
             models_path = Path(models_path)
