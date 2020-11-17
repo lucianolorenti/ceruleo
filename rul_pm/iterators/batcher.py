@@ -1,10 +1,12 @@
 import math
+
 import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.transformers import Transformer, simple_pipeline
 from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.transformation.transformers import Transformer, simple_pipeline
 from rul_pm.transformation.utils import PandasToNumpy
 from tqdm.auto import tqdm
+
 
 class Batcher:
     def __init__(self,
@@ -37,14 +39,14 @@ class Batcher:
             for _ in range(self.batch_size):
                 X_t, y_t = next(self.iterator)
                 X.append(np.expand_dims(X_t, axis=0))
-                
+
                 if len(y_t.shape) == 1:
                     y_t = np.expand_dims(y_t, axis=0)
                 y.append(y_t)
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
-        y = np.concatenate(y, axis=0)      
+        y = np.concatenate(y, axis=0)
         return X.astype(np.float32), y.astype(np.float32)
 
 
@@ -53,7 +55,7 @@ def get_batcher(dataset: AbstractLivesDataset,
                 batch_size: int,
                 transformer: Transformer,
                 step: int,
-                output_size : int = 1,
+                output_size: int = 1,
                 shuffle: bool = False,
                 restart_at_end: bool = True,
                 cache_size: int = 20) -> Batcher:
@@ -64,27 +66,29 @@ def get_batcher(dataset: AbstractLivesDataset,
                                        output_size=output_size,
                                        shuffle=shuffle,
                                        cache_size=cache_size)
-    b =  Batcher(iterator, batch_size)
+    b = Batcher(iterator, batch_size)
     b.restart_at_end = restart_at_end
     return b
 
 
-def dataset_map(fun, dataset, step, transformer, window):    
+def dataset_map(fun, dataset, step, transformer, window):
     batcher = get_batcher(dataset,
                           window,
                           512,
                           transformer,
                           step,
                           shuffle=False)
-    batcher.restart_at_end = False    
+    batcher.restart_at_end = False
     for X, y in tqdm(batcher):
         fun(X, y)
 
+
 def get_features(dataset, step, window, features):
     t = simple_pipeline(features)
-    data = {f:[] for f in features}
+    data = {f: [] for f in features}
+
     def populate_data(X, y):
-        for i, f in enumerate(features):   
+        for i, f in enumerate(features):
             data[f].extend(np.squeeze(y[:, i]).tolist())
     t = Transformer(
         features,

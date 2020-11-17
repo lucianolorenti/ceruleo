@@ -14,10 +14,6 @@ from sklearn.utils.validation import check_is_fitted
 CACHE_SIZE = 30
 
 
-    
-
-
-
 class DatasetIterator:
     """
 
@@ -37,11 +33,12 @@ class DatasetIterator:
     cache_size  : int. default: CACHE_SIZE
                   Size of the LRU cache where the lives are stored
     """
+
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
-                 shuffle: Union[bool, str]=False,
-                 cache_size:int =CACHE_SIZE):
+                 shuffle: Union[bool, str] = False,
+                 cache_size: int = CACHE_SIZE):
 
         self.dataset = dataset
         self.shuffle = shuffle
@@ -84,10 +81,11 @@ class LifeDatasetIterator(DatasetIterator):
                   If the data returned for the iterator should be shuffle.
                   The possible values depends on the iterator
     """
+
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  transformer: Transformer,
-                 shuffle: Union[bool, str]=False):
+                 shuffle: Union[bool, str] = False):
         super().__init__(dataset, transformer, shuffle)
         self.elements = list(range(0, len(self.dataset)))
         self.i = 0
@@ -157,14 +155,15 @@ class WindowedDatasetIterator(DatasetIterator):
     cache_size: int = CACHE_SIZE
                 Size of the LRU Cache. The size indicates the number of lives to store
     """
+
     def __init__(self,
                  dataset: AbstractLivesDataset,
                  window_size: int,
                  transformer: Transformer,
                  step: int = 1,
                  output_size: int = 1,
-                 shuffle : Union[str, bool]=False,
-                 cache_size:int = CACHE_SIZE):
+                 shuffle: Union[str, bool] = False,
+                 cache_size: int = CACHE_SIZE):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.window_size = window_size
         self.step = step
@@ -177,15 +176,21 @@ class WindowedDatasetIterator(DatasetIterator):
     def _windowed_element_list(self):
         olifes = []
         oelements = []
+        s = 0
+        j = 0
         for life in range(self.dataset.nlives):
+
             X, _ = self._load_data(life)
-            list_ranges = list(range(0, X.shape[0], self.step))
+            list_ranges = list(
+                range(self.window_size-1, X.shape[0], self.step))
             for i in list_ranges:
                 olifes.append(life)
                 oelements.append(i)
-            i = X.shape[0] - 1
-            olifes.append(life)
-            oelements.append(i)
+            # if i != X.shape[0] - 1:
+            #    i = X.shape[0] - 1
+            #    olifes.append(life)
+            #    oelements.append(i)
+
         return olifes, oelements
 
     def _shuffle(self):
