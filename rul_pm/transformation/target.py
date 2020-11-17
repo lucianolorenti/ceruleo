@@ -31,7 +31,6 @@ class PicewiseRULThreshold(PicewiseRUL):
         self.max_life_ = max_life
 
     def fit(self, X, y=None):
-        self.max_life_ = np.max(X)
         return self
 
 
@@ -49,7 +48,7 @@ def combined_target_pipeline(preprocess):
             ('preprocess', preprocess if preprocess is not None else 'passthrough'),
             ('union', FeatureUnion(transformer_list=[
                 ("RUL", Pipeline([
-                    ('selector', IdentityTransformer()),                    
+                    ('selector', IdentityTransformer()),
                 ])),
                 ("TTF", Pipeline([
                     ('binarizer', TTEBinarizer())
