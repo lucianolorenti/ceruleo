@@ -26,7 +26,19 @@ class PicewiseRULQuantile(PicewiseRUL):
 
 
 class PicewiseRULThreshold(PicewiseRUL):
-    def __init__(self, max_life):
+    """
+    Clip the RUL by a predefined threshold
+
+    target = np.min(target, max_life)
+
+    Parameters
+    ----------
+    max_life:float 
+
+
+    """
+
+    def __init__(self, max_life: float):
         super().__init__()
         self.max_life_ = max_life
 
