@@ -1,4 +1,5 @@
 import logging
+import math
 from pathlib import Path
 from typing import List
 
@@ -6,23 +7,30 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from rul_pm.iterators.batcher import get_batcher
+from rul_pm.models.keras.layers import ExpandDimension
 from rul_pm.models.keras.losses import time_to_failure_rul
 from rul_pm.models.model import TrainableModel
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from tensorflow.keras.initializers import GlorotNormal
 from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D, Dense,
-                                     Dropout, Flatten, GaussianNoise, Lambda,
-                                     Layer, LayerNormalization, LSTMCell,
-                                     Masking, MaxPool1D, Reshape,
+                                     Bidirectional, Concatenate, Conv1D,
+                                     Conv2D, Dense, Dropout, Flatten,
+                                     GaussianNoise, Lambda, Layer,
+                                     LayerNormalization, LSTMCell, Masking,
+                                     MaxPool1D, Permute, Reshape,
                                      SpatialDropout1D, StackedRNNCells,
-                                     UpSampling1D)
+                                     UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
-from  tensorflow.keras import metrics
+
 logger = logging.getLogger(__name__)
+
+
+def root_mean_squared_error(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
 class TerminateOnNaN(Callback):
@@ -53,9 +61,12 @@ class KerasTrainableModel(TrainableModel):
                  shuffle,
                  models_path,
                  patience=4,
-                 output_size:int=1,
+                 output_size: int = 1,
                  cache_size=30,
-                 callbacks:list = []):
+                 callbacks: list = [],
+                 learning_rate=0.001,
+                 metrics=[root_mean_squared_error],
+                 loss='mse'):
         super().__init__(window,
                          batch_size,
                          step,
@@ -67,6 +78,9 @@ class KerasTrainableModel(TrainableModel):
                          cache_size=cache_size)
         self.compiled = False
         self.callbacks = callbacks
+        self.learning_rate = learning_rate
+        self.metrics = metrics
+        self.loss = loss
 
     def load_best_model(self):
         self.model.load_weights(self.model_filepath)
@@ -114,11 +128,15 @@ class KerasTrainableModel(TrainableModel):
         return (self.window, n_features)
 
     def compile(self):
-        self.compiled=  True
-        self.model.compile(loss='mse', optimizer=optimizers.Adam(lr=0.001))
+        self.compiled = True
+        self.model.compile(
+            loss=self.loss,
+            optimizer=optimizers.Adam(lr=self.learning_rate),
+            metrics=self.metrics)
 
     def _generate_batcher(self, train_batcher, val_batcher):
         n_features = self.transformer.n_features
+
         def gen_train():
             for X, y in train_batcher:
                 yield X, y
@@ -133,17 +151,15 @@ class KerasTrainableModel(TrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None, self.output_size])))
-        return a,b
+        return a, b
 
     def reset(self):
         tf.keras.backend.clear_session()
         self._model = None
         self.compiled = False
-        
 
-    def fit(self, train_dataset, validation_dataset, verbose=1, 
-            epochs=50, overwrite=True, reset=True, refit_transformer=True,
-            class_weight=None):
+    def fit(self, train_dataset, validation_dataset, verbose=1,
+            epochs=50, overwrite=True, reset=True, refit_transformer=True, class_weight=None):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
@@ -151,7 +167,7 @@ class KerasTrainableModel(TrainableModel):
             self.transformer.fit(train_dataset)
         if reset:
             self.reset()
-        if not self.compiled:            
+        if not self.compiled:
             self.compile()
 
         self.print_summary = True
@@ -172,7 +188,7 @@ class KerasTrainableModel(TrainableModel):
                                   self.window,
                                   self.batch_size,
                                   self.transformer,
-                                  20,
+                                  1,
                                   shuffle=False,
                                   output_size=self.output_size,
                                   cache_size=self.cache_size)
@@ -181,8 +197,7 @@ class KerasTrainableModel(TrainableModel):
         early_stopping = EarlyStopping(patience=self.patience)
         model_checkpoint_callback = self._checkpoint_callback()
 
-        a,b = self._generate_batcher(train_batcher, val_batcher)
-
+        a, b = self._generate_batcher(train_batcher, val_batcher)
 
         logger.info('Start fitting')
         logger.info(self.model_filepath)
@@ -271,7 +286,8 @@ class ConvolutionalSimple(KerasTrainableModel):
 
     def __init__(self, layers_sizes, dropout, l2,  window,
                  batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30, padding='same', activation='relu'):
+                 patience=4, cache_size=30, padding='same', activation='relu',
+                 learning_rate=0.001):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
                                                   step,
@@ -279,7 +295,8 @@ class ConvolutionalSimple(KerasTrainableModel):
                                                   shuffle,
                                                   models_path,
                                                   patience=4,
-                                                  cache_size=30)
+                                                  cache_size=30,
+                                                  learning_rate=learning_rate)
         self.layers_ = []
         self.layers_sizes = layers_sizes
         self.dropout = dropout
@@ -289,7 +306,8 @@ class ConvolutionalSimple(KerasTrainableModel):
 
     def build_model(self):
         s = Sequential()
-        
+        n_features = self.transformer.n_features
+        s.add(Input((self.window, n_features)))
         for filters, kernel_size in self.layers_sizes:
             s.add(
                 Conv1D(filters=filters,
@@ -429,24 +447,23 @@ class CNLSTM(KerasTrainableModel):
         n_features = self.transformer.n_features
         model = Sequential()
         model.add(Input(shape=(self.window, n_features)))
-        f = n_features 
-        for n_filters in range(self.layers_convolutionals):            
+        f = n_features
+        for n_filters in range(self.layers_convolutionals):
             model.add(Conv1D(filters=f, strides=1,
                              kernel_size=2, padding='same', activation='relu'))
             model.add(MaxPool1D(pool_size=2, strides=2))
             f = f * 2
 
-        model.add(Flatten())        
-        model.add(Dense(self.hidden_size[0] * self.hidden_size[1], activation='relu'))
+        model.add(Flatten())
+        model.add(Dense(self.hidden_size[0] *
+                        self.hidden_size[1], activation='relu'))
         model.add(Dropout(self.dropout))
         model.add(Reshape(self.hidden_size))
 
-        
         for n_filters in self.layers_recurrent:
             model.add(tf.compat.v1.keras.layers.CuDNNLSTM(n_filters))
-            
 
-        #model.add(Dropout(self.dropout))
+        # model.add(Dropout(self.dropout))
 
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
@@ -495,8 +512,8 @@ class MultiTaskRUL(KerasTrainableModel):
     """
 
     def __init__(self,
-                 layers_lstm : List[int],
-                 layers_dense : List[int],
+                 layers_lstm: List[int],
+                 layers_dense: List[int],
                  window: int,
                  batch_size: int,
                  step: int, transformer, shuffle, models_path,
@@ -560,6 +577,7 @@ class MultiTaskRUL(KerasTrainableModel):
 
     def _generate_batcher(self, train_batcher, val_batcher):
         n_features = self.transformer.n_features
+
         def gen_train():
             for X, y in train_batcher:
                 yield X, y
@@ -574,4 +592,113 @@ class MultiTaskRUL(KerasTrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None, 2])))
-        return a,b
+        return a, b
+
+
+class XiangQiangJianQiaoModel(KerasTrainableModel):
+
+    """
+        Model presented in Remaining useful life estimation in prognostics using deep convolution neural networks
+
+        Deafult parameters reported in the article
+        Number of filters:	10
+        Window size:	30/20/30/15
+        Filter length: 10
+
+        Neurons in fully-connected layer	100
+        Dropout rate	0.5
+        batch_size = 512
+
+
+        Parameters
+        -----------
+        n_filters : int
+
+        filter_size : int
+
+        window: int
+
+        batch_size: int
+        step: int
+        transformer
+        shuffle
+        models_path
+        patience: int = 4
+        cache_size: int = 30
+
+
+
+    """
+
+    def __init__(self,
+                 n_filters: int,
+                 filter_size: int,
+                 dropout: float,
+                 window: int,
+                 batch_size: int,
+                 step: int, transformer,
+                 shuffle, models_path,
+                 patience: int = 4,
+                 cache_size: int = 30,
+                 **kwargs):
+        super().__init__(window,
+                         batch_size,
+                         step,
+                         transformer,
+                         shuffle,
+                         models_path,
+                         patience=patience,
+                         cache_size=cache_size,
+                         **kwargs)
+        self.n_filters = n_filters
+        self.filter_size = filter_size
+        self.dropout = dropout
+
+    def compile(self):
+        self.compiled = True
+        self.model.compile(
+            loss=self.loss,
+            optimizer=optimizers.Adam(lr=self.learning_rate),
+            metrics=self.metrics)
+
+    def build_model(self):
+        n_features = self.transformer.n_features
+
+        input = Input(shape=(self.window, n_features))
+        x = input
+
+        x = ExpandDimension()(x)
+        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
+        x = Conv2D(self.n_filters, (self.filter_size, 1),
+                   padding='valid', activation='tanh',
+                   )(x)
+        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
+        x = Conv2D(self.n_filters, (self.filter_size, 1),
+                   padding='valid', activation='tanh',
+                   )(x)
+        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
+        x = Conv2D(self.n_filters, (self.filter_size, 1),
+                   padding='valid', activation='tanh',
+                   )(x)
+        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
+        x = Conv2D(self.n_filters, (self.filter_size, 1),
+                   padding='valid', activation='tanh')(x)
+        x = ZeroPadding2D((math.ceil(self.filter_size/2), 0))(x)
+        x = Conv2D(1, (3, 1), padding='valid', activation='tanh')(x)
+
+        x = Flatten()(x)
+        x = Dropout(self.dropout)(x)
+        x = Dense(100,
+                  activation='tanh')(x)
+        output = Dense(
+            1,
+            activation='linear')(x)
+        model = Model(
+            inputs=[input],
+            outputs=[output],
+        )
+        return model
+
+    @property
+    def name(self):
+        return "XiangQiangJianQiaoModel"
