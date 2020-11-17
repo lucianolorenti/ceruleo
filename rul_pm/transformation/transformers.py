@@ -1,22 +1,19 @@
+import copy
 import logging
 
 import numpy as np
-from rul_pm.transformation.feature_selection import (ByNameFeatureSelector,
-                                                     DiscardByNameFeatureSelector,
-                                                     NullProportionSelector)
-from rul_pm.transformation.imputers import NaNRemovalImputer, PandasMedianImputer, MedianImputer
+from rul_pm.transformation.feature_selection import (
+    ByNameFeatureSelector, DiscardByNameFeatureSelector,
+    NullProportionSelector)
+from rul_pm.transformation.imputers import (MedianImputer, NaNRemovalImputer,
+                                            PandasMedianImputer)
 from rul_pm.transformation.outliers import IQROutlierRemover
 from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.preprocessing import OneHotEncoder, RobustScaler
 from sklearn.utils.validation import check_is_fitted
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.pipeline import Pipeline, FeatureUnion
-import pandas as pd
-import copy
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +42,9 @@ class OneHotCategoricalPanads(BaseEstimator, TransformerMixin):
         return self.enconder.transform(X[self.columns])
 
 
-
-def transformation_pipeline(outlier=IQROutlierRemover(),
-                            imputer=NaNRemovalImputer(),
-                            scaler=RobustScaler(),
+def transformation_pipeline(outlier=None,
+                            imputer=None,
+                            scaler=None,
                             resampler=None,
                             features=None,
                             discard=None,
@@ -79,7 +75,6 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
 
     def only_numericals_pipeline():
         return ('numeric_pipe', Pipeline(steps=[
-                #('numeric_selection', selector),
                 ('pandas_transformation',
                  pandas_transformation if pandas_transformation is not None else 'passthrough'),
                 ('to_numpy', PandasToNumpy()),
@@ -99,17 +94,18 @@ def transformation_pipeline(outlier=IQROutlierRemover(),
     selector = 'passthrough'
     if features is not None:
         selector = ByNameFeatureSelector(features)
-        categoricals = set(features).intersection(set(categoricals))
+        if categoricals is not None:
+            categoricals = set(features).intersection(set(categoricals))
     if discard is not None:
         selector = DiscardByNameFeatureSelector(discard)
 
-    if (len(categoricals)) == 0:
+    if categoricals is not None and (len(categoricals)) == 0:
         categoricals = None
     return Pipeline(steps=[
         ('initial_selection', selector),
         (RESAMPLER_STEP_NAME,
          resampler if resampler is not None else 'passthrough'),
-        ('locater',  locater if locater is not None else 'passthrough'),
+        ('locater', locater if locater is not None else 'passthrough'),
         mixed_pipeline() if categoricals is not None else only_numericals_pipeline()
     ])
 
