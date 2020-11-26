@@ -26,7 +26,19 @@ class PicewiseRULQuantile(PicewiseRUL):
 
 
 class PicewiseRULThreshold(PicewiseRUL):
-    def __init__(self, max_life):
+    """
+    Clip the RUL by a predefined threshold
+
+    target = np.min(target, max_life)
+
+    Parameters
+    ----------
+    max_life:float 
+
+
+    """
+
+    def __init__(self, max_life: float):
         super().__init__()
         self.max_life_ = max_life
 
@@ -48,7 +60,7 @@ def combined_target_pipeline(preprocess):
             ('preprocess', preprocess if preprocess is not None else 'passthrough'),
             ('union', FeatureUnion(transformer_list=[
                 ("RUL", Pipeline([
-                    ('selector', IdentityTransformer()),                    
+                    ('selector', IdentityTransformer()),
                 ])),
                 ("TTF", Pipeline([
                     ('binarizer', TTEBinarizer())

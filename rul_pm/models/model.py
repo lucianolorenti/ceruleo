@@ -53,7 +53,7 @@ class TrainableModel:
                  window: int,
                  batch_size: int,
                  step: Union[int, Tuple[str, int]],
-                 transformer : Transformer,
+                 transformer: Transformer,
                  shuffle: Union[bool, str],
                  models_path: Path,
                  patience: int = 4,

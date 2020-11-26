@@ -14,7 +14,6 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
 from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      AveragePooling1D, BatchNormalization,
                                      Bidirectional, Concatenate, Conv1D,
@@ -203,8 +202,3 @@ class KerasTrainableModel(TrainableModel):
 
         self.save_results()
         return self.load_results()
-
-
-
-
-
