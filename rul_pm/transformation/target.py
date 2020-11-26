@@ -31,7 +31,6 @@ class PicewiseRULThreshold(PicewiseRUL):
         self.max_life_ = max_life
 
     def fit(self, X, y=None):
-        self.max_life_ = np.max(X)
         return self
 
 
