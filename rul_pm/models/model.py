@@ -27,7 +27,7 @@ def json_to_str(elem):
 
 class TrainableModel:
     """
-    Base Model class to fit and predict 
+    Base Model class to fit and predict
 
     Parameters
     -----------
@@ -57,7 +57,7 @@ class TrainableModel:
                  shuffle: Union[bool, str],
                  models_path: Path,
                  patience: int = 4,
-                 output_size: int=1,                 
+                 output_size: int=1,
                  cache_size: int = 30):
         if isinstance(models_path, str):
             models_path = Path(models_path)
@@ -185,3 +185,25 @@ class TrainableModel:
 
     def reset(self):
         pass
+
+    def _create_batchers(self, train_dataset, validation_dataset):
+        logger.info('Creating batchers')
+        train_batcher = get_batcher(train_dataset,
+                                    self.window,
+                                    self.batch_size,
+                                    self.transformer,
+                                    self.computed_step,
+                                    shuffle=self.shuffle,
+                                    output_size=self.output_size,
+                                    cache_size=self.cache_size)
+
+        val_batcher = get_batcher(validation_dataset,
+                                  self.window,
+                                  self.batch_size,
+                                  self.transformer,
+                                  1,
+                                  shuffle=False,
+                                  output_size=self.output_size,
+                                  cache_size=self.cache_size)
+        val_batcher.restart_at_end = False
+        return train_batcher, val_batcher
