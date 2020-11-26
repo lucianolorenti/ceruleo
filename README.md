@@ -4,7 +4,7 @@ Remaining useful life estimation utilities
 - [Reference](https://lucianolorenti.github.io/rul_pm/)
 
 
-## Literatuer Review
+## Literature Review
 - [CMAPPS](research/CMAPPS.ipynb)
   * Remaining useful life estimation in prognostics using deep convolution neural networks    
       *  Xiang Li

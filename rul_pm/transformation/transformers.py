@@ -50,8 +50,11 @@ def transformation_pipeline(outlier=None,
                             discard=None,
                             locater=None,
                             pandas_transformation=None,
+                            numpy_transformation=None,
                             final=None,
-                            categoricals=None):
+                            categoricals=None,
+                            variance_threshold=0,
+                            min_null_proportion=0.5):
     def mixed_pipeline():
         return ('split', FeatureUnion([
             ('numeric_features', Pipeline(steps=[
@@ -61,8 +64,12 @@ def transformation_pipeline(outlier=None,
                  pandas_transformation if pandas_transformation is not None else 'passthrough'),
                 ('to_numpy', PandasToNumpy()),
                 ('outlier_removal', outlier if outlier is not None else 'passthrough'),
-                ('NullProportionSelector', NullProportionSelector()),
-                ('selector', VarianceThreshold(0)),
+                ('NullProportionSelector', NullProportionSelector(
+                    min_null_proportion) if min_null_proportion is not None else 'passthrough'),
+                ('selector', VarianceThreshold(variance_threshold)
+                 if variance_threshold is not None else 'passthrough'),
+                ('numpy_transformation',
+                 numpy_transformation if numpy_transformation is not None else 'passthrough'),
                 ('scaler', scaler if scaler is not None else 'passthrough'),
                 ('imputer', imputer if imputer is not None else 'passthrough'),
                 ('final', final if final is not None else 'passthrough')
@@ -79,9 +86,13 @@ def transformation_pipeline(outlier=None,
                  pandas_transformation if pandas_transformation is not None else 'passthrough'),
                 ('to_numpy', PandasToNumpy()),
                 ('outlier_removal', outlier if outlier is not None else 'passthrough'),
-                ('NullProportionSelector', NullProportionSelector()),
-                ('selector', VarianceThreshold(0)),
+                ('NullProportionSelector', NullProportionSelector(
+                    min_null_proportion) if min_null_proportion is not None else 'passthrough'),
+                ('selector', VarianceThreshold(variance_threshold)
+                 if variance_threshold is not None else 'passthrough'),
                 ('scaler', scaler if scaler is not None else 'passthrough'),
+                ('numpy_transformation',
+                 numpy_transformation if numpy_transformation is not None else 'passthrough'),
                 ('imputer', Pipeline(steps=[
                     ('user_imputer', imputer if imputer is not None else 'passthrough'),
                     ('fill_remaining_na', MedianImputer())

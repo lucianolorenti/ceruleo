@@ -73,9 +73,16 @@ class ForwardFillImputer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         mask = np.isnan(X)
-        idx = np.where(~mask,np.arange(mask.shape[1]),0)
-        np.maximum.accumulate(idx,axis=1, out=idx)
-        X[mask] = X[np.nonzero(mask)[0], idx[mask]]
+        X = X.copy()
+        n = mask.shape[1] if len(mask.shape) > 1 else mask.shape[0]
+        idx = np.where(~mask,np.arange(n),0)
+        np.maximum.accumulate(idx,
+                              axis=1 if len(mask.shape) > 1 else 0, 
+                              out=idx)
+        if len(mask.shape) > 1:
+            X[mask] = X[np.nonzero(mask)[0], idx[mask]]
+        else:
+            X[mask] = X[idx[mask]]
         return X
 
 
