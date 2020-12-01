@@ -8,7 +8,6 @@ from typing import List
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
-
 from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.keras.keras import KerasTrainableModel
 from rul_pm.models.keras.layers import ExpandDimension, MultiHeadAttention
@@ -18,20 +17,17 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
 from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      AveragePooling1D, BatchNormalization,
                                      Bidirectional, Concatenate, Conv1D,
                                      Conv2D, Dense, Dropout, Flatten,
                                      GaussianNoise, Lambda, Layer,
-                                     MaxPool2D ,
                                      LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, MaxPooling2D, Permute, Reshape,
-                                     Softmax, SpatialDropout1D,
-                                     StackedRNNCells, UpSampling1D,
-                                     ZeroPadding2D)
+                                     MaxPool1D, MaxPool2D, MaxPooling2D,
+                                     Permute, Reshape, Softmax,
+                                     SpatialDropout1D, StackedRNNCells,
+                                     UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
-
 
 
 class PositionwiseFeedForward(tf.keras.layers.Layer):
@@ -226,8 +222,8 @@ class DSANet(KerasTrainableModel):
         # Global Self Attention
         slsf = ExpandDimension()(x)
         slsf = Conv2D(self.n_kernels, (self.local, self.w_kernel),
-                      activation='relu')(slsf)        
-        slsf = MaxPool2D(( self.window, 1), padding='same')(slsf)
+                      activation='relu')(slsf)
+        slsf = MaxPool2D((self.window, 1), padding='same')(slsf)
         slsf = Dropout(self.drop_prob)(slsf)
         slsf = tf.squeeze(slsf, axis=1)
         slsf = Dense(self.d_model)(slsf)
@@ -242,7 +238,6 @@ class DSANet(KerasTrainableModel):
         sf_output = Dropout(self.drop_prob)(sf_output)
         sf_output = self.W_output1(sf_output)
 
- 
         ar_output = self.ar(x)
 
         output = Add()([sf_output, ar_output])
@@ -253,7 +248,7 @@ class DSANet(KerasTrainableModel):
             outputs=[output],
         )
         return model
-    
+
     @property
     def name(self):
         return "DSANet"
