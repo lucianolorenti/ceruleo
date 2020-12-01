@@ -25,7 +25,6 @@ from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -202,3 +201,6 @@ class KerasTrainableModel(TrainableModel):
 
         self.save_results()
         return self.load_results()
+
+    def build_model(self):
+        raise NotImplementedError
