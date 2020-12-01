@@ -12,7 +12,8 @@ setup(
         'tqdm',
         'scikit-learn',
         'seaborn',
-        'python-docx'
+        'python-docx',
+        'savona'
     ],
     license='MIT',
     include_package_data=True,
