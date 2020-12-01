@@ -1,6 +1,5 @@
 
 
-
 import logging
 import math
 from pathlib import Path
@@ -18,17 +17,12 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
-from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
-                                     AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D,
-                                     Conv2D, Dense, Dropout, Flatten,
-                                     GaussianNoise, Lambda, Layer,
-                                     LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, MaxPooling2D, Permute, Reshape,
-                                     Softmax, SpatialDropout1D,
-                                     StackedRNNCells, UpSampling1D,
-                                     ZeroPadding2D)
+from tensorflow.keras.layers import (
+    GRU, LSTM, RNN, Activation, Add, AveragePooling1D, BatchNormalization,
+    Bidirectional, Concatenate, Conv1D, Conv2D, Dense, Dropout, Flatten,
+    GaussianNoise, Lambda, Layer, LayerNormalization, LSTMCell, Masking,
+    MaxPool1D, MaxPooling2D, Permute, Reshape, Softmax, SpatialDropout1D,
+    StackedRNNCells, UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 
 
