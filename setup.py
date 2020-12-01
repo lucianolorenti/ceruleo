@@ -11,7 +11,8 @@ setup(
         'numpy',
         'tqdm',
         'scikit-learn',
-        'seaborn'
+        'seaborn',
+        'python-docx'
     ],
     license='MIT',
     include_package_data=True,
