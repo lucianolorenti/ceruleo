@@ -4,7 +4,8 @@ from tqdm.auto import tqdm
 
 
 class AbstractLivesDataset:
-    def __getitem__(self, i: int):
+
+    def get_life(self, i: int):
         """
 
         Returns
@@ -13,6 +14,11 @@ class AbstractLivesDataset:
             DataFrame with the data of the life i
         """
         raise NotImplementedError
+
+    def __getitem__(self, i: int):
+        df = self.get_life(i)
+        df['life'] = i
+        return df
 
     @property
     def nlives(self):
@@ -52,6 +58,17 @@ class AbstractLivesDataset:
         for i in tqdm(range(self.nlives)):
             if proportion < 1.0 and np.random.rand() > proportion:
                 continue
-            self[i]['life'] = i
-            df.append(self[i])
+            current_life = self[i]
+            current_life['life'] = i
+            df.append(current_life)
         return pd.concat(df)
+
+    @property
+    def rul_column(self):
+        """
+        Return
+        ------
+        str:
+            The name of the RUL column
+        """
+        raise NotImplementedError
