@@ -42,6 +42,10 @@ class OneHotCategoricalPanads(BaseEstimator, TransformerMixin):
         return self.enconder.transform(X[self.columns])
 
 
+def step_is_not_missing(step):
+    return (step if step is not None else 'passthrough')
+
+
 def transformation_pipeline(outlier=None,
                             imputer=None,
                             scaler=None,
@@ -53,52 +57,56 @@ def transformation_pipeline(outlier=None,
                             numpy_transformation=None,
                             final=None,
                             categoricals=None,
+                            generator=None,
                             variance_threshold=0,
                             min_null_proportion=0.5):
     def mixed_pipeline():
         return ('split', FeatureUnion([
-            ('numeric_features', Pipeline(steps=[
-                ('numeric_selection', ByNameFeatureSelector(
-                    set(features)-set(categoricals))),
-                ('pandas_transformation',
-                 pandas_transformation if pandas_transformation is not None else 'passthrough'),
-                ('to_numpy', PandasToNumpy()),
-                ('outlier_removal', outlier if outlier is not None else 'passthrough'),
-                ('NullProportionSelector', NullProportionSelector(
-                    min_null_proportion) if min_null_proportion is not None else 'passthrough'),
-                ('selector', VarianceThreshold(variance_threshold)
-                 if variance_threshold is not None else 'passthrough'),
-                ('numpy_transformation',
-                 numpy_transformation if numpy_transformation is not None else 'passthrough'),
-                ('scaler', scaler if scaler is not None else 'passthrough'),
-                ('imputer', imputer if imputer is not None else 'passthrough'),
-                ('final', final if final is not None else 'passthrough')
-            ])),
-            ('categorical_features', Pipeline(steps=[
-                ('selection', ByNameFeatureSelector(categoricals)),
-                ('imputer', PandasMedianImputer()),
-                ('dummy', OneHotCategoricalPanads(categoricals))
-            ]))]))
+            ('numeric_features', Pipeline(
+                steps=[
+                    ('numeric_selection', ByNameFeatureSelector(
+                        set(features)-set(categoricals))),
+                    ('pandas_transformation', step_is_not_missing(
+                        pandas_transformation)),
+                    ('to_numpy', PandasToNumpy()),
+                    ('outlier_removal', step_is_not_missing(outlier)),
+                    ('NullProportionSelector', NullProportionSelector(
+                        min_null_proportion) if min_null_proportion is not None else 'passthrough'),
+                    ('selector', VarianceThreshold(variance_threshold)
+                     if variance_threshold is not None else 'passthrough'),
+                    ('numpy_transformation', step_is_not_missing(
+                        numpy_transformation)),
+                    ('selector_1', VarianceThreshold(variance_threshold)),
+                    ('scaler', step_is_not_missing(scaler)),
+                    ('imputer', step_is_not_missing(imputer)),
+                    ('final', step_is_not_missing(final))
+                ])),
+            ('categorical_features', Pipeline(
+                steps=[
+                    ('selection', ByNameFeatureSelector(categoricals)),
+                    ('imputer', PandasMedianImputer()),
+                    ('dummy', OneHotCategoricalPanads(categoricals))
+                ]))]))
 
     def only_numericals_pipeline():
-        return ('numeric_pipe', Pipeline(steps=[
-                ('pandas_transformation',
-                 pandas_transformation if pandas_transformation is not None else 'passthrough'),
+        return ('numeric_pipe', Pipeline(
+            steps=[
+                ('pandas_transformation', step_is_not_missing(pandas_transformation)),
                 ('to_numpy', PandasToNumpy()),
-                ('outlier_removal', outlier if outlier is not None else 'passthrough'),
+                ('outlier_removal', step_is_not_missing(outlier)),
                 ('NullProportionSelector', NullProportionSelector(
                     min_null_proportion) if min_null_proportion is not None else 'passthrough'),
                 ('selector', VarianceThreshold(variance_threshold)
                  if variance_threshold is not None else 'passthrough'),
-                ('scaler', scaler if scaler is not None else 'passthrough'),
-                ('numpy_transformation',
-                 numpy_transformation if numpy_transformation is not None else 'passthrough'),
+                ('numpy_transformation', step_is_not_missing(numpy_transformation)),
+                ('selector_1', VarianceThreshold(variance_threshold)),
+                ('scaler', step_is_not_missing(scaler)),
                 ('imputer', Pipeline(steps=[
-                    ('user_imputer', imputer if imputer is not None else 'passthrough'),
+                    ('user_imputer', step_is_not_missing(imputer)),
                     ('fill_remaining_na', MedianImputer())
                 ])),
-                ('final', final if final is not None else 'passthrough')
-                ]))
+                ('final', step_is_not_missing(final))
+            ]))
     if features is not None and discard is not None:
         raise ValueError(
             'Features and discard cannot be setted at the same time')
@@ -114,9 +122,10 @@ def transformation_pipeline(outlier=None,
         categoricals = None
     return Pipeline(steps=[
         ('initial_selection', selector),
-        (RESAMPLER_STEP_NAME,
-         resampler if resampler is not None else 'passthrough'),
-        ('locater', locater if locater is not None else 'passthrough'),
+        ('feature_generation', step_is_not_missing(generator)),
+        ('drop_life_column', DiscardByNameFeatureSelector(features=['life'])),
+        (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
+        ('locater', step_is_not_missing(locater)),
         mixed_pipeline() if categoricals is not None else only_numericals_pipeline()
     ])
 
