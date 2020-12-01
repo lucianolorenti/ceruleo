@@ -66,3 +66,11 @@ def plot_errors_wrt_RUL(val_rul, pred_cont, treshhold=0, bins=15, **kwargs):
     ax.set_xlabel('RUL')
     ax.set_ylabel('RMSE')
     return fig, ax
+
+
+def plot_true_vs_predicted(y_true, y_predicted, **kwargs):
+    fig, ax = plt.subplots(1, 1, **kwargs)
+    ax.plot(y_predicted, 'o', label='Predicted', markersize=0.7)
+    ax.plot(y_true, label='True')
+    ax.legend()
+    return fig, ax
