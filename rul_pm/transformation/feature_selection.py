@@ -35,16 +35,15 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
             features = [f for f in self.features if f in set(df.columns)]
         else:
             features = list(set(df.columns))
-        self.features_indices = [
-            i for i, c in enumerate(df.columns) if c in features]
+        self.features_computed_ = sorted(features)
         return self
 
     def transform(self, X):
-        return X.iloc[:, self.features_indices]
+        return X.loc[:, self.features_computed_]
 
     @property
     def n_features(self):
-        return len(self.features)
+        return len(self.features_computed_)
 
 
 class LocateFeatures(BaseEstimator, TransformerMixin):
