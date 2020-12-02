@@ -1,6 +1,5 @@
 
 
-
 import logging
 import math
 from pathlib import Path
@@ -18,18 +17,14 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
-from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
-                                     AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D,
-                                     Conv2D, Dense, Dropout, Flatten,
-                                     GaussianNoise, Lambda, Layer,
-                                     LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, MaxPooling2D, Permute, Reshape,
-                                     Softmax, SpatialDropout1D,
-                                     StackedRNNCells, UpSampling1D,
-                                     ZeroPadding2D)
+from tensorflow.keras.layers import (
+    GRU, LSTM, RNN, Activation, Add, AveragePooling1D, BatchNormalization,
+    Bidirectional, Concatenate, Conv1D, Conv2D, Dense, Dropout, Flatten,
+    GaussianNoise, Lambda, Layer, LayerNormalization, LSTMCell, Masking,
+    MaxPool1D, MaxPooling2D, Permute, Reshape, Softmax, SpatialDropout1D,
+    StackedRNNCells, UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+
 
 class MVCNN(KerasTrainableModel):
 
@@ -67,7 +62,7 @@ class MVCNN(KerasTrainableModel):
     """
 
     def __init__(self,
-                 shape: tuple,                 
+                 shape: tuple,
                  dropout: float,
                  window: int,
                  batch_size: int,
@@ -85,9 +80,8 @@ class MVCNN(KerasTrainableModel):
                          patience=patience,
                          cache_size=cache_size,
                          **kwargs)
-        self.shape = shape        
+        self.shape = shape
         self.dropout = dropout
-      
 
     def compile(self):
         self.compiled = True
@@ -106,10 +100,8 @@ class MVCNN(KerasTrainableModel):
         input = Input(shape=(self.window, n_features))
         x = input
         x = Permute((2, 1))(x)
-        x = Reshape((self.shape[0], self.shape[1], self.window))(x)  
+        x = Reshape((self.shape[0], self.shape[1], self.window))(x)
 
-
-     
         x = Conv2D(self.window, (1, 1), activation='relu', padding='same')(x)
 
         x1 = Conv2D(self.window, (2, 2), activation='relu', padding='same')(x)

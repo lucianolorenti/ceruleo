@@ -79,3 +79,43 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
     @property
     def n_features(self):
         return len(self.features)
+
+
+class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
+    def __init__(self, t):
+        self.t = t
+
+    def fit(self, X, y=None):
+
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        print(len(X.columns))
+        print(len(X.var(skipna=False)))
+        self.variances_ = X.var(skipna=False)
+        self.selected_columns_ = X.columns[self.variances_ > self.t]
+
+        return self
+
+    def transform(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        print(len(X.columns))
+        print(len(self.selected_columns_))
+        return X[self.selected_columns_].copy()
+
+
+class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
+    def __init__(self, t):
+        self.t = t
+
+    def fit(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        self.null_proportion = X.isnull().mean()
+        self.selected_columns_ = X.columns[self.null_proportion < self.t]
+        return self
+
+    def transform(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        return X[self.selected_columns_].copy()
