@@ -14,7 +14,6 @@ from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers, optimizers, regularizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.initializers import GlorotNormal
 from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      AveragePooling1D, BatchNormalization,
                                      Bidirectional, Concatenate, Conv1D,
@@ -25,6 +24,7 @@ from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      SpatialDropout1D, StackedRNNCells,
                                      UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+
 
 class MultiTaskRUL(KerasTrainableModel):
     """
@@ -134,4 +134,3 @@ class MultiTaskRUL(KerasTrainableModel):
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
                 [None, self.window, n_features]), tf.TensorShape([None, 2])))
         return a, b
-

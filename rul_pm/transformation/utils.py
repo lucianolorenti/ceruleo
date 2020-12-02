@@ -33,3 +33,20 @@ class IdentityTransformer(BaseEstimator, TransformerMixin):
             return input_array.copy()
         else:
             return input_array*1
+
+
+class PandasTransformerWrapper(BaseEstimator, TransformerMixin):
+    def __init__(self, transformer):
+        self.transformer = transformer
+
+    def fit(self, X, y=None):
+
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        self.transformer.fit(X)
+        return self
+
+    def transform(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        return pd.DataFrame(self.transformer.transform(X), columns=X.columns)
