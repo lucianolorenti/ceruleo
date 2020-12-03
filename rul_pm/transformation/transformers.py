@@ -41,7 +41,7 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
                             features=None, discard=None, locater=None,
                             final=None, categoricals=[], numerical_generator=None,
                             variance_threshold=0, min_null_proportion=0.5,
-                            output_df=False):
+                            output_df=False, discard_at_end=[]):
     def categorial_pipeline():
         return Pipeline(
             steps=[
@@ -54,12 +54,12 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
             steps=[
                 ('generator', step_is_not_missing(numerical_generator)),
                 ('outlier_removal', step_is_not_missing(outlier)),
+                ('scaler', step_is_not_missing(scaler)),
                 ('NullProportionSelector', step_if_argument_is_not_missing(
                     PandasNullProportionSelector, min_null_proportion)),
                 ('selector', step_if_argument_is_not_missing(
                     PandasVarianceThreshold, variance_threshold)),
-                ('imputer', numerical_imputer),
-                ('scaler', step_is_not_missing(scaler)),
+                ('imputer', numerical_imputer),                
                 ('final', step_is_not_missing(final))
             ])
     if features is not None and discard is not None:
@@ -88,7 +88,7 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
         ('main_step', main_step),
         ('locater', step_is_not_missing(locater)),
-        ('drop_life_column', DiscardByNameFeatureSelector(features=['life'])),
+        ('drop_life_column', DiscardByNameFeatureSelector(features=['life']+discard_at_end)),
         ('to_numpy', PandasToNumpy() if not output_df else 'passthrough')
     ])
 
@@ -156,7 +156,8 @@ class Transformer:
         self.fitX(df)
         self.fitY(df)
 
-        X = self.transformerX.transform(df.head(n=2))
+        self.minimal_df = df.head(n=2)
+        X = self.transformerX.transform()
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
         return self
@@ -176,7 +177,7 @@ class Transformer:
                 select_features = [self.time_feature,  self.target_column]
             return df[select_features]
         else:
-            return df[self.target_column]
+            return df[[self.target_column]]
 
     def fitY(self, df):
         if self.disable_resampling_when_fitting:
@@ -201,6 +202,14 @@ class Transformer:
     @property
     def n_features(self):
         return self.number_of_features_
+
+
+    def column_names(self):
+        temp = self.transformerX.steps[-1]
+        self.transformerX.steps[-1] = ('empty', 'passthrough')
+        cnames =  self.transformerX.transform(self.minimal_df).columns.values
+        self.transformerX.steps[-1] = temp
+        return cnames
 
     def description(self):
         return {
