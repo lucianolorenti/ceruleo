@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
 import logging 
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -69,26 +70,21 @@ class RollingMeanImputer(RollingImputer):
 
 class ForwardFillImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
         return self
 
     def transform(self, X):
-        mask = np.isnan(X)
-        X = X.copy()
-        n = mask.shape[1] if len(mask.shape) > 1 else mask.shape[0]
-        idx = np.where(~mask,np.arange(n),0)
-        np.maximum.accumulate(idx,
-                              axis=1 if len(mask.shape) > 1 else 0, 
-                              out=idx)
-        if len(mask.shape) > 1:
-            X[mask] = X[np.nonzero(mask)[0], idx[mask]]
-        else:
-            X[mask] = X[idx[mask]]
-        return X
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        return X.ffill()
 
 
 class MedianImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
-        self.median = np.nanmedian(X, axis=0)
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError('Input array must be a data frame')
+        self.median = X.median()
         for i in range(len(self.median)):
             if np.isnan(self.median[i]):
                 logger.info(f'Feature {i} is nan')
