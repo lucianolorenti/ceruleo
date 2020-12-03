@@ -13,7 +13,8 @@ setup(
         'scikit-learn',
         'seaborn',
         'python-docx',
-        'savona'
+        'savona',
+        'xgboost'
     ],
     license='MIT',
     include_package_data=True,

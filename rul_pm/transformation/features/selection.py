@@ -31,6 +31,7 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
         self.features_indices = None
 
     def fit(self, df, y=None):
+       
         if len(self.features) > 0:
             features = [f for f in self.features if f in set(df.columns)]
         else:
@@ -68,13 +69,12 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
         self.features_indices = None
 
     def fit(self, df, y=None):
-        features = list(set(df.columns).difference(set(self.features)))
-        self.features_indices = [
-            i for i, c in enumerate(df.columns) if c in features]
+        self.feature_columns = [f for f in df.columns if f not in self.features]
+        
         return self
 
     def transform(self, X):
-        return X.iloc[:, self.features_indices]
+        return X.loc[:, self.feature_columns]
 
     @property
     def n_features(self):

@@ -10,6 +10,7 @@ from rul_pm.transformation.transformers import Transformer
 from rul_pm.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
+from tqdm.auto import tqdm
 
 CACHE_SIZE = 30
 
@@ -252,7 +253,7 @@ class WindowedDatasetIterator(DatasetIterator):
     def toArray(self):
         XX = []
         yy = []
-        for X, y in self:
+        for X, y in tqdm(self):
             XX.append(np.expand_dims(X, axis=0))
             yy.append(y)
         return np.concatenate(XX, axis=0), np.array(yy)
