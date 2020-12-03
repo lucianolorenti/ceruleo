@@ -90,8 +90,6 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
 
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
-        print(len(X.columns))
-        print(len(X.var(skipna=False)))
         self.variances_ = X.var(skipna=False)
         self.selected_columns_ = X.columns[self.variances_ > self.t]
 
@@ -100,8 +98,6 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
-        print(len(X.columns))
-        print(len(self.selected_columns_))
         return X[self.selected_columns_].copy()
 
 
