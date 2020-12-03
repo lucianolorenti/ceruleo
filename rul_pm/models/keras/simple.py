@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from rul_pm.iterators.batcher import get_batcher
+from rul_pm.models.keras.keras import KerasTrainableModel
 from rul_pm.models.keras.layers import ExpandDimension
 from rul_pm.models.keras.losses import time_to_failure_rul
 from rul_pm.models.model import TrainableModel
@@ -24,6 +25,7 @@ from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
                                      SpatialDropout1D, StackedRNNCells,
                                      UpSampling1D, ZeroPadding2D)
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+
 
 class FCN(KerasTrainableModel):
     def __init__(self,
@@ -198,4 +200,3 @@ class SimpleRecurrent(KerasTrainableModel):
             'recurrent_type': self.recurrent_type
         })
         return params
-
