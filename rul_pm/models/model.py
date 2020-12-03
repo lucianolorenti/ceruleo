@@ -24,8 +24,16 @@ def json_to_str(elem):
     else:
         return str(elem)
 
+class TrainableModelInterface:
+    def fit(self, ds):
+        raise NotImplementedError
 
-class TrainableModel:
+    def predict(self, df):
+        raise NotImplementedError
+
+
+
+class TrainableModel(TrainableModelInterface):
     """
     Base Model class to fit and predict
 
