@@ -34,7 +34,7 @@ class AbstractLivesDataset:
         """
         Return
         ------
-        int: 
+        int:
             The number of lives in the dataset
         """
         return self.nlives
@@ -55,11 +55,11 @@ class AbstractLivesDataset:
             Return a DataFrame with all the lives concatenated
         """
         df = []
+        common_features = self.commonFeatures()
         for i in tqdm(range(self.nlives)):
             if proportion < 1.0 and np.random.rand() > proportion:
                 continue
-            current_life = self[i]
-            current_life['life'] = i
+            current_life = self[i][common_features]
             df.append(current_life)
         return pd.concat(df)
 
@@ -72,3 +72,10 @@ class AbstractLivesDataset:
             The name of the RUL column
         """
         raise NotImplementedError
+
+    def commonFeatures(self):
+        f = []
+        for i in tqdm(range(self.nlives)):
+            life = self[i]
+            f.append(set(life.columns.values))
+        return f[0].intersection(*f)

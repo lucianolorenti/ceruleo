@@ -37,12 +37,13 @@ class LifeCumSum(BaseEstimator, TransformerMixin):
 
 
 class LifeExceededCumSum(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=None,  life_id_col='life', lambda_=0.5):
+    def __init__(self, columns=None,  life_id_col='life', lambda_=0.5, discard_originals=False):
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.life_id_col = life_id_col
         self.columns = columns
+        self.discard_originals = discard_originals
 
     def fit(self, X, y=None):
         if self.columns is None:
@@ -56,8 +57,10 @@ class LifeExceededCumSum(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         X = X.copy()
+        new_columns = []
         for c in self.columns:
             X.loc[:, f'{c}_cumsum'] = 0
+            new_columns.append(f'{c}_cumsum')
         for life in X[self.life_id_col].unique():
             data = X[X[self.life_id_col] == life]
             data_columns = data[self.columns]
