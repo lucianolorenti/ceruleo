@@ -1,9 +1,13 @@
 
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Lambda
-import tensorflow as tf
 import typing
 import warnings
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Lambda
+from tensorflow.python.framework import tensor_shape
+
 
 def ExpandDimension():
     return Lambda(lambda x: K.expand_dims(x))
@@ -71,7 +75,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         dropout: float = 0.0,
         use_projection_bias: bool = True,
         return_attn_coef: bool = False,
-        kernel_initializer: typing.Union[str, typing.Callable] = "glorot_uniform",
+        kernel_initializer: typing.Union[str,
+                                         typing.Callable] = "glorot_uniform",
         kernel_regularizer: typing.Union[str, typing.Callable] = None,
         kernel_constraint: typing.Union[str, typing.Callable] = None,
         bias_initializer: typing.Union[str, typing.Callable] = "zeros",
@@ -220,7 +225,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         attn_coef_dropout = self.dropout(attn_coef, training=training)
 
         # attention * value
-        multihead_output = tf.einsum("...HNM,...MHI->...NHI", attn_coef_dropout, value)
+        multihead_output = tf.einsum(
+            "...HNM,...MHI->...NHI", attn_coef_dropout, value)
 
         # Run the outputs through another linear projection layer. Recombining heads
         # is automatically done.
@@ -269,12 +275,104 @@ class MultiHeadAttention(tf.keras.layers.Layer):
             dropout=self._droput_rate,
             use_projection_bias=self.use_projection_bias,
             return_attn_coef=self.return_attn_coef,
-            kernel_initializer=tf.keras.initializers.serialize(self.kernel_initializer),
-            kernel_regularizer=tf.keras.regularizers.serialize(self.kernel_regularizer),
-            kernel_constraint=tf.keras.constraints.serialize(self.kernel_constraint),
-            bias_initializer=tf.keras.initializers.serialize(self.bias_initializer),
-            bias_regularizer=tf.keras.regularizers.serialize(self.bias_regularizer),
-            bias_constraint=tf.keras.constraints.serialize(self.bias_constraint),
+            kernel_initializer=tf.keras.initializers.serialize(
+                self.kernel_initializer),
+            kernel_regularizer=tf.keras.regularizers.serialize(
+                self.kernel_regularizer),
+            kernel_constraint=tf.keras.constraints.serialize(
+                self.kernel_constraint),
+            bias_initializer=tf.keras.initializers.serialize(
+                self.bias_initializer),
+            bias_regularizer=tf.keras.regularizers.serialize(
+                self.bias_regularizer),
+            bias_constraint=tf.keras.constraints.serialize(
+                self.bias_constraint),
         )
 
         return config
+
+
+class ConcreteDropout(tf.keras.layers.Layer):
+    """Concrete Dropout layer class from https://arxiv.org/abs/1705.07832.
+    Dropout Feature Ranking for Deep Learning Models
+    Chun-Hao Chang
+    Ladislav Rampasek
+    Anna Goldenberg
+    Arguments:
+        dropout_regularizer:
+            Positive float, satisfying $dropout_regularizer = 2 / (\tau * N)$
+            with model precision $\tau$ (inverse observation noise) and
+            N the number of instances in the dataset.
+            The factor of two should be ignored for cross-entropy loss,
+            and used only for the eucledian loss.
+        init_min:
+            Minimum value for the randomly initialized dropout rate, in [0, 1].
+        init_min:
+            Maximum value for the randomly initialized dropout rate, in [0, 1],
+            with init_min <= init_max.
+        name:
+            String, name of the layer.
+
+    """
+
+    def __init__(self, dropout_regularizer=1e-5,
+                 init_min=0.1, init_max=0.9, name=None,
+                 training=True, **kwargs):
+
+        super(ConcreteDropout, self).__init__(name=name,
+                                              **kwargs)
+        assert init_min <= init_max, \
+            'init_min must be lower or equal to init_max.'
+
+        self.dropout_regularizer = dropout_regularizer
+
+        self.p_logit = None
+        self.p = None
+        self.init_min = (np.log(init_min) - np.log(1. - init_min))
+        self.init_max = (np.log(init_max) - np.log(1. - init_max))
+        self.training = training
+
+    def build(self, input_shape):
+        self.window = input_shape[-2]
+        self.number_of_features = input_shape[-1]
+        input_shape = tensor_shape.TensorShape(input_shape)
+
+        self.p_logit = self.add_weight(name='p_logit',
+                                       shape=[self.number_of_features],
+                                       initializer=tf.random_uniform_initializer(
+                                           self.init_min,
+                                           self.init_max),
+                                       dtype=tf.float32,
+                                       trainable=True)
+
+    def concrete_dropout(self, p, x):
+        eps = K.cast_to_floatx(K.epsilon())
+        temp = 1.0 / 10.0
+        unif_noise = K.random_uniform(shape=[self.number_of_features])
+        drop_prob = (
+            K.log(p + eps)
+            - K.log(1. - p + eps)
+            + K.log(unif_noise + eps)
+            - K.log(1. - unif_noise + eps)
+        )
+        drop_prob = K.sigmoid(drop_prob / temp)
+        random_tensor = 1. - drop_prob
+
+        retain_prob = 1. - p
+        x *= random_tensor
+        x /= retain_prob
+        return x
+
+    def call(self, inputs, training=True):
+
+        p = K.sigmoid(self.p_logit)
+
+        dropout_regularizer = p * K.log(p)
+        dropout_regularizer += (1. - p) * K.log(1. - p)
+        dropout_regularizer *= self.dropout_regularizer * self.number_of_features
+        regularizer = K.sum(dropout_regularizer)
+        self.add_loss(regularizer)
+
+        x = self.concrete_dropout(p, inputs)
+
+        return x
