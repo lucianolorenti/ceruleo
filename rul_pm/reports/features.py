@@ -23,6 +23,8 @@ class Report:
         pass
 
 
+
+
 class FeatureReport(Report):
     def __init__(self, dataset, title='', output_file_name='features'):
         self.dataset = dataset
@@ -37,7 +39,7 @@ class FeatureReport(Report):
         section = self.document.sections[0]
         footer = section.footer
         paragraph = footer.paragraphs[0]
-        paragraph.text = "Warstila\t\tUNIPD"
+        paragraph.text = ""
         paragraph.style = self.document.styles["Footer"]
 
     def _numerical_features_names(self):
