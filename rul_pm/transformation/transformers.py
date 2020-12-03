@@ -54,12 +54,12 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
             steps=[
                 ('generator', step_is_not_missing(numerical_generator)),
                 ('outlier_removal', step_is_not_missing(outlier)),
+                ('scaler', step_is_not_missing(scaler)),
                 ('NullProportionSelector', step_if_argument_is_not_missing(
                     PandasNullProportionSelector, min_null_proportion)),
                 ('selector', step_if_argument_is_not_missing(
                     PandasVarianceThreshold, variance_threshold)),
                 ('imputer', numerical_imputer),
-                ('scaler', step_is_not_missing(scaler)),
                 ('final', step_is_not_missing(final))
             ])
     if features is not None and discard is not None:
