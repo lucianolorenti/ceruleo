@@ -88,7 +88,8 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
         ('main_step', main_step),
         ('locater', step_is_not_missing(locater)),
-        ('drop_life_column', DiscardByNameFeatureSelector(features=['life']+discard_at_end)),
+        ('drop_life_column', DiscardByNameFeatureSelector(
+            features=['life']+discard_at_end)),
         ('to_numpy', PandasToNumpy() if not output_df else 'passthrough')
     ])
 
@@ -205,11 +206,10 @@ class Transformer:
     def n_features(self):
         return self.number_of_features_
 
-
     def column_names(self):
         temp = self.transformerX.steps[-1]
         self.transformerX.steps[-1] = ('empty', 'passthrough')
-        cnames =  self.transformerX.transform(self.minimal_df).columns.values
+        cnames = self.transformerX.transform(self.minimal_df).columns.values
         self.transformerX.steps[-1] = temp
         return cnames
 

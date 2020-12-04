@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.losses import mse
 
+
 def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
     '''
     Return a function for calculating weighted binary cross entropy
@@ -71,21 +72,17 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
         tf_y_pred = tf.cast(y_pred, dtype=y_pred.dtype)
 
         weights_v = tf.where(tf.equal(tf_y_true, 1), weights[1], weights[0])
-        ce = K.binary_crossentropy(tf_y_true, tf_y_pred, from_logits=from_logits)
+        ce = K.binary_crossentropy(
+            tf_y_true, tf_y_pred, from_logits=from_logits)
         loss = K.mean(tf.multiply(ce, weights_v))
         return loss
 
     return weighted_cross_entropy_fn
 
 
-
 def time_to_failure_rul(weights: dict):
 
-    
     binary_loss_fun = weighted_binary_cross_entropy(weights)
-
-
-    
 
     def time_to_failure_rul_fun(y_true, y_pred):
         """ Final loss calculation function to be passed to optimizer"""
@@ -99,18 +96,18 @@ def time_to_failure_rul(weights: dict):
 def weighted_categorical_crossentropy(weights):
     """
     A weighted version of keras.objectives.categorical_crossentropy
-    
+
     Variables:
         weights: numpy array of shape (C,) where C is the number of classes
-    
+
     Usage:
         weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
         loss = weighted_categorical_crossentropy(weights)
         model.compile(loss=loss,optimizer='adam')
     """
-    
+
     weights = K.variable(weights)
-        
+
     def loss(y_true, y_pred):
         # scale predictions so that the class probas of each sample sum to 1
         y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
@@ -120,6 +117,9 @@ def weighted_categorical_crossentropy(weights):
         loss = y_true * K.log(y_pred) * weights
         loss = -K.sum(loss, -1)
         return loss
-    
+
     return loss
 
+
+def root_mean_squared_error(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
