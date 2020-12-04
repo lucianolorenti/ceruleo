@@ -59,7 +59,7 @@ def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, r
                     PandasNullProportionSelector, min_null_proportion)),
                 ('selector', step_if_argument_is_not_missing(
                     PandasVarianceThreshold, variance_threshold)),
-                ('imputer', numerical_imputer),                
+                ('imputer', numerical_imputer),
                 ('final', step_is_not_missing(final))
             ])
     if features is not None and discard is not None:
@@ -140,6 +140,8 @@ class Transformer:
         self.features = None
         self.time_feature = time_feature
         self.disable_resampling_when_fitting = disable_resampling_when_fitting
+        if isinstance(self.target_column, str):
+            self.target_column = [self.target_column]
 
     def _process_selected_features(self):
         if self.transformerX['selector'] is not None:
@@ -157,7 +159,7 @@ class Transformer:
         self.fitY(df)
 
         self.minimal_df = df.head(n=2)
-        X = self.transformerX.transform()
+        X = self.transformerX.transform(self.minimal_df)
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
         return self
@@ -177,7 +179,7 @@ class Transformer:
                 select_features = [self.time_feature,  self.target_column]
             return df[select_features]
         else:
-            return df[[self.target_column]]
+            return df[self.target_column]
 
     def fitY(self, df):
         if self.disable_resampling_when_fitting:
