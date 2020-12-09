@@ -90,3 +90,125 @@ class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
 
     def transform(self, X, y=None):
         return self.enconder.transform(X[self.columns])
+
+
+class LowPassFilter(BaseEstimator, TransformerMixin):
+    def __init__(self, freq):
+        self.freq = freq
+
+    def fit(self):
+        return self
+
+    def transform(self, X, y):
+        series = TimeSeries(train_dataset[ds][fff[idx]].fillna(0).values)
+
+        ax.plot(series.lowpass(self.freq))
+
+
+class RollingMean(BaseEstimator, TransformerMixin):
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self):
+        return self
+
+    def transform(self, X, y=None):
+        return X.rolling(self.window).mean().fillna(0)
+
+
+class RollingStd(BaseEstimator, TransformerMixin):
+
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self):
+        return self
+
+    def transform(self, X, y=None):
+        return X.rolling(self.window).std().fillna(0)
+
+
+class RollingRootMeanSquare(BaseEstimator, TransformerMixin):
+
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self):
+        return self
+
+    def transform(self, X, y=None):
+        return (X.pow(2)
+                .rolling(self.window)
+                .apply(lambda x: np.sqrt(x.mean()))
+                .fillna(0))
+
+
+class RollingSquareMeanRootedAbsoluteAmplitude(BaseEstimator, TransformerMixin):
+    """
+    Remaining Useful Life Prediction Based on aBi-directional LSTM Neural Network
+    """
+
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self):
+        return self
+
+    def transform(self, X, y=None):
+        return (X.abs()
+                .sqrt()
+                .rolling(self.window)
+                .apply(lambda x: x.mean()**2)
+                .fillna(0))
+
+
+class RollingPeakValue(BaseEstimator, TransformerMixin):
+    """
+    Remaining Useful Life Prediction Based on aBi-directional LSTM Neural Network
+    """
+
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        def peak_value(data):
+            k = len(data)
+            return np.sum((data - data.mean())**4) / ((k - 1) * data.std()**4)
+        return (X
+                .rolling(self.window)
+                .apply(peak_value)
+                .fillna(0))
+
+
+class HighAndLowFrequencies(BaseEstimator, TransformerMixin):
+    def __init__(self, window):
+        self.window = window 
+
+    def fit(self, X, y=None):
+        return self
+
+    def _high(self, Zxx, t):
+        Zxxa = np.where(np.abs(Zxx)>= t, Zxx, 0)
+        _, xreca = istft(Zxxa, fs)
+        return xreca
+
+    def _low(self, Zxx, t):
+        Zxxa = np.where(np.abs(Zxx) <= t, Zxx, 0)
+        _, xreca = istft(Zxxa, fs)
+        return xreca
+
+
+    def transform(self, X, y=None):
+        cnames = [f'{c}_high' for c in self.columns]
+        cnames.extend([f'{c}_low' for c in self.columns])
+        new_X = pd.DataFrame({}, columns=cnames, index=X.index)    
+        for c in self.columns:            
+            f, t, Zxx = stft(X[c], nperseg=self.window)
+            t = np.mean(np.abs(Zxx))*5
+            new_X.loc[:, f'{c}_high'] = self._high(Zxx, t)
+            new_X.loc[:, f'{c}_low'] = self._low(Zxx, t)
+        return new_X
+
