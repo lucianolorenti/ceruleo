@@ -36,14 +36,35 @@ class LifeCumSum(BaseEstimator, TransformerMixin):
         return X
 
 
+class Diff(BaseEstimator, TransformerMixin):
+    def __init__(self, ignored=[]):        
+        self.ignored = ignored
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        
+        X_ignored = None
+        columns = X.columns
+        if len(self.ignored) > 0:
+            X_ignored = X[self.ignored] 
+            columns = [f for f in X.columns if f not in self.ignored]
+        X_new = X[columns].diff().fillna(0)
+        X_new.columns = [f'{f}_diff' for f in columns]
+        if X_ignored is not None:
+            columns = X_new.columns.values.tolist() + X_ignored.columns.values.tolist()
+            X_new =  pd.concat((X_new, X_ignored), axis='columns', ignore_index=True)
+            X_new.columns = columns
+        return X_new
+
 class LifeExceededCumSum(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=None,  life_id_col='life', lambda_=0.5, discard_originals=False):
+    def __init__(self, columns=None,  life_id_col='life', lambda_=0.5):
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.life_id_col = life_id_col
         self.columns = columns
-        self.discard_originals = discard_originals
 
     def fit(self, X, y=None):
         if self.columns is None:
@@ -56,11 +77,10 @@ class LifeExceededCumSum(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = X.copy()
-        new_columns = []
-        for c in self.columns:
-            X.loc[:, f'{c}_cumsum'] = 0
-            new_columns.append(f'{c}_cumsum')
+        
+        
+        cnames = [f'{c}_cumsum' for c in self.columns]
+        new_X = pd.DataFrame({}, columns=cnames, index=X.index)            
         for life in X[self.life_id_col].unique():
             data = X[X[self.life_id_col] == life]
             data_columns = data[self.columns]
@@ -68,13 +88,13 @@ class LifeExceededCumSum(BaseEstimator, TransformerMixin):
                 (data_columns < (self.LCL)) |
                 (data_columns > (self.UCL))
             )
-
             df_cumsum = mask.astype('int').cumsum()
             for c in self.columns:
-                X.loc[X[self.life_id_col] == life,
-                      f'{c}_cumsum'] = df_cumsum[c]
+                new_X.loc[
+                    X[self.life_id_col] == life,
+                    f'{c}_cumsum'] = df_cumsum[c]
 
-        return X
+        return new_X
 
 
 class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
