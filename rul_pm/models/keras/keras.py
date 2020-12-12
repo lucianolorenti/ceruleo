@@ -100,7 +100,7 @@ class KerasTrainableModel(TrainableModel):
         })
         return params
 
-    def predict(self, dataset, step=None, batch_size=512):
+    def _predict(self, model, dataset, step=None, batch_size=512):
         step = self.computed_step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset,
@@ -120,7 +120,10 @@ class KerasTrainableModel(TrainableModel):
         b = tf.data.Dataset.from_generator(
             gen_dataset, (tf.float32),
             (tf.TensorShape([None, self.window, n_features])))
-        return self.model.predict(b)
+        return model.predict(b)
+
+    def predict(self, dataset, step=None, batch_size=512):
+        return self._predict(self.model, dataset, step=step, batch_size=batch_size)
 
     def input_shape(self):
         n_features = self.transformer.n_features
