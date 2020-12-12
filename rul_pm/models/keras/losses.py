@@ -123,3 +123,28 @@ def weighted_categorical_crossentropy(weights):
 
 def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
+
+def weibull_mean_loss_regression(y_true, y_pred):
+    def loglik_continuous(y,  a, b, epsilon=K.epsilon()):
+        ya = (y + epsilon) / a
+        loglikelihoods =  (K.log(b) + b * K.log(ya)) - K.pow(ya, b)
+        return loglikelihoods
+
+    def loglik_discrete(y, a, b, epsilon=K.epsilon()):
+        hazard0 = K.pow((y + epsilon) / a, b)
+        hazard1 = K.pow((y + 1.0) / a, b)
+
+        loglikelihoods = 1 * \
+            K.log(K.exp(hazard1 - hazard0) - (1.0 - epsilon)) - hazard1
+        return loglikelihoods
+
+
+    a = y_pred[:, 0]
+    b = y_pred[:, 1]
+
+    #tf.print(RUL)
+    #RUL =  a * tf.exp(tf.math.lgamma(1 + tf.math.reciprocal(b)))
+
+    return  -loglik_discrete(y_true, a, b) 
+
+
