@@ -70,7 +70,6 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
 
     def fit(self, df, y=None):
         self.feature_columns = [f for f in df.columns if f not in self.features]
-        
         return self
 
     def transform(self, X):
