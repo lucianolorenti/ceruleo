@@ -9,6 +9,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import OneHotEncoder, RobustScaler
 from sklearn.utils.validation import check_is_fitted
+from scipy.signal import  istft, stft, find_peaks
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +20,26 @@ class LifeCumSum(BaseEstimator, TransformerMixin):
         self.columns = columns
 
     def fit(self, X, y=None):
+        if self.columns is None:
+            self.columns = X.columns
+        self.columns = [f for f in self.columns if f != self.life_id_col]
         return self
 
     def transform(self, X):
-        X = X.copy()
-        for c in self.columns:
-            X.loc[:, f'{c}_cumsum'] = 0
+        X_new = pd.DataFrame(
+            np.zeros((len(X.index), len(self.columns))),
+            index=X.index,
+            columns=self.columns
+        )
+        X_new.columns = [f'{c}_cumsum' for c in self.columns]
         for life in X[self.life_id_col].unique():
             data = X[X[self.life_id_col] == life]
             data_columns = (data[self.columns]
-                            .astype('int')
                             .cumsum())
             for c in self.columns:
-                X.loc[X[self.life_id_col] == life,
+                X_new.loc[X[self.life_id_col] == life,
                       f'{c}_cumsum'] = data_columns[c]
-        return X
+        return X_new
 
 
 class Diff(BaseEstimator, TransformerMixin):
@@ -129,7 +135,7 @@ class RollingMean(BaseEstimator, TransformerMixin):
     def __init__(self, window):
         self.window = window
 
-    def fit(self):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
@@ -141,7 +147,7 @@ class RollingStd(BaseEstimator, TransformerMixin):
     def __init__(self, window):
         self.window = window
 
-    def fit(self):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
@@ -153,13 +159,14 @@ class RollingRootMeanSquare(BaseEstimator, TransformerMixin):
     def __init__(self, window):
         self.window = window
 
-    def fit(self):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
         return (X.pow(2)
                 .rolling(self.window)
-                .apply(lambda x: np.sqrt(x.mean()))
+                .mean()
+                .pow(1./2)                
                 .fillna(0))
 
 
@@ -171,14 +178,15 @@ class RollingSquareMeanRootedAbsoluteAmplitude(BaseEstimator, TransformerMixin):
     def __init__(self, window):
         self.window = window
 
-    def fit(self):
+    def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
         return (X.abs()
-                .sqrt()
+                .pow(1./2)
                 .rolling(self.window)
-                .apply(lambda x: x.mean()**2)
+                .mean()
+                .pow(2)                
                 .fillna(0))
 
 
@@ -199,36 +207,66 @@ class RollingPeakValue(BaseEstimator, TransformerMixin):
             return np.sum((data - data.mean())**4) / ((k - 1) * data.std()**4)
         return (X
                 .rolling(self.window)
-                .apply(peak_value)
+                .apply(peak_value, raw=False)
                 .fillna(0))
 
 
-class HighAndLowFrequencies(BaseEstimator, TransformerMixin):
+class Peaks(BaseEstimator, TransformerMixin):
+
+
+    def __init__(self, window):
+        self.window = window
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        cnames = [f'{c}_peaks' for c in X.columns]
+        new_X = pd.DataFrame(np.zeros((len(X.index), len(cnames)), dtype=np.float32), columns=cnames, index=X.index)
+        for c in X.columns:
+            peaks, _ = find_peaks(X[c])
+            new_X.loc[:, f'{c}_peaks'].iloc[peaks] = 1
+        return new_X
+        
+
+
+from scipy.signal import  firwin, lfilter
+
+
+class LowFrequencies(BaseEstimator, TransformerMixin):
+    def __init__(self, window):
+        self.window = window 
+
+    def fit(self, X, y=None):
+        return self 
+
+    def _low(self, signal, t):
+        a = firwin(self.window+1, cutoff = 0.01, window="hann", pass_zero='lowpass')
+        return lfilter(a, 1, signal)
+
+    def transform(self, X, y=None):
+        cnames = ([f'{c}_low' for c in X.columns])
+        new_X = pd.DataFrame(np.zeros((len(X.index), len(cnames)), dtype=np.float32), columns=cnames, index=X.index)    
+        for c in X.columns:            
+            new_X.loc[:, f'{c}_low'] = self._low(X[c], 0)
+        return new_X
+
+
+class HighFrequencies(BaseEstimator, TransformerMixin):
     def __init__(self, window):
         self.window = window 
 
     def fit(self, X, y=None):
         return self
 
-    def _high(self, Zxx, t):
-        Zxxa = np.where(np.abs(Zxx)>= t, Zxx, 0)
-        _, xreca = istft(Zxxa, fs)
-        return xreca
-
-    def _low(self, Zxx, t):
-        Zxxa = np.where(np.abs(Zxx) <= t, Zxx, 0)
-        _, xreca = istft(Zxxa, fs)
-        return xreca
-
+    def _high(self, signal, t):
+        a = firwin(self.window+1, cutoff = 0.2, window="hann", pass_zero='highpass')
+        return lfilter(a, 1, signal)
 
     def transform(self, X, y=None):
-        cnames = [f'{c}_high' for c in self.columns]
-        cnames.extend([f'{c}_low' for c in self.columns])
-        new_X = pd.DataFrame({}, columns=cnames, index=X.index)    
-        for c in self.columns:            
-            f, t, Zxx = stft(X[c], nperseg=self.window)
-            t = np.mean(np.abs(Zxx))*5
-            new_X.loc[:, f'{c}_high'] = self._high(Zxx, t)
-            new_X.loc[:, f'{c}_low'] = self._low(Zxx, t)
+        cnames = [f'{c}_high' for c in X.columns]
+        new_X = pd.DataFrame(np.zeros((len(X.index), len(cnames)), dtype=np.float32), columns=cnames, index=X.index)    
+        for c in X.columns:            
+            new_X.loc[:, f'{c}_high'] = self._high(X[c], 0)
         return new_X
 
