@@ -179,7 +179,7 @@ class WindowedDatasetIterator(DatasetIterator):
         oelements = []
         s = 0
         j = 0
-        for life in range(self.dataset.nlives):
+        for life in tqdm(range(self.dataset.nlives)):
 
             X, _ = self._load_data(life)
             list_ranges = list(
