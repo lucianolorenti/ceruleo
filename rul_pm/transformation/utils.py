@@ -1,3 +1,7 @@
+from sklearn.pipeline import FeatureUnion, _fit_transform_one, _transform_one
+from scipy import sparse
+from joblib import Parallel, delayed
+import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -50,13 +54,6 @@ class PandasTransformerWrapper(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         return pd.DataFrame(self.transformer.transform(X), columns=X.columns)
-
-
-import numpy as np
-import pandas as pd
-from joblib import Parallel, delayed
-from sklearn.pipeline import FeatureUnion, _fit_transform_one, _transform_one
-from scipy import sparse
 
 
 class PandasFeatureUnion(FeatureUnion):
