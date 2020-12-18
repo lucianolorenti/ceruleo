@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
@@ -58,14 +59,16 @@ def get_batcher(dataset: AbstractLivesDataset,
                 output_size: int = 1,
                 shuffle: bool = False,
                 restart_at_end: bool = True,
-                cache_size: int = 20) -> Batcher:
+                cache_size: int = 20,
+                evenly_spaced_points: Optional[int] = None) -> Batcher:
     iterator = WindowedDatasetIterator(dataset,
                                        window,
                                        transformer,
                                        step=step,
                                        output_size=output_size,
                                        shuffle=shuffle,
-                                       cache_size=cache_size)
+                                       cache_size=cache_size,
+                                       evenly_spaced_points=evenly_spaced_points)
     b = Batcher(iterator, batch_size)
     b.restart_at_end = restart_at_end
     return b

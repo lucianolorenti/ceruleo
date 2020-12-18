@@ -1,6 +1,7 @@
+import logging
 import pickle
 import random
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,8 @@ from sklearn.utils.validation import check_is_fitted
 from tqdm.auto import tqdm
 
 CACHE_SIZE = 30
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetIterator:
@@ -155,6 +158,9 @@ class WindowedDatasetIterator(DatasetIterator):
 
     cache_size: int = CACHE_SIZE
                 Size of the LRU Cache. The size indicates the number of lives to store
+
+    evenly_spaced_points: int
+                Determine wether 
     """
 
     def __init__(self,
@@ -164,8 +170,10 @@ class WindowedDatasetIterator(DatasetIterator):
                  step: int = 1,
                  output_size: int = 1,
                  shuffle: Union[str, bool] = False,
-                 cache_size: int = CACHE_SIZE):
+                 cache_size: int = CACHE_SIZE,
+                 evenly_spaced_points: Optional[int] = None):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
+        self.evenly_spaced_points = evenly_spaced_points
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
@@ -175,22 +183,28 @@ class WindowedDatasetIterator(DatasetIterator):
         self.output_size = output_size
 
     def _windowed_element_list(self):
+        def window_evenly_spaced(i):
+            w = y[i-self.window_size:i+1].diff().dropna().abs()
+            return np.all(w <= self.evenly_spaced_points)
+
         olifes = []
         oelements = []
-        s = 0
-        j = 0
-        for life in range(self.dataset.nlives):
+        logger.info('Computing windows')
+        for life in tqdm(range(self.dataset.nlives)):
 
-            X, _ = self._load_data(life)
-            list_ranges = list(
-                range(self.window_size-1, X.shape[0], self.step))
+            _, y = self._load_data(life)
+            list_ranges = range(self.window_size-1, y.shape[0], self.step)
+            if self.evenly_spaced_points is not None:
+                is_valid_point = window_evenly_spaced
+            else:
+                def is_valid_point(i): return True
+            list_ranges = [
+                i for i in list_ranges if is_valid_point(i)
+            ]
+
             for i in list_ranges:
                 olifes.append(life)
                 oelements.append(i)
-            # if i != X.shape[0] - 1:
-            #    i = X.shape[0] - 1
-            #    olifes.append(life)
-            #    oelements.append(i)
 
         return olifes, oelements
 
@@ -224,6 +238,7 @@ class WindowedDatasetIterator(DatasetIterator):
             df = pd.concat(groups).reset_index(drop=True)
         elif self.shuffle == 'all':
             df = df.sample(frac=1, axis=0)
+
         self.lifes = df['life'].values.tolist()
         self.elements = df['elements'].values.tolist()
 

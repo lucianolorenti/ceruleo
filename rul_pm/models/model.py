@@ -4,7 +4,7 @@ import logging
 import pickle
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple, TypeVar, Union
+from typing import Optional, Tuple, TypeVar, Union
 
 import numpy as np
 import tensorflow as tf
@@ -24,13 +24,13 @@ def json_to_str(elem):
     else:
         return str(elem)
 
+
 class TrainableModelInterface:
     def fit(self, ds):
         raise NotImplementedError
 
     def predict(self, df):
         raise NotImplementedError
-
 
 
 class TrainableModel(TrainableModelInterface):
@@ -65,8 +65,9 @@ class TrainableModel(TrainableModelInterface):
                  shuffle: Union[bool, str],
                  models_path: Path,
                  patience: int = 4,
-                 output_size: int=1,
-                 cache_size: int = 30):
+                 output_size: int = 1,
+                 cache_size: int = 30,
+                 evenly_spaced_points: Optional[int] = None):
         if isinstance(models_path, str):
             models_path = Path(models_path)
 
@@ -82,6 +83,7 @@ class TrainableModel(TrainableModelInterface):
         self.cache_size = cache_size
         self._model = None
         self.output_size = output_size
+        self.evenly_spaced_points = evenly_spaced_points
 
     @property
     def computed_step(self):
@@ -203,7 +205,8 @@ class TrainableModel(TrainableModelInterface):
                                     self.computed_step,
                                     shuffle=self.shuffle,
                                     output_size=self.output_size,
-                                    cache_size=self.cache_size)
+                                    cache_size=self.cache_size,
+                                    evenly_spaced_points=self.evenly_spaced_points)
 
         val_batcher = get_batcher(validation_dataset,
                                   self.window,

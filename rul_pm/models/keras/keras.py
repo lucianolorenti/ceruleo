@@ -65,7 +65,8 @@ class KerasTrainableModel(TrainableModel):
                  callbacks: list = [],
                  learning_rate=0.001,
                  metrics=[root_mean_squared_error],
-                 loss='mse'):
+                 loss='mse',
+                 **kwargs):
         super().__init__(window,
                          batch_size,
                          step,
@@ -74,7 +75,8 @@ class KerasTrainableModel(TrainableModel):
                          models_path,
                          patience=patience,
                          output_size=output_size,
-                         cache_size=cache_size)
+                         cache_size=cache_size,
+                         **kwargs)
         self.compiled = False
         self.callbacks = callbacks
         self.learning_rate = learning_rate
