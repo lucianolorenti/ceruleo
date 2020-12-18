@@ -163,7 +163,8 @@ class KerasTrainableModel(TrainableModel):
         self.compiled = False
 
     def fit(self, train_dataset, validation_dataset, verbose=1,
-            epochs=50, overwrite=True, reset=True, refit_transformer=True, class_weight=None):
+            epochs=50, overwrite=True, reset=True, refit_transformer=True, class_weight=None,
+            print_summary = True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
@@ -174,9 +175,8 @@ class KerasTrainableModel(TrainableModel):
         if not self.compiled:
             self.compile()
 
-        self.print_summary = True
 
-        if self.print_summary:
+        if print_summary:
             self.model.summary()
 
         train_batcher, val_batcher = self._create_batchers(
