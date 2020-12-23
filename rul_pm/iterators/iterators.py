@@ -183,7 +183,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.output_size = output_size
 
     def _windowed_element_list(self):
-        def window_evenly_spaced(i):
+        def window_evenly_spaced(y, i):
             w = y[i-self.window_size:i+1].diff().dropna().abs()
             return np.all(w <= self.evenly_spaced_points)
 
@@ -197,9 +197,9 @@ class WindowedDatasetIterator(DatasetIterator):
             if self.evenly_spaced_points is not None:
                 is_valid_point = window_evenly_spaced
             else:
-                def is_valid_point(i): return True
+                def is_valid_point(y, i): return True
             list_ranges = [
-                i for i in list_ranges if is_valid_point(i)
+                i for i in list_ranges if is_valid_point(y, i)
             ]
 
             for i in list_ranges:
