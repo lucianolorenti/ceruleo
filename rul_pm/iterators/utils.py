@@ -24,10 +24,8 @@ def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, outp
     signal_X_1 = signal_X[initial:i+1, :]
     if len(signal_y.shape) == 1:
         signal_y_1 = signal_y[i:min(i+output_size, signal_y.shape[0])]
-
         if signal_y_1.shape[0] < output_size:
-            padding = np.array(
-                [signal_y_1[-1]]*(output_size - signal_y_1.shape[0]))
+            padding = np.zeros(output_size - signal_y_1.shape[0])
             signal_y_1 = np.hstack((signal_y_1, padding))
     else:
         signal_y_1 = signal_y[i:min(i+output_size, signal_y.shape[0]), :]
