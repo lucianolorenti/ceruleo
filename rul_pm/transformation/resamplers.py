@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
@@ -12,12 +13,20 @@ class ResamplerTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, df):
+
         if self.enabled:
-            return (df
-                    .drop_duplicates(subset=self.time_feature)
-                    .set_index(self.time_feature)
-                    .resample(self.time, origin='start')
-                    .interpolate(method=self.interpolation_method)
-                    .reset_index(drop=True))
+            X = df.copy()
+            X[self.time_feature] = pd.to_timedelta(
+                X[self.time_feature], unit='s')
+            X = (X
+                 .drop_duplicates(subset=self.time_feature)
+                 .set_index(self.time_feature)
+                 # .resample('5s', origin='start')
+                 # .mean()
+                 .resample(self.time, origin='start')
+                 .interpolate()
+                 .reset_index())
+            X[self.time_feature] = X[self.time_feature].astype('int')
+            return X
         else:
-            return df.drop(columns=self.time_feature)
+            return df
