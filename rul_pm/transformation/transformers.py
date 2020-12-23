@@ -10,7 +10,8 @@ from rul_pm.transformation.features.selection import (
 from rul_pm.transformation.imputers import (MedianImputer, NaNRemovalImputer,
                                             PandasMedianImputer)
 from rul_pm.transformation.outliers import IQROutlierRemover
-from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
+from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
+                                         TargetIdentity)
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import FeatureUnion, Pipeline
@@ -37,59 +38,51 @@ def step_if_argument_is_not_missing(cls, param):
     return (cls(param) if param is not None else 'passthrough')
 
 
-def transformation_pipeline(outlier=None, numerical_imputer=None, scaler=None, resampler=None,
-                            features=None, discard=None, locater=None,
-                            final=None, categoricals=[], numerical_generator=None,
-                            variance_threshold=0, min_null_proportion=0.5,
-                            output_df=False, discard_at_end=[]):
-    def categorial_pipeline():
-        return Pipeline(
-            steps=[
-                ('imputer', PandasMedianImputer()),
-                ('dummy', OneHotCategoricalPandas(categoricals))
-            ])
-
-    def numericals_pipeline():
-        return Pipeline(
-            steps=[
-                ('generator', step_is_not_missing(numerical_generator)),
-                ('outlier_removal', step_is_not_missing(outlier)),
-                ('scaler', step_is_not_missing(scaler)),
-                ('NullProportionSelector', step_if_argument_is_not_missing(
-                    PandasNullProportionSelector, min_null_proportion)),
-                ('selector', step_if_argument_is_not_missing(
-                    PandasVarianceThreshold, variance_threshold)),
-                ('imputer', numerical_imputer),
-                ('final', step_is_not_missing(final))
-            ])
-    if features is not None and discard is not None:
-        raise ValueError(
-            'Features and discard cannot be setted at the same time')
+def numericals_pipeline(numerical_features: list = None,
+                        numerical_generator=None, outlier=None, scaler=None,
+                        min_null_proportion=0.3, variance_threshold=0, imputer=None, final=None):
     selector = 'passthrough'
-    if features is not None:
-        selector = ByNameFeatureSelector(features)
-        if len(categoricals) > 0:
-            categoricals = set(features).intersection(set(categoricals))
-    if discard is not None:
-        selector = DiscardByNameFeatureSelector(discard)
+    if numerical_features is not None:
+        selector = ByNameFeatureSelector(numerical_features)
+    return Pipeline(
+        steps=[
+            ('selector', selector),
+            ('generator', step_is_not_missing(numerical_generator)),
+            ('outlier_removal', step_is_not_missing(outlier)),
+            ('scaler', step_is_not_missing(scaler)),
+            ('NullProportionSelector', step_if_argument_is_not_missing(
+                PandasNullProportionSelector, min_null_proportion)),
+            ('variance_selector', step_if_argument_is_not_missing(
+                PandasVarianceThreshold, variance_threshold)),
+            ('imputer', imputer),
 
-    if len(features) > 0 and len(categoricals) > 0:
-        main_step = ColumnTransformer([
-            ("numerical_transformation", numericals_pipeline(), features),
-            ("categorical_transformation", categorial_pipeline(), categoricals)
+            ('final', step_is_not_missing(final))
+        ])
+
+
+def categorial_pipeline(categoricals: list):
+    return PandasFeatureUnion(
+        [
+            (f'dummy_{c}', OneHotCategoricalPandas(c)) for c in categoricals]
+    )
+
+
+def transformation_pipeline(resampler=None,
+                            numericals_pipeline=None,
+                            categorial_pipeline=None,
+                            output_df=False):
+    main_step = None
+    if categorial_pipeline is not None:
+        main_step = PandasFeatureUnion([
+            ("numerical_transformation", numericals_pipeline),
+            ("categorical_transformation", categorial_pipeline)
         ])
     else:
-        main_step = Pipeline(steps=[
-            ('selector', selector),
-            ('transform', numericals_pipeline())
-        ])
+        main_step = numericals_pipeline
 
     return Pipeline(steps=[
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
         ('main_step', main_step),
-        ('locater', step_is_not_missing(locater)),
-        ('drop_life_column', DiscardByNameFeatureSelector(
-            features=['life']+discard_at_end)),
         ('to_numpy', PandasToNumpy() if not output_df else 'passthrough')
     ])
 
@@ -155,7 +148,9 @@ class Transformer:
 
     def fit(self, dataset, proportion=1.0):
         logger.info('Fitting Transformer')
-        df = dataset.toPandas(proportion)
+        df = (dataset
+              .toPandas(proportion)
+              .reset_index())
         self.fitX(df)
         self.fitY(df)
 
@@ -166,8 +161,8 @@ class Transformer:
         return self
 
     def fitX(self, df):
-        if self.disable_resampling_when_fitting:
-            step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)
+        # if self.disable_resampling_when_fitting:
+        step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)
         self.original_columns = df.columns
         self.transformerX.fit(df)
         step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, True)
@@ -202,7 +197,7 @@ class Transformer:
     def columns(self):
         pass
 
-    @property
+    @ property
     def n_features(self):
         return self.number_of_features_
 
