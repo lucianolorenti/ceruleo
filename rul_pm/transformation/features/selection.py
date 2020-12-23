@@ -31,7 +31,7 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
         self.features_indices = None
 
     def fit(self, df, y=None):
-       
+
         if len(self.features) > 0:
             features = [f for f in self.features if f in set(df.columns)]
         else:
@@ -69,7 +69,8 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
         self.features_indices = None
 
     def fit(self, df, y=None):
-        self.feature_columns = [f for f in df.columns if f not in self.features]
+        self.feature_columns = [
+            f for f in df.columns if f not in self.features]
         return self
 
     def transform(self, X):
@@ -88,9 +89,10 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
 
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
-        self.variances_ = X.var(skipna=False)
+        self.variances_ = X.var(skipna=True)
         self.selected_columns_ = X.columns[self.variances_ > self.t]
-
+        logger.debug(
+            f'Dropped columns {[c for c in X.columns if c not in self.selected_columns_]}')
         return self
 
     def transform(self, X, y=None):
