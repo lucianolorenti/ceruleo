@@ -47,7 +47,7 @@ class PandasTransformerWrapper(BaseEstimator, TransformerMixin):
 
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
-        self.transformer.fit(X)
+        self.transformer.fit(X.values)
         return self
 
     def transform(self, X, y=None):
@@ -81,22 +81,23 @@ class PandasFeatureUnion(FeatureUnion):
         return Xs
 
     def merge_dataframes_by_column(self, Xs):
-        X = pd.concat(Xs, axis="columns", copy=False, ignore_index=True)
-        names = []
-        for Xs, (name, trans, weight) in zip(Xs, self._iter()):
-            for n in Xs.columns:
-                names.append(f'{name}_{n}')
-        X.columns = names
-
+        names = [name for name, _, _ in self._iter()]
+        X = Xs[0]
+        X.columns = [f'{names[0]}_{c}' for c in X.columns]
+        for name, otherX in zip(names[1:], Xs[1:]):
+            for c in otherX.columns:
+                X[f'{name}_{c}'] = otherX[c]
         return X
 
     def transform(self, X):
-        Xs = [_transform_one(
-            transformer=trans,
-            X=X,
-            y=None,
-            weight=weight)
-            for name, trans, weight in self._iter()]
+        Xs = []
+        for name, trans, weight in self._iter():
+            Xs.append(_transform_one(
+                transformer=trans,
+                X=X,
+                y=None,
+                weight=weight)
+            )
         if not Xs:
             # All transformers are None
             return np.zeros((X.shape[0], 0))
