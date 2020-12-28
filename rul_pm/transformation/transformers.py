@@ -7,8 +7,7 @@ from rul_pm.transformation.features.selection import (
     ByNameFeatureSelector, DiscardByNameFeatureSelector,
     NullProportionSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
-from rul_pm.transformation.imputers import (MedianImputer, NaNRemovalImputer,
-                                            PandasMedianImputer)
+from rul_pm.transformation.imputers import PandasMedianImputer
 from rul_pm.transformation.outliers import IQROutlierRemover
 from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
                                          TargetIdentity)
@@ -55,7 +54,10 @@ def numericals_pipeline(numerical_features: list = None,
             ('variance_selector', step_if_argument_is_not_missing(
                 PandasVarianceThreshold, variance_threshold)),
             ('imputer', imputer),
-
+            ('NullProportionSelector_1', step_if_argument_is_not_missing(
+                PandasNullProportionSelector, min_null_proportion)),
+            ('variance_selector_1', step_if_argument_is_not_missing(
+                PandasVarianceThreshold, variance_threshold)),
             ('final', step_is_not_missing(final))
         ])
 
@@ -150,11 +152,11 @@ class Transformer:
         logger.info('Fitting Transformer')
         df = (dataset
               .toPandas(proportion)
-              .reset_index())
+              .reset_index(drop=True))
         self.fitX(df)
         self.fitY(df)
 
-        self.minimal_df = df.head(n=2)
+        self.minimal_df = df.head(n=5)
         X = self.transformerX.transform(self.minimal_df)
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
