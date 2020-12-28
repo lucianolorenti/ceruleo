@@ -7,25 +7,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 logger = logging.getLogger(__name__)
 
 
-class NaNRemovalImputer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        return X[~np.isnan(X).any(axis=1)]
-
-
-class MedianImputer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        self.col_median = np.nanmean(X, axis=0)
-        return self
-
-    def transform(self, X, y=None):
-        inds = np.where(np.isnan(X))
-        X[inds] = np.take(self.col_median, inds[1])
-        return X
-
-
 class PandasRemoveInf(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
@@ -36,11 +17,20 @@ class PandasRemoveInf(BaseEstimator, TransformerMixin):
 
 class PandasMedianImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
-        self.median = X.median(axis=0)
+        self.median = X.median(axis=0).to_dict()
         return self
 
     def transform(self, X, y=None):
         return X.fillna(value=self.median)
+
+
+class PandasMeanImputer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.mean = X.mean(axis=0).to_dict()
+        return self
+
+    def transform(self, X, y=None):
+        return X.fillna(value=self.mean)
 
 
 class RollingImputer(BaseEstimator, TransformerMixin):
@@ -85,22 +75,3 @@ class ForwardFillImputer(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         return X.ffill()
-
-
-class MedianImputer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError('Input array must be a data frame')
-        self.median = X.median()
-        for i in range(len(self.median)):
-            if np.isnan(self.median[i]):
-                logger.info(f'Feature {i} is nan')
-                self.median[i] = 0
-        return self
-
-    def transform(self, X, y=None):
-        mask = np.isnan(X)
-        rows, cols = np.where(mask)
-        for r, c in zip(rows, cols):
-            X[r, c] = self.median[c]
-        return X
