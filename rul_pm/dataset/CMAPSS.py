@@ -64,7 +64,6 @@ def prepare_train_data(data, factor: float = 0):
 
 
 def process_file_train(file):
-    print(file)
     df = pd.read_csv(CMAPSS_PATH / ('train_' + file + '.txt'), sep=r"\s+",
                      names=input_file_column_names, header=None)
     df = prepare_train_data(df)
