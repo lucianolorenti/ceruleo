@@ -10,7 +10,8 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
 
     # Example
     y_true = tf.convert_to_tensor([1, 0, 0, 0, 0, 0], dtype=tf.int64)
-    y_pred = tf.convert_to_tensor([0.6, 0.1, 0.1, 0.9, 0.1, 0.], dtype=tf.float32)
+    y_pred = tf.convert_to_tensor(
+        [0.6, 0.1, 0.1, 0.9, 0.1, 0.], dtype=tf.float32)
     weights = {
         0: 1.,
         1: 2.
@@ -51,8 +52,8 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
             0: 1.
             1: 8.
         }
-        For this case, we want to emphasise those true (1) label, 
-        because we have many false (0) label. e.g. 
+        For this case, we want to emphasise those true (1) label,
+        because we have many false (0) label. e.g.
             [
                 [0 1 0 0 0 0 0 0 0 1]
                 [0 0 0 0 1 0 0 0 0 0]
@@ -101,7 +102,8 @@ def weighted_categorical_crossentropy(weights):
         weights: numpy array of shape (C,) where C is the number of classes
 
     Usage:
-        weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
+        # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
+        weights = np.array([0.5,2,10])
         loss = weighted_categorical_crossentropy(weights)
         model.compile(loss=loss,optimizer='adam')
     """
@@ -124,27 +126,33 @@ def weighted_categorical_crossentropy(weights):
 def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
+
 def weibull_mean_loss_regression(y_true, y_pred):
-    def loglik_continuous(y,  a, b, epsilon=K.epsilon()):
-        ya = (y + epsilon) / a
-        loglikelihoods =  (K.log(b) + b * K.log(ya)) - K.pow(ya, b)
-        return loglikelihoods
+    def loss_a(y_true, y_pred):
 
-    def loglik_discrete(y, a, b, epsilon=K.epsilon()):
-        hazard0 = K.pow((y + epsilon) / a, b)
-        hazard1 = K.pow((y + 1.0) / a, b)
+        eps = K.epsilon()
+        l = y_pred[:, 0]
+        k = y_pred[:, 1]
 
-        loglikelihoods = 1 * \
-            K.log(K.exp(hazard1 - hazard0) - (1.0 - epsilon)) - hazard1
-        return loglikelihoods
+        uncensored = y_true[:, 1]
+        y_true = y_true[:, 0]
+        y_true = y_true + 1
+        b = k * K.log((y_true/l))
 
+        const = 1. + (b) + (K.pow(b, 2.) / 2.) + \
+            (K.pow(b, 3.)/6.) + (K.pow(b, 4.) / 24.)
 
-    a = y_pred[:, 0]
-    b = y_pred[:, 1]
+        const2 = uncensored * (K.log(k/l) + (k-1.)*K.log((y_true/l) + eps))
 
-    #tf.print(RUL)
-    #RUL =  a * tf.exp(tf.math.lgamma(1 + tf.math.reciprocal(b)))
+        return -(const2-const)
 
-    return  -loglik_discrete(y_true, a, b) 
+    RUL = y_pred[:, 0]
+    a = y_pred[:, 1]
+    b = y_pred[:, 2]
 
+    # RUL =  a * tf.exp(tf.math.lgamma(1 + tf.math.reciprocal(b)))
+    weibul_loss = loss_a(y_true, y_pred)
 
+    reg_loss = root_mean_squared_error(RUL, y_true[:, 0])
+    loss = tf.reduce_mean(weibul_loss) + reg_loss
+    return loss
