@@ -188,6 +188,10 @@ class TrainableModel(TrainableModelInterface):
         raise NotImplementedError
 
     @property
+    def input_shape(self):
+        return (self.window, self.transformer.n_features)
+
+    @property
     def model(self):
         if self._model is None:
             self._model = self.build_model()
