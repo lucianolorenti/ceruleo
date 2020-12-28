@@ -40,10 +40,8 @@ class Batcher:
             for _ in range(self.batch_size):
                 X_t, y_t = next(self.iterator)
                 X.append(np.expand_dims(X_t, axis=0))
+                y.append(np.expand_dims(y_t, axis=0))
 
-                if len(y_t.shape) == 1:
-                    y_t = np.expand_dims(y_t, axis=0)
-                y.append(y_t)
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
