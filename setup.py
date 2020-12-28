@@ -14,7 +14,8 @@ setup(
         'seaborn',
         'python-docx',
         'savona',
-        'xgboost'
+        'xgboost',
+        'gwpy'
     ],
     license='MIT',
     include_package_data=True,
