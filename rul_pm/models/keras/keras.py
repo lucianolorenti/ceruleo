@@ -1,7 +1,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -102,7 +102,7 @@ class KerasTrainableModel(TrainableModel):
         })
         return params
 
-    def _predict(self, model, dataset, step=None, batch_size=512):
+    def _predict(self, model, dataset, step=None, batch_size=512, evenly_spaced_points: Optional[int] = None):
         step = self.computed_step if step is None else step
         n_features = self.transformer.n_features
         batcher = get_batcher(dataset,
@@ -112,7 +112,8 @@ class KerasTrainableModel(TrainableModel):
                               step,
                               shuffle=False,
                               output_size=self.output_size,
-                              cache_size=self.cache_size)
+                              cache_size=self.cache_size,
+                              evenly_spaced_points=evenly_spaced_points)
         batcher.restart_at_end = False
 
         def gen_dataset():
@@ -124,12 +125,8 @@ class KerasTrainableModel(TrainableModel):
             (tf.TensorShape([None, self.window, n_features])))
         return model.predict(b)
 
-    def predict(self, dataset, step=None, batch_size=512):
-        return self._predict(self.model, dataset, step=step, batch_size=batch_size)
-
-    def input_shape(self):
-        n_features = self.transformer.n_features
-        return (self.window, n_features)
+    def predict(self, dataset, step=None, batch_size=512, evenly_spaced_points: Optional[int] = None):
+        return self._predict(self.model, dataset, step=step, batch_size=batch_size, evenly_spaced_points=evenly_spaced_points)
 
     def compile(self):
         self.compiled = True
@@ -151,10 +148,10 @@ class KerasTrainableModel(TrainableModel):
 
         a = tf.data.Dataset.from_generator(
             gen_train, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None, self.output_size])))
+                [None, self.window, n_features]), tf.TensorShape([None, self.output_size, 1])))
         b = tf.data.Dataset.from_generator(
             gen_val, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None, self.output_size])))
+                [None, self.window, n_features]), tf.TensorShape([None, self.output_size, 1])))
         return a, b
 
     def reset(self):
@@ -164,7 +161,7 @@ class KerasTrainableModel(TrainableModel):
 
     def fit(self, train_dataset, validation_dataset, verbose=1,
             epochs=50, overwrite=True, reset=True, refit_transformer=True, class_weight=None,
-            print_summary = True):
+            print_summary=True):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
@@ -174,7 +171,6 @@ class KerasTrainableModel(TrainableModel):
             self.reset()
         if not self.compiled:
             self.compile()
-
 
         if print_summary:
             self.model.summary()
@@ -197,8 +193,6 @@ class KerasTrainableModel(TrainableModel):
             validation_steps=len(val_batcher),
             callbacks=[
                 early_stopping,
-                # lr_callback,
-                # TerminateOnNaN(train_batcher),
                 model_checkpoint_callback
             ] +
             self.callbacks,
