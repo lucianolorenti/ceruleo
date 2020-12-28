@@ -216,14 +216,14 @@ class WindowedDatasetIterator(DatasetIterator):
             return
         valid_shuffle = ((self.shuffle == False)
                          or (self.shuffle
-                             in ('signal', 'life', 'all', 'signal_life')))
+                             in ('signal', 'life', 'all', 'signal_life', 'ordered')))
         df = pd.DataFrame({
             'life': self.orig_lifes,
             'elements': self.orig_elements
         })
         if not valid_shuffle:
             raise ValueError(
-                "shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life'"
+                "shuffle parameter invalid. Valid values are: False, 'signal', 'life', 'all' 'signal_life', 'ordered'"
             )
         if self.shuffle == 'signal':
             groups = [d.sample(frac=1, axis=0) for _, d in df.groupby('life')]
@@ -239,6 +239,8 @@ class WindowedDatasetIterator(DatasetIterator):
         elif self.shuffle == 'all':
             df = df.sample(frac=1, axis=0)
 
+        elif self.shuffle == 'ordered':
+            df = df.sort_values(by=['elements'])
         self.lifes = df['life'].values.tolist()
         self.elements = df['elements'].values.tolist()
 
