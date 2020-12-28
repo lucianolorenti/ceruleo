@@ -38,22 +38,25 @@ class FCN(KerasTrainableModel):
                  transformer,
                  shuffle,
                  models_path,
-                 patience=7):
+                 patience=7,
+                 **kwargs):
         super(FCN, self).__init__(window,
                                   batch_size,
                                   step,
                                   transformer,
                                   shuffle,
                                   models_path,
-                                  patience=patience)
+                                  patience=patience,
+                                  **kwargs)
         self.layers_ = []
-        self.layers_sizes = layers
+        self.layers_sizes = layers_sizes
         self.dropout = dropout
         self.l2 = l2
 
     def build_model(self):
         s = Sequential()
-        s.add(Flatten())
+        print(self.input_shape)
+        s.add(Flatten(input_shape=self.input_shape))
         for l in self.layers_sizes:
             s.add(
                 Dense(l,
