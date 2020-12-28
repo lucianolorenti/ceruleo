@@ -22,7 +22,7 @@ class NullProportionSelector(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
 
-        return X[:, self.mask]
+        return X[:, self.mask].copy()
 
 
 class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
