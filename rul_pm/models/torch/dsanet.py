@@ -142,10 +142,10 @@ class Single_Local_SelfAttn_Module(nn.Module):
 
 class AR(nn.Module):
 
-    def __init__(self, window):
+    def __init__(self, window: int, hidden_size: int):
 
         super(AR, self).__init__()
-        self.linear = nn.Linear(window, 1)
+        self.linear = nn.Linear(window, hidden_size)
 
     def forward(self, x):
         x = torch.transpose(x, 1, 2)
@@ -300,7 +300,7 @@ class DSANetPrivate(nn.Module):
 
     def __init__(self, model: TorchTrainableModel, local: int = 2, n_kernels: int = 64,
                  w_kernel: int = 1, d_model: int = 5, d_inner: int = 6, n_layers: int = 4,
-                 n_head: int = 8, d_k: int = 3, d_v: int = 3, dropout: float = 0.3):
+                 n_head: int = 8, d_k: int = 3, d_v: int = 3, dropout: float = 0.3, hidden_size: int = 16):
         """
         Pass in parsed HyperOptArgumentParser to the model
         """
@@ -318,6 +318,7 @@ class DSANetPrivate(nn.Module):
         self.d_k = d_k
         self.d_v = d_v
         self.drop_prob = dropout
+        self.hidden_size = hidden_size
 
         self.model = model
 
@@ -337,16 +338,18 @@ class DSANetPrivate(nn.Module):
             w_kernel=self.w_kernel, d_k=self.d_k, d_v=self.d_v, d_model=self.d_model,
             d_inner=self.d_inner, n_layers=self.n_layers, n_head=self.n_head, drop_prob=self.drop_prob)
 
-        self.ar = AR(window=self.model.window)
-        self.W_output1 = nn.Linear(2 * self.n_kernels, 1)
+        self.ar = AR(window=self.model.window, hidden_size=self.hidden_size)
+        self.W_output1 = nn.Linear(2 * self.n_kernels, self.hidden_size)
         self.dropout = nn.Dropout(p=self.drop_prob)
         self.active_func = nn.Tanh()
 
-        self.final_layer = nn.Linear(self.model.n_features, 1)
+        self.final_layer = nn.Linear(self.hidden_size*self.model.n_features, 1)
 
     def forward(self, x):
+
         sgsf_output, *_ = self.sgsf(x)
         slsf_output, *_ = self.slsf(x)
+
         sf_output = torch.cat((sgsf_output, slsf_output), 2)
         sf_output = self.dropout(sf_output)
         sf_output = self.W_output1(sf_output)
@@ -356,7 +359,8 @@ class DSANetPrivate(nn.Module):
         ar_output = self.ar(x)
 
         output = sf_output + ar_output
-        output = output.view(-1, self.model.n_features)
+
+        output = output.reshape(-1, self.model.n_features*self.hidden_size)
 
         output = F.relu(self.final_layer(output))
         output = output.view(-1, 1, 1)
