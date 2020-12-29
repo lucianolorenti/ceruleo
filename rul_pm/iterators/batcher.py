@@ -67,8 +67,7 @@ def get_batcher(dataset: AbstractLivesDataset,
                                        shuffle=shuffle,
                                        cache_size=cache_size,
                                        evenly_spaced_points=evenly_spaced_points)
-    b = Batcher(iterator, batch_size)
-    b.restart_at_end = restart_at_end
+    b = Batcher(iterator, batch_size, restart_at_end)
     return b
 
 
@@ -78,8 +77,8 @@ def dataset_map(fun, dataset, step, transformer, window):
                           512,
                           transformer,
                           step,
-                          shuffle=False)
-    batcher.restart_at_end = False
+                          shuffle=False,
+                          restart_at_end=False)
     for X, y in tqdm(batcher):
         fun(X, y)
 

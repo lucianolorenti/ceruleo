@@ -58,12 +58,12 @@ class TrainableModel(TrainableModelInterface):
     """
 
     def __init__(self,
-                 window: int,
-                 batch_size: int,
-                 step: Union[int, Tuple[str, int]],
-                 transformer: Transformer,
-                 shuffle: Union[bool, str],
-                 models_path: Path,
+                 window: int = 50,
+                 batch_size: int = 256,
+                 step: Union[int, Tuple[str, int]] = 1,
+                 transformer: Transformer = None,
+                 shuffle: Union[bool, str] = 'all',
+                 models_path: Path = Path('.'),
                  patience: int = 4,
                  output_size: int = 1,
                  cache_size: int = 30,
@@ -178,7 +178,7 @@ class TrainableModel(TrainableModelInterface):
     def n_features(self):
         return self.transformer.n_features
 
-    def fit(self, ds):
+    def fit(self, train_dataset, validation_dataset, *args, **kwargs):
         raise NotImplementedError
 
     def predict(self, df):
@@ -219,6 +219,6 @@ class TrainableModel(TrainableModelInterface):
                                   1,
                                   shuffle=False,
                                   output_size=self.output_size,
-                                  cache_size=self.cache_size)
-        val_batcher.restart_at_end = False
+                                  cache_size=self.cache_size,
+                                  restart_at_end=False)
         return train_batcher, val_batcher
