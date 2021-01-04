@@ -51,10 +51,23 @@ class TrainableModel(TrainableModelInterface):
              Check rul_pm.iterators.iterator
     models_path: Path
                  Location where the models are stored
+
     patience: int. Default 4
-              Patiente of the Early stopping
+              Patiente of early stopping
+
     cache_size: int. Default 30
                 LRU Cache size of the iterator
+
+    evenly_spaced_points: int
+                Determine wether the window should include points in wich
+                the RUL does not have gaps larger than the parameter
+
+    sample_weight: str. Default = 'equal'
+                Choose the weight of each sample. Possible values are
+                'equal', 'proportional_to_length'.
+                If 'equal' is choosed, each sample weights 1,
+                if 'proportional_to_length' is choosed, each sample
+                weight 1 / life length
     """
 
     def __init__(self,
@@ -67,7 +80,8 @@ class TrainableModel(TrainableModelInterface):
                  patience: int = 4,
                  output_size: int = 1,
                  cache_size: int = 30,
-                 evenly_spaced_points: Optional[int] = None):
+                 evenly_spaced_points: Optional[int] = None,
+                 sample_weight: str = 'equal'):
         if isinstance(models_path, str):
             models_path = Path(models_path)
 
@@ -84,6 +98,7 @@ class TrainableModel(TrainableModelInterface):
         self._model = None
         self.output_size = output_size
         self.evenly_spaced_points = evenly_spaced_points
+        self.sample_weight = sample_weight
 
     @property
     def computed_step(self):
@@ -210,7 +225,8 @@ class TrainableModel(TrainableModelInterface):
                                     shuffle=self.shuffle,
                                     output_size=self.output_size,
                                     cache_size=self.cache_size,
-                                    evenly_spaced_points=self.evenly_spaced_points)
+                                    evenly_spaced_points=self.evenly_spaced_points,
+                                    sample_weight=self.sample_weight)
 
         val_batcher = get_batcher(validation_dataset,
                                   self.window,
