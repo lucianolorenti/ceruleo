@@ -116,14 +116,13 @@ class KerasTrainableModel(TrainableModel):
                               evenly_spaced_points=evenly_spaced_points)
         batcher.restart_at_end = False
 
-        def gen_dataset():
-            for X, _ in batcher:
-                yield X
+        output = []
+        for X, _, _ in batcher:
+            input_tensor = tf.convert_to_tensor(X)
+            output_tensor = self.model(input_tensor)
+            output.append(output_tensor.numpy())
 
-        b = tf.data.Dataset.from_generator(
-            gen_dataset, (tf.float32),
-            (tf.TensorShape([None, self.window, n_features])))
-        return model.predict(b)
+        return np.concatenate(output)
 
     def predict(self, dataset, step=None, batch_size=512, evenly_spaced_points: Optional[int] = None):
         return self._predict(self.model, dataset, step=step, batch_size=batch_size, evenly_spaced_points=evenly_spaced_points)
@@ -139,19 +138,27 @@ class KerasTrainableModel(TrainableModel):
         n_features = self.transformer.n_features
 
         def gen_train():
-            for X, y in train_batcher:
-                yield X, y
+            for X, y, w in train_batcher:
+                yield X, y, w
 
         def gen_val():
-            for X, y in val_batcher:
-                yield X, y
+            for X, y, w in val_batcher:
+                yield X, y, w
 
         a = tf.data.Dataset.from_generator(
-            gen_train, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None, self.output_size, 1])))
+            gen_train,
+            (tf.float32, tf.float32, tf.float32),
+            (
+                tf.TensorShape([None, self.window, n_features]),
+                tf.TensorShape([None, self.output_size, 1]),
+                tf.TensorShape([None, 1])))
         b = tf.data.Dataset.from_generator(
-            gen_val, (tf.float32, tf.float32), (tf.TensorShape(
-                [None, self.window, n_features]), tf.TensorShape([None, self.output_size, 1])))
+            gen_val,
+            (tf.float32, tf.float32, tf.float32),
+            (
+                tf.TensorShape([None, self.window, n_features]),
+                tf.TensorShape([None, self.output_size, 1]),
+                tf.TensorShape([None, 1])))
         return a, b
 
     def reset(self):
