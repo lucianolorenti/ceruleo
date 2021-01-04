@@ -6,7 +6,6 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.iterators.utils import windowed_signal_generator
 from rul_pm.transformation.transformers import Transformer
 from rul_pm.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
@@ -160,7 +159,16 @@ class WindowedDatasetIterator(DatasetIterator):
                 Size of the LRU Cache. The size indicates the number of lives to store
 
     evenly_spaced_points: int
-                Determine wether 
+                Determine wether the window should include points in wich
+                the RUL does not have gaps larger than the parameter
+
+    sample_weight: str
+                   Choose the weight of each sample. Possible values are
+                   'equal', 'proportional_to_length'.
+                   If 'equal' is choosed, each sample weights 1,
+                   if 'proportional_to_length' is choosed, each sample
+                   weight 1 / life length
+
     """
 
     def __init__(self,
@@ -171,13 +179,19 @@ class WindowedDatasetIterator(DatasetIterator):
                  output_size: int = 1,
                  shuffle: Union[str, bool] = False,
                  cache_size: int = CACHE_SIZE,
-                 evenly_spaced_points: Optional[int] = None):
+                 evenly_spaced_points: Optional[int] = None,
+                 sample_weight: str = 'equal'):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.evenly_spaced_points = evenly_spaced_points
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
-        self.orig_lifes, self.orig_elements = self._windowed_element_list()
+        if sample_weight not in ('equal', 'proportional_to_length'):
+            raise ValueError(
+                'Invalid sample_weight parameter. Valid values are equal or proportional_to_length')
+        self.sample_weight = sample_weight
+
+        self.orig_lifes, self.orig_elements, self.sample_weights = self._windowed_element_list()
         self.lifes, self.elements = self.orig_lifes, self.orig_elements
         self.i = 0
         self.output_size = output_size
@@ -189,10 +203,14 @@ class WindowedDatasetIterator(DatasetIterator):
 
         olifes = []
         oelements = []
-        logger.info('Computing windows')
-        for life in tqdm(range(self.dataset.nlives)):
+        sample_weights = {}
+        logger.debug('Computing windows')
+        for life in range(self.dataset.nlives):
 
             _, y = self._load_data(life)
+            sample_weights[life] = (1
+                                    if self.sample_weight == 'equal'
+                                    else 1/y.shape[0])
             list_ranges = range(self.window_size-1, y.shape[0], self.step)
             if self.evenly_spaced_points is not None:
                 is_valid_point = window_evenly_spaced
@@ -206,7 +224,7 @@ class WindowedDatasetIterator(DatasetIterator):
                 olifes.append(life)
                 oelements.append(i)
 
-        return olifes, oelements
+        return olifes, oelements, sample_weights
 
     def _shuffle(self):
         """
@@ -254,8 +272,9 @@ class WindowedDatasetIterator(DatasetIterator):
 
     def __getitem__(self, i: int):
         (life, timestamp) = (self.lifes[i], self.elements[i])
+        sample_weight = self.sample_weights[self.lifes[i]]
         X, y = self._load_data(life)
-        return windowed_signal_generator(X, y, timestamp, self.window_size, self.output_size)
+        return *windowed_signal_generator(X, y, timestamp, self.window_size, self.output_size), [sample_weight]
 
     def at_end(self):
         return self.i == len(self.elements)
@@ -274,3 +293,50 @@ class WindowedDatasetIterator(DatasetIterator):
             XX.append(np.expand_dims(X, axis=0))
             yy.append(y)
         return np.concatenate(XX, axis=0), np.array(yy)
+
+
+def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, output_size: int = 1):
+    """
+    Return a lookback window and the value to predict.
+
+    Parameters
+    ----------
+    signal_X:
+             Matrix of size (life_length, n_features) with the information of the life
+    signal_y:
+             Target feature of size (life_length)
+    i: int
+       Position of the value to predict
+    window_size: int
+                 Size of the lookback window
+    Returns
+    -------
+    tuple (np.array, float)
+    """
+    initial = max(i - window_size+1, 0)
+    signal_X_1 = signal_X[initial:i+1, :]
+    if len(signal_y.shape) == 1:
+
+        signal_y_1 = signal_y[i:min(i+output_size, signal_y.shape[0])]
+
+        if signal_y_1.shape[0] < output_size:
+            padding = np.zeros(output_size - signal_y_1.shape[0])
+            signal_y_1 = np.hstack((signal_y_1, padding))
+        signal_y_1 = np.expand_dims(signal_y_1, axis=1)
+    else:
+        signal_y_1 = signal_y[i:min(i+output_size, signal_y.shape[0]), :]
+
+        if signal_y_1.shape[0] < output_size:
+            padding = np.zeros(
+                ((output_size - signal_y_1.shape[0]), signal_y_1.shape[1]))
+            signal_y_1 = np.concatenate((signal_y_1, padding), axis=0)
+
+    if signal_X_1.shape[0] < window_size:
+
+        signal_X_1 = np.vstack((
+            np.zeros((
+                window_size - signal_X_1.shape[0],
+                signal_X_1.shape[1])),
+            signal_X_1))
+
+    return (signal_X_1, signal_y_1)

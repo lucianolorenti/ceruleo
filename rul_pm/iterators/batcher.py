@@ -6,7 +6,6 @@ from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.transformation.transformers import Transformer, simple_pipeline
 from rul_pm.transformation.utils import PandasToNumpy
-from tqdm.auto import tqdm
 
 
 class Batcher:
@@ -29,6 +28,7 @@ class Batcher:
     def __next__(self):
         X = []
         y = []
+        sample_weights = []
         if self.stop:
             raise StopIteration
         if self.iterator.at_end():
@@ -38,27 +38,27 @@ class Batcher:
                 raise StopIteration
         try:
             for _ in range(self.batch_size):
-                X_t, y_t = next(self.iterator)
+                X_t, y_t, sample_weight = next(self.iterator)
                 X.append(np.expand_dims(X_t, axis=0))
                 y.append(np.expand_dims(y_t, axis=0))
+                sample_weights.append(np.expand_dims(sample_weight, axis=0))
 
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
         y = np.concatenate(y, axis=0)
-        return X.astype(np.float32), y.astype(np.float32)
+        sample_weights = np.concatenate(sample_weights, axis=0)
+        return X.astype(np.float32), y.astype(np.float32), sample_weights
 
 
-def get_batcher(dataset: AbstractLivesDataset,
-                window: int,
-                batch_size: int,
-                transformer: Transformer,
-                step: int,
-                output_size: int = 1,
-                shuffle: bool = False,
-                restart_at_end: bool = True,
-                cache_size: int = 20,
-                evenly_spaced_points: Optional[int] = None) -> Batcher:
+def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
+                transformer: Transformer, step: int, output_size: int = 1,
+                shuffle: bool = False, restart_at_end: bool = True, cache_size: int = 20,
+                evenly_spaced_points: Optional[int] = None,
+                sample_weight: str = 'equal') -> Batcher:
+    """
+    Utility function to create a batcher from a dataset
+    """
     iterator = WindowedDatasetIterator(dataset,
                                        window,
                                        transformer,
@@ -66,34 +66,7 @@ def get_batcher(dataset: AbstractLivesDataset,
                                        output_size=output_size,
                                        shuffle=shuffle,
                                        cache_size=cache_size,
-                                       evenly_spaced_points=evenly_spaced_points)
+                                       evenly_spaced_points=evenly_spaced_points,
+                                       sample_weight=sample_weight)
     b = Batcher(iterator, batch_size, restart_at_end)
     return b
-
-
-def dataset_map(fun, dataset, step, transformer, window):
-    batcher = get_batcher(dataset,
-                          window,
-                          512,
-                          transformer,
-                          step,
-                          shuffle=False,
-                          restart_at_end=False)
-    for X, y in tqdm(batcher):
-        fun(X, y)
-
-
-def get_features(dataset, step, window, features):
-    t = simple_pipeline(features)
-    data = {f: [] for f in features}
-
-    def populate_data(X, y):
-        for i, f in enumerate(features):
-            data[f].extend(np.squeeze(y[:, i]).tolist())
-    t = Transformer(
-        features,
-        t,
-        transformerY=PandasToNumpy()
-    )
-    dataset_map(populate_data, dataset, step, t, window)
-    return data
