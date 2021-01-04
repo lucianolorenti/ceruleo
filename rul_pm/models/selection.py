@@ -5,7 +5,7 @@ from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 
 from sklearn.base import clone
-from sklearn.model_selection import KFold, ParameterGrid
+from sklearn.model_selection import ParameterGrid
 from sklearn.model_selection._split import _BaseKFold
 
 
@@ -108,8 +108,8 @@ class GeneticAlgorithmFeatureSelection:
     def get_fitness(self, train_dataset, val_dataset, feature_list, population):
         fitness = []
         for i in range(population.shape[0]):
-            columns = [feature_list[j]
-                       for j in range(population.shape[1]) if population[i, j] == 1]
+            # columns = [feature_list[j]
+            #           for j in range(population.shape[1]) if population[i, j] == 1]
             fitness.append(self.fitness_fun(
                 train_dataset, val_dataset, feature_list))
         return fitness
@@ -119,7 +119,7 @@ class GeneticAlgorithmFeatureSelection:
         c = len(feature_list)
 
         population, memory = self.init_population(c)
-        #population, memory = self.replace_duplicate(population, memory)
+        # population, memory = self.replace_duplicate(population, memory)
 
         fitness = self.get_fitness(
             train_dataset, validation_dataset, feature_list, population)
@@ -133,7 +133,7 @@ class GeneticAlgorithmFeatureSelection:
             if np.random.rand() < 0.3:
                 population = self.flip_mutation(population)
 
-            #population, memory = replace_duplicate(population, memory)
+            # population, memory = replace_duplicate(population, memory)
 
             fitness = self.get_fitness(
                 train_dataset, validation_dataset, feature_list, population)

@@ -11,7 +11,6 @@ from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
 from sklearn.base import TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
-from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 

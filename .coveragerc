@@ -1,0 +1,6 @@
+[run]
+relative_files = True
+omit =
+    */site-packages/*
+    */distutils/*
+    tests/*

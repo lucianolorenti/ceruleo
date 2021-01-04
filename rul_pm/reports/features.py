@@ -4,8 +4,6 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 from docx import Document
-from docx.shared import Inches
-from docx.table import Table
 from pandas.api.types import is_numeric_dtype
 from rul_pm.graphics.control_charts import plot_ewma_
 from savona.exporter.docx_ import add_image_from_figure, table_from_pandas

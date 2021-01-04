@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.iterators import LifeDatasetIterator
 
@@ -22,7 +21,7 @@ def plot_errors_wrt_RUL(val_rul, pred_cont, treshhold=0, bins=15, **kwargs):
 
     Parameters
     ----------
-    val_rul: np.array   
+    val_rul: np.array
              Array of true RUL
 
     pred_cont: np.array

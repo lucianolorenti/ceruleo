@@ -1,5 +1,4 @@
 import logging
-import pickle
 import random
 from typing import Optional, Union
 
@@ -180,7 +179,8 @@ class WindowedDatasetIterator(DatasetIterator):
                  shuffle: Union[str, bool] = False,
                  cache_size: int = CACHE_SIZE,
                  evenly_spaced_points: Optional[int] = None,
-                 sample_weight: str = 'equal'):
+                 sample_weight: str = 'equal',
+                 add_last: bool = True):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.evenly_spaced_points = evenly_spaced_points
         self.window_size = window_size
@@ -195,6 +195,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.lifes, self.elements = self.orig_lifes, self.orig_elements
         self.i = 0
         self.output_size = output_size
+        self.add_last = add_last
 
     def _windowed_element_list(self):
         def window_evenly_spaced(y, i):
@@ -232,7 +233,7 @@ class WindowedDatasetIterator(DatasetIterator):
         """
         if not self.shuffle:
             return
-        valid_shuffle = ((self.shuffle == False)
+        valid_shuffle = ((not self.shuffle)
                          or (self.shuffle
                              in ('signal', 'life', 'all', 'signal_life', 'ordered')))
         df = pd.DataFrame({
@@ -274,7 +275,10 @@ class WindowedDatasetIterator(DatasetIterator):
         (life, timestamp) = (self.lifes[i], self.elements[i])
         sample_weight = self.sample_weights[self.lifes[i]]
         X, y = self._load_data(life)
-        return *windowed_signal_generator(X, y, timestamp, self.window_size, self.output_size), [sample_weight]
+        window = windowed_signal_generator(
+            X, y, timestamp, self.window_size, self.output_size, self.add_last)
+        # return *window, [sample_weight]
+        return window[0], window[1], [sample_weight]
 
     def at_end(self):
         return self.i == len(self.elements)
@@ -295,7 +299,7 @@ class WindowedDatasetIterator(DatasetIterator):
         return np.concatenate(XX, axis=0), np.array(yy)
 
 
-def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, output_size: int = 1):
+def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, output_size: int = 1,  add_last: bool = True):
     """
     Return a lookback window and the value to predict.
 
@@ -307,14 +311,22 @@ def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, outp
              Target feature of size (life_length)
     i: int
        Position of the value to predict
+
     window_size: int
                  Size of the lookback window
+
+    output_size: int
+                 Number of points of the target
+
+    add_last: bool
+
+
     Returns
     -------
     tuple (np.array, float)
     """
     initial = max(i - window_size+1, 0)
-    signal_X_1 = signal_X[initial:i+1, :]
+    signal_X_1 = signal_X[initial:i + (1 if add_last else 0), :]
     if len(signal_y.shape) == 1:
 
         signal_y_1 = signal_y[i:min(i+output_size, signal_y.shape[0])]

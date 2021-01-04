@@ -4,8 +4,7 @@ from typing import Optional
 import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.iterators import WindowedDatasetIterator
-from rul_pm.transformation.transformers import Transformer, simple_pipeline
-from rul_pm.transformation.utils import PandasToNumpy
+from rul_pm.transformation.transformers import Transformer
 
 
 class Batcher:
@@ -55,7 +54,7 @@ def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
                 transformer: Transformer, step: int, output_size: int = 1,
                 shuffle: bool = False, restart_at_end: bool = True, cache_size: int = 20,
                 evenly_spaced_points: Optional[int] = None,
-                sample_weight: str = 'equal') -> Batcher:
+                sample_weight: str = 'equal', add_last: bool = True) -> Batcher:
     """
     Utility function to create a batcher from a dataset
     """
@@ -67,6 +66,7 @@ def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
                                        shuffle=shuffle,
                                        cache_size=cache_size,
                                        evenly_spaced_points=evenly_spaced_points,
-                                       sample_weight=sample_weight)
+                                       sample_weight=sample_weight,
+                                       add_last=add_last)
     b = Batcher(iterator, batch_size, restart_at_end)
     return b

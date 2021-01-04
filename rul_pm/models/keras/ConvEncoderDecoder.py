@@ -1,35 +1,11 @@
-
-
-import logging
-import math
-from pathlib import Path
-from typing import List
-
-import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
-
-from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.keras.keras import KerasTrainableModel
-from rul_pm.models.keras.layers import ExpandDimension, MultiHeadAttention
-from rul_pm.models.keras.losses import time_to_failure_rul
-from rul_pm.models.model import TrainableModel
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras import backend as K
-from tensorflow.keras import layers, optimizers, regularizers
-from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
-                                     AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D,
-                                     Conv2D, Dense, Dropout, Flatten,
-                                     GaussianNoise, Lambda, Layer,
-                                     MaxPool2D ,
-                                     LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, MaxPooling2D, Permute, Reshape,
-                                     Softmax, SpatialDropout1D,
-                                     StackedRNNCells, UpSampling1D,
-                                     ZeroPadding2D)
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+from tcn import TCN
+from tensorflow.keras import Input, Model, optimizers
+from tensorflow.keras.layers import (AveragePooling1D, Concatenate, Conv1D,
+                                     Dense, Dropout, Flatten, Lambda,
+                                     UpSampling1D)
+
 
 class EncoderDecoder(KerasTrainableModel):
 
@@ -84,7 +60,7 @@ class EncoderDecoder(KerasTrainableModel):
             loss=self.loss,
             optimizer=optimizers.Adam(lr=self.learning_rate),
             metrics=self.metrics,
-            loss_weights={'rul':1, 'signal':1})
+            loss_weights={'rul': 1, 'signal': 1})
 
     def _generate_keras_batcher(self, train_batcher, val_batcher):
         n_features = self.transformer.n_features
@@ -126,11 +102,12 @@ class EncoderDecoder(KerasTrainableModel):
         input = Input(shape=(self.window, n_features))
         x = input
 
-        encoder = TCN(self.hidden_size, kernel_size=5, use_batch_norm=True, use_skip_connections=True, dropout_rate=self.dropout, return_sequences=True, dilations=(1,2, 4))(x)
-        encoder = AveragePooling1D(2)(encoder)        
+        encoder = TCN(self.hidden_size, kernel_size=5, use_batch_norm=True, use_skip_connections=True,
+                      dropout_rate=self.dropout, return_sequences=True, dilations=(1, 2, 4))(x)
+        encoder = AveragePooling1D(2)(encoder)
         decoder = UpSampling1D(2)(encoder)
-        decoder = Conv1D(n_features, kernel_size=5, padding='same', activation='relu', name='signal')(decoder)
-
+        decoder = Conv1D(n_features, kernel_size=5, padding='same',
+                         activation='relu', name='signal')(decoder)
 
         encoder_last_state = Flatten()(encoder)
         decoder_last_state = Lambda(lambda X: X[:, -1, :])(decoder)
@@ -146,9 +123,9 @@ class EncoderDecoder(KerasTrainableModel):
             inputs=[input],
             outputs={'signal': decoder, 'rul': output},
         )
-        
+
         return model
 
     @property
     def name(self):
-        return "EncoderDecoder"
+        return "ConvolutionalEncoderDecoder"

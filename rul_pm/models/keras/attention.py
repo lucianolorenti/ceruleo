@@ -35,7 +35,6 @@ class Attention(tf.keras.Model):
         self.permute1 = Permute((2, 1))
 
     def build(self, input_shape):
-        d = input_shape[1] - self.attention_size
         self.W = self.add_weight(name="att_weight",
                                  shape=(self.number_of_filters,
                                         input_shape[2]),

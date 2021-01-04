@@ -1,17 +1,12 @@
-import copy
+
 import logging
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 import scipy
-from rul_pm.transformation.utils import PandasToNumpy, TargetIdentity
-from scipy.signal import find_peaks, firwin, istft, lfilter, stft
+from scipy.signal import firwin, lfilter
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.preprocessing import OneHotEncoder, RobustScaler
-from sklearn.utils.validation import check_is_fitted
+from sklearn.preprocessing import OneHotEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +91,8 @@ class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
 
     def transform(self, X, y=None):
         categories = [
-            f'{self.feature}_{l}' for l in self.encoder.categories_[0]]
+            f'{self.feature}_{feature_name}'
+            for feature_name in self.encoder.categories_[0]]
         d = self.encoder.transform(X[self.feature].values.reshape(-1, 1))
         return pd.DataFrame(d,
                             index=X.index,
@@ -177,14 +173,19 @@ class RollingStatistics(BaseEstimator, TransformerMixin):
     def __init__(self, window, min_periods: int = 15, to_compute=None):
         self.window = window
         self.min_periods = min_periods
-        valid_stats = ['kurtosis', 'skeweness', 'mean', 'max',
-                       'min', 'std', 'peak', 'impulse', 'clearance',
-                       'rms', 'shape', 'crest', 'spectral_kurtosis']
+
         if to_compute is None:
             self.to_compute = ['kurtosis', 'skeweness', 'max',
                                'min', 'std', 'peak', 'impulse', 'clearance',
                                'rms', 'shape', 'crest', 'spectral_kurtosis']
         else:
+            valid_stats = ['kurtosis', 'skeweness', 'mean', 'max',
+                           'min', 'std', 'peak', 'impulse', 'clearance',
+                           'rms', 'shape', 'crest', 'spectral_kurtosis']
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}')
             self.to_compute = to_compute
 
     def fit(self, X, y=None):
@@ -260,6 +261,10 @@ class ExpandingStatistics(BaseEstimator, TransformerMixin):
                                'min', 'std', 'peak', 'impulse', 'clearance',
                                'rms', 'shape', 'crest']
         else:
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}')
             self.to_compute = to_compute
 
     def partial_fit(self, X, y=None):

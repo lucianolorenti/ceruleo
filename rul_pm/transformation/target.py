@@ -33,7 +33,7 @@ class PicewiseRULThreshold(PicewiseRUL):
 
     Parameters
     ----------
-    max_life:float 
+    max_life:float
 
 
     """

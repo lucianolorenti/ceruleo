@@ -1,29 +1,14 @@
 import logging
-import math
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
 from rul_pm.iterators.batcher import get_batcher
-from rul_pm.models.keras.layers import ExpandDimension
-from rul_pm.models.keras.losses import time_to_failure_rul
 from rul_pm.models.model import TrainableModel
-from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras import backend as K
-from tensorflow.keras import layers, optimizers, regularizers
+from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
-                                     AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D,
-                                     Conv2D, Dense, Dropout, Flatten,
-                                     GaussianNoise, Lambda, Layer,
-                                     LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, Permute, Reshape,
-                                     SpatialDropout1D, StackedRNNCells,
-                                     UpSampling1D, ZeroPadding2D)
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +89,7 @@ class KerasTrainableModel(TrainableModel):
 
     def _predict(self, model, dataset, step=None, batch_size=512, evenly_spaced_points: Optional[int] = None):
         step = self.computed_step if step is None else step
-        n_features = self.transformer.n_features
+
         batcher = get_batcher(dataset,
                               self.window,
                               batch_size,
@@ -113,8 +98,9 @@ class KerasTrainableModel(TrainableModel):
                               shuffle=False,
                               output_size=self.output_size,
                               cache_size=self.cache_size,
-                              evenly_spaced_points=evenly_spaced_points)
-        batcher.restart_at_end = False
+                              evenly_spaced_points=evenly_spaced_points,
+                              restart_at_end=False,
+                              add_last=self.add_last)
 
         output = []
         for X, _, _ in batcher:

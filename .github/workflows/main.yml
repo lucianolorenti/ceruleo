@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Documentation
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -22,18 +22,16 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Install wheel
-        run: pip3 install wheel setuptools 
-
-
-      - name: Install PDOC
-        run: pip3 install pdoc3
-   
-      - name: Install tensorflow
-        run: pip3 install tensorflow
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install wheel setuptools cython
+          python3 -m pip install pdoc3
+          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
+        
         
       - name: Install package
-        run: pip3 install -e $GITHUB_WORKSPACE
+        run: python3 -m pip install -e $GITHUB_WORKSPACE
 
       - name: Generator doc
         run: python3 -m pdoc --html rul_pm --force

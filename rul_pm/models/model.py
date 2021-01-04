@@ -2,14 +2,11 @@ import hashlib
 import json
 import logging
 import pickle
-from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple, TypeVar, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
-import tensorflow as tf
-from rul_pm.iterators.batcher import Batcher, get_batcher
-from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.iterators.batcher import get_batcher
 from rul_pm.transformation.transformers import Transformer
 
 logger = logging.getLogger(__name__)
@@ -81,7 +78,8 @@ class TrainableModel(TrainableModelInterface):
                  output_size: int = 1,
                  cache_size: int = 30,
                  evenly_spaced_points: Optional[int] = None,
-                 sample_weight: str = 'equal'):
+                 sample_weight: str = 'equal',
+                 add_last: bool = True):
         if isinstance(models_path, str):
             models_path = Path(models_path)
 
@@ -99,6 +97,7 @@ class TrainableModel(TrainableModelInterface):
         self.output_size = output_size
         self.evenly_spaced_points = evenly_spaced_points
         self.sample_weight = sample_weight
+        self.add_last = add_last
 
     @property
     def computed_step(self):
@@ -182,7 +181,8 @@ class TrainableModel(TrainableModelInterface):
                               512,
                               transformer if transformer is not None else self.transformer,
                               step,
-                              shuffle=False)
+                              shuffle=False,
+                              add_last=self.add_last)
         batcher.restart_at_end = False
         trues = []
         for _, y in batcher:
@@ -216,7 +216,7 @@ class TrainableModel(TrainableModelInterface):
         pass
 
     def _create_batchers(self, train_dataset, validation_dataset):
-        logger.info('Creating batchers')
+        logger.debug('Creating batchers')
         train_batcher = get_batcher(train_dataset,
                                     self.window,
                                     self.batch_size,
@@ -226,7 +226,8 @@ class TrainableModel(TrainableModelInterface):
                                     output_size=self.output_size,
                                     cache_size=self.cache_size,
                                     evenly_spaced_points=self.evenly_spaced_points,
-                                    sample_weight=self.sample_weight)
+                                    sample_weight=self.sample_weight,
+                                    add_last=self.add_last)
 
         val_batcher = get_batcher(validation_dataset,
                                   self.window,
@@ -236,5 +237,6 @@ class TrainableModel(TrainableModelInterface):
                                   shuffle=False,
                                   output_size=self.output_size,
                                   cache_size=self.cache_size,
-                                  restart_at_end=False)
+                                  restart_at_end=False,
+                                  add_last=self.add_last)
         return train_batcher, val_batcher

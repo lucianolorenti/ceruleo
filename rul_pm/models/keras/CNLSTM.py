@@ -1,29 +1,10 @@
 
 
-import logging
-import math
-from pathlib import Path
-from typing import List
-
-import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as K
-from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.keras.keras import KerasTrainableModel
-from rul_pm.models.keras.layers import ExpandDimension
-from rul_pm.models.keras.losses import time_to_failure_rul
-from rul_pm.models.model import TrainableModel
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras import backend as K
-from tensorflow.keras import layers, optimizers, regularizers
-from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import (
-    GRU, LSTM, RNN, Activation, Add, AveragePooling1D, BatchNormalization,
-    Bidirectional, Concatenate, Conv1D, Conv2D, Dense, Dropout, Flatten,
-    GaussianNoise, Lambda, Layer, LayerNormalization, LSTMCell, Masking,
-    MaxPool1D, MaxPooling2D, Permute, Reshape, Softmax, SpatialDropout1D,
-    StackedRNNCells, UpSampling1D, ZeroPadding2D)
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+from tensorflow.keras import Input, Sequential
+from tensorflow.keras.layers import (Conv1D, Dense, Dropout, Flatten,
+                                     MaxPool1D, Reshape)
 
 
 class CNLSTM(KerasTrainableModel):

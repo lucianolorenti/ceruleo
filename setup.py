@@ -15,7 +15,7 @@ setup(
         'python-docx',
         'savona',
         'xgboost',
-        'gwpy'
+        'gwpy',
     ],
     license='MIT',
     include_package_data=True,

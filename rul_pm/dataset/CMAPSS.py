@@ -6,7 +6,8 @@ from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 CMAPSS_PATH = DATA_PATH / 'C_MAPSS'
 
 # Features used by
-# Multiobjective Deep Belief Networks Ensemble forRemaining Useful Life Estimation in PrognosticsChong Zhang, Pin Lim, A. K. Qin,Senior Member, IEEE, and Kay Chen Tan,Fellow, IEEE
+# Multiobjective Deep Belief Networks Ensemble forRemaining Useful Life Estimation in
+# PrognosticsChong Zhang, Pin Lim, A. K. Qin,Senior Member, IEEE, and Kay Chen Tan,Fellow, IEEE
 sensor_indices = [2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]
 
 dependent_vars = ['RemainingUsefulLife']
@@ -27,9 +28,9 @@ engines = ['FD001', 'FD002', 'FD003', 'FD004']
 
 def process_file_test(file):
     test_data = pd.read_csv(
-        CMAPSS_PATH / ('test_' + file + '.txt'), names=input_file_column_names, delimiter="\s+", header=None)
+        CMAPSS_PATH / ('test_' + file + '.txt'), names=input_file_column_names, delimiter=r"\s+", header=None)
     truth_data = pd.read_csv(
-        CMAPSS_PATH / ('RUL_' + file + '.txt'), delimiter="\s+", header=None)
+        CMAPSS_PATH / ('RUL_' + file + '.txt'), delimiter=r"\s+", header=None)
     truth_data.columns = ['truth']
     truth_data['UnitNumber'] = np.array(range(truth_data.shape[0])) + 1
     test_rul = test_data.groupby('UnitNumber')['Cycle'].max().reset_index()

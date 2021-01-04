@@ -13,8 +13,8 @@ class IQROutlierRemover(BaseEstimator, TransformerMixin):
     X_t = imput.transform(X)
     """
 
-    def __init__(self, l=1.5, proportion_to_sample=1.0):
-        self.l = l
+    def __init__(self, margin=1.5, proportion_to_sample=1.0):
+        self.margin = margin
         self.proportion_to_sammple = proportion_to_sample
 
     def fit(self, X):
@@ -39,8 +39,8 @@ class IQROutlierRemover(BaseEstimator, TransformerMixin):
         check_is_fitted(self, 'IQR')
         for c in X.columns:
             mask = (
-                (X[c] < (self.Q1[c] - self.l * self.IQR[c])) |
-                (X[c] > (self.Q3[c] + self.l * self.IQR[c]))
+                (X[c] < (self.Q1[c] - self.margin * self.IQR[c])) |
+                (X[c] > (self.Q3[c] + self.margin * self.IQR[c]))
             )
             X.loc[mask, c] = np.nan
         return X
@@ -63,9 +63,9 @@ class ZScoreOutlierRemover(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = self.scaler.transform(X)
-        X[np.abs(X) > self.number_of_std_allowed] = np.nan
-        return pd.DataFrame(X, columns=X.columns, index=X.index)
+        X_new = self.scaler.transform(X)
+        X_new[np.abs(X_new) > self.number_of_std_allowed] = np.nan
+        return pd.DataFrame(X_new, columns=X.columns, index=X.index)
 
 
 class EWMAOutlierRemover(BaseEstimator, TransformerMixin):

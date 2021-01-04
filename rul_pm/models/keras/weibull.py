@@ -2,10 +2,8 @@
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-from numpy.random import exponential
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import (Add, BatchNormalization, Concatenate,
-                                     Dense, Lambda, Multiply)
+from tensorflow.keras.layers import Concatenate, Dense, Lambda, Multiply
 
 tfd = tfp.distributions
 

@@ -1,33 +1,7 @@
-
-
-import logging
-import math
-from pathlib import Path
-from typing import List
-
-import numpy as np
-import tensorflow as tf
-import tensorflow.keras.backend as K
-from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.keras.keras import KerasTrainableModel
-from rul_pm.models.keras.layers import ExpandDimension, MultiHeadAttention
-from rul_pm.models.keras.losses import time_to_failure_rul
-from rul_pm.models.model import TrainableModel
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras import backend as K
-from tensorflow.keras import layers, optimizers, regularizers
-from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import (GRU, LSTM, RNN, Activation, Add,
-                                     AveragePooling1D, BatchNormalization,
-                                     Bidirectional, Concatenate, Conv1D,
-                                     Conv2D, Dense, Dropout, Flatten,
-                                     GaussianNoise, Lambda, Layer,
-                                     LayerNormalization, LSTMCell, Masking,
-                                     MaxPool1D, MaxPool2D, MaxPooling2D,
-                                     Permute, Reshape, Softmax,
-                                     SpatialDropout1D, StackedRNNCells,
-                                     UpSampling1D, ZeroPadding2D)
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+from rul_pm.models.keras.layers import ExpandDimension
+from tensorflow.keras import Input, Model, optimizers
+from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten
 
 
 class XiangQiangJianQiaoModel(KerasTrainableModel):

@@ -1,8 +1,6 @@
 import numpy as np
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.transformers import (PandasToNumpy, Transformer,
                                                 simple_pipeline)
-from tqdm.auto import tqdm
 
 
 def dataset_map(fun, dataset, step, transformer, window):

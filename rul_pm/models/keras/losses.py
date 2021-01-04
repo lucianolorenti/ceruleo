@@ -131,24 +131,25 @@ def weibull_mean_loss_regression(y_true, y_pred):
     def loss_a(y_true, y_pred):
 
         eps = K.epsilon()
-        l = y_pred[:, 0]
+        lambda_ = y_pred[:, 0]
         k = y_pred[:, 1]
 
         uncensored = y_true[:, 1]
         y_true = y_true[:, 0]
         y_true = y_true + 1
-        b = k * K.log((y_true/l))
+        b = k * K.log((y_true/lambda_))
 
         const = 1. + (b) + (K.pow(b, 2.) / 2.) + \
             (K.pow(b, 3.)/6.) + (K.pow(b, 4.) / 24.)
 
-        const2 = uncensored * (K.log(k/l) + (k-1.)*K.log((y_true/l) + eps))
+        const2 = uncensored * (K.log(k/lambda_) + (k-1.)
+                               * K.log((y_true/lambda_) + eps))
 
         return -(const2-const)
 
     RUL = y_pred[:, 0]
-    a = y_pred[:, 1]
-    b = y_pred[:, 2]
+    # a = y_pred[:, 1]
+    # b = y_pred[:, 2]
 
     # RUL =  a * tf.exp(tf.math.lgamma(1 + tf.math.reciprocal(b)))
     weibul_loss = loss_a(y_true, y_pred)

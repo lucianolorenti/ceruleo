@@ -7,7 +7,6 @@ from torchsummary import summary as model_summary
 from tqdm.auto import tqdm
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 LOSSES = {
@@ -53,7 +52,7 @@ class TorchTrainableModel(TrainableModel):
 
     def predict(self, dataset, step=None, batch_size=512, evenly_spaced_points: Optional[int] = None):
         step = self.computed_step if step is None else step
-        n_features = self.transformer.n_features
+
         batcher = get_batcher(dataset,
                               self.window,
                               batch_size,
