@@ -14,6 +14,9 @@ class PandasRemoveInf(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         return X.replace([np.inf, -np.inf], np.nan)
 
+    def partial_fit(self, X, y=None):
+        return self
+
 
 class PandasMedianImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
@@ -23,8 +26,14 @@ class PandasMedianImputer(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         return X.fillna(value=self.median)
 
+    def partial_fit(self, X, y=None):
+        return self
+
 
 class PandasMeanImputer(BaseEstimator, TransformerMixin):
+    def partial_fit(self, X, y=None):
+        return self
+
     def fit(self, X, y=None):
         self.mean = X.mean(axis=0).to_dict()
         return self
@@ -54,6 +63,9 @@ class RollingImputer(BaseEstimator, TransformerMixin):
                 X[r, f] = self.default_value[f]
         return X
 
+    def partial_fit(self, X, y=None):
+        return self
+
 
 class RollingMedianImputer(RollingImputer):
     def __init__(self, window_size):
@@ -75,3 +87,6 @@ class ForwardFillImputer(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         return X.ffill()
+
+    def partial_fit(self, X, y=None):
+        return self

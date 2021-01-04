@@ -4,26 +4,36 @@ import logging
 import numpy as np
 from rul_pm.transformation.features.generation import OneHotCategoricalPandas
 from rul_pm.transformation.features.selection import (
-    ByNameFeatureSelector, DiscardByNameFeatureSelector,
-    NullProportionSelector, PandasNullProportionSelector,
+    ByNameFeatureSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
-from rul_pm.transformation.imputers import PandasMedianImputer
-from rul_pm.transformation.outliers import IQROutlierRemover
 from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
                                          TargetIdentity)
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.preprocessing import OneHotEncoder, RobustScaler
+from sklearn.base import TransformerMixin
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
 RESAMPLER_STEP_NAME = 'resampler'
 
 
+class LivesPipeline(Pipeline):
+    def partial_fit(self, X, y=None):
+        args = [X, y]
+        for name, est in self.steps:
+            if est == 'passthrough':
+                continue
+
+            est.partial_fit(*args)
+
+            X_transformed = est.transform(args[0])
+            args = [X_transformed, y]
+        return self
+
+
 def simple_pipeline(features=[], to_numpy: bool = True):
-    return Pipeline(steps=[
+    return LivesPipeline(steps=[
         ('initial_selection', ByNameFeatureSelector(features)),
         ('to_numpy', PandasToNumpy() if to_numpy else 'passthrough')
     ])
@@ -39,11 +49,11 @@ def step_if_argument_is_not_missing(cls, param):
 
 def numericals_pipeline(numerical_features: list = None,
                         numerical_generator=None, outlier=None, scaler=None,
-                        min_null_proportion=0.3, variance_threshold=0, imputer=None, final=None):
+                        min_null_proportion=0.3, variance_threshold=0, imputer=None, final=None) -> LivesPipeline:
     selector = 'passthrough'
     if numerical_features is not None:
         selector = ByNameFeatureSelector(numerical_features)
-    return Pipeline(
+    return LivesPipeline(
         steps=[
             ('selector', selector),
             ('generator', step_is_not_missing(numerical_generator)),
@@ -62,7 +72,7 @@ def numericals_pipeline(numerical_features: list = None,
         ])
 
 
-def categorial_pipeline(categoricals: list):
+def categorial_pipeline(categoricals: list) -> PandasFeatureUnion:
     return PandasFeatureUnion(
         [
             (f'dummy_{c}', OneHotCategoricalPandas(c)) for c in categoricals]
@@ -72,7 +82,7 @@ def categorial_pipeline(categoricals: list):
 def transformation_pipeline(resampler=None,
                             numericals_pipeline=None,
                             categorial_pipeline=None,
-                            output_df=False):
+                            output_df=False) -> LivesPipeline:
     main_step = None
     if categorial_pipeline is not None:
         main_step = PandasFeatureUnion([
@@ -82,7 +92,7 @@ def transformation_pipeline(resampler=None,
     else:
         main_step = numericals_pipeline
 
-    return Pipeline(steps=[
+    return LivesPipeline(steps=[
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
         ('main_step', main_step),
         ('to_numpy', PandasToNumpy() if not output_df else 'passthrough')
@@ -126,10 +136,11 @@ class Transformer:
 
     def __init__(self,
                  target_column: str,
-                 transformerX: TransformerMixin,
+                 transformerX: LivesPipeline,
                  time_feature: str = None,
-                 transformerY: TransformerMixin = TargetIdentity(),
+                 transformerY: LivesPipeline = TargetIdentity(),
                  disable_resampling_when_fitting: bool = True):
+
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.target_column = target_column
@@ -149,25 +160,23 @@ class Transformer:
         return copy.deepcopy(self)
 
     def fit(self, dataset, proportion=1.0):
-        logger.info('Fitting Transformer')
-        df = (dataset
-              .toPandas(proportion)
-              .reset_index(drop=True))
-        self.fitX(df)
-        self.fitY(df)
+        logger.debug('Fitting Transformer')
+        for life in dataset:
+            self.partial_fitX(life)
+            self.partial_fitY(life)
 
-        self.minimal_df = df.head(n=5)
+        self.minimal_df = dataset[0].head(n=5)
         X = self.transformerX.transform(self.minimal_df)
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
+        self.column_names = self._compute_column_names()
         return self
 
-    def fitX(self, df):
-        # if self.disable_resampling_when_fitting:
-        step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, False)
-        self.original_columns = df.columns
-        self.transformerX.fit(df)
-        step_set_enable(self.transformerX, RESAMPLER_STEP_NAME, True)
+    def partial_fitX(self, df):
+        self.transformerX.partial_fit(df)
+
+    def partial_fitY(self, df):
+        self.transformerY.partial_fit(self._target(df))
 
     def _target(self, df):
         if self.time_feature is not None:
@@ -178,12 +187,6 @@ class Transformer:
             return df[select_features]
         else:
             return df[self.target_column]
-
-    def fitY(self, df):
-        if self.disable_resampling_when_fitting:
-            step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, False)
-        self.transformerY.fit(self._target(df))
-        step_set_enable(self.transformerY, RESAMPLER_STEP_NAME, True)
 
     def transform(self, df):
         check_is_fitted(self, 'fitted_')
@@ -203,7 +206,7 @@ class Transformer:
     def n_features(self):
         return self.number_of_features_
 
-    def column_names(self):
+    def _compute_column_names(self):
         temp = self.transformerX.steps[-1]
         self.transformerX.steps[-1] = ('empty', 'passthrough')
         cnames = self.transformerX.transform(self.minimal_df).columns.values

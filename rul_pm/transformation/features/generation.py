@@ -190,6 +190,9 @@ class RollingStatistics(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
+    def partial_fit(self, X, y=None):
+        return self
+
     def _mean(self, s: pd.Series):
         return s.rolling(self.window, min_periods=self.min_periods).mean(skipna=True)
 
@@ -257,7 +260,13 @@ class ExpandingStatistics(BaseEstimator, TransformerMixin):
                                'min', 'std', 'peak', 'impulse', 'clearance',
                                'rms', 'shape', 'crest']
         else:
-            self.to_coExpandingStatistics
+            self.to_compute = to_compute
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
 
     def _kurtosis(self, s: pd.Series):
         return s.expanding(self.min_points).kurt(skipna=True)

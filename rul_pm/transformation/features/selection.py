@@ -29,9 +29,22 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, features=[]):
         self.features = features
         self.features_indices = None
+        self.features_computed_ = []
+
+    def partial_fit(self, df, y=None):
+        if len(self.features) > 0:
+            features = [f for f in self.features if f in set(df.columns)]
+        else:
+            features = list(set(df.columns))
+
+        if len(self.features_computed_) == 0:
+            self.features_computed_ = features
+        else:
+            self.features_computed_ = [
+                f for f in self.features_computed_ if f in features]
+        return self
 
     def fit(self, df, y=None):
-
         if len(self.features) > 0:
             features = [f for f in self.features if f in set(df.columns)]
         else:
@@ -84,6 +97,17 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
 class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
     def __init__(self, t):
         self.t = t
+        self.selected_columns_ = None
+
+    def partial_fit(self, X, y=None):
+        variances_ = X.var(skipna=True)
+        partial_selected_columns_ = X.columns[variances_ > self.t]
+        if self.selected_columns_ is None:
+            self.selected_columns_ = partial_selected_columns_
+        else:
+            self.selected_columns_ = [
+                f for f in self.selected_columns_ if f in partial_selected_columns_]
+        return self
 
     def fit(self, X, y=None):
 
@@ -104,6 +128,17 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
 class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
     def __init__(self, t):
         self.t = t
+        self.selected_columns_ = None
+
+    def partial_fit(self, X, y=None):
+        null_proportion = X.isnull().mean()
+        partial_selected_columns_ = X.columns[null_proportion < self.t]
+        if self.selected_columns_ is None:
+            self.selected_columns_ = partial_selected_columns_
+        else:
+            self.selected_columns_ = [
+                f for f in self.selected_columns_ if f in partial_selected_columns_]
+        return self
 
     def fit(self, X, y=None):
         if not isinstance(X, pd.DataFrame):

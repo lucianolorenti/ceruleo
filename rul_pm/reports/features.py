@@ -23,8 +23,6 @@ class Report:
         pass
 
 
-
-
 class FeatureReport(Report):
     def __init__(self, dataset, title='', output_file_name='features'):
         self.dataset = dataset
@@ -57,6 +55,9 @@ class FeatureReport(Report):
         self.correlation()
         self._numerical_features()
         self.save()
+
+    def feature_importance(self):
+        pass
 
     def _features_info(self):
         df = self.df.isnull().mean().reset_index()
