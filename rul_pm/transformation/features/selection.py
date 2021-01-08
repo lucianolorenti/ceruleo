@@ -95,13 +95,13 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
 
 
 class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
-    def __init__(self, t):
-        self.t = t
+    def __init__(self, min_variance: float):
+        self.min_variance = min_variance
         self.selected_columns_ = None
 
     def partial_fit(self, X, y=None):
         variances_ = X.var(skipna=True)
-        partial_selected_columns_ = X.columns[variances_ > self.t]
+        partial_selected_columns_ = X.columns[variances_ > self.min_variance]
         if self.selected_columns_ is None:
             self.selected_columns_ = partial_selected_columns_
         else:
@@ -114,7 +114,7 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         self.variances_ = X.var(skipna=True)
-        self.selected_columns_ = X.columns[self.variances_ > self.t]
+        self.selected_columns_ = X.columns[self.variances_ > self.min_variance]
         logger.debug(
             f'Dropped columns {[c for c in X.columns if c not in self.selected_columns_]}')
         return self
@@ -126,13 +126,14 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
 
 
 class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
-    def __init__(self, t):
-        self.t = t
+    def __init__(self, max_null_proportion: float):
+        self.max_null_proportion = max_null_proportion
         self.selected_columns_ = None
 
     def partial_fit(self, X, y=None):
         null_proportion = X.isnull().mean()
-        partial_selected_columns_ = X.columns[null_proportion < self.t]
+        partial_selected_columns_ = X.columns[null_proportion <
+                                              self.max_null_proportion]
         if self.selected_columns_ is None:
             self.selected_columns_ = partial_selected_columns_
         else:
@@ -144,7 +145,8 @@ class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         self.null_proportion = X.isnull().mean()
-        self.selected_columns_ = X.columns[self.null_proportion < self.t]
+        self.selected_columns_ = X.columns[self.null_proportion <
+                                           self.max_null_proportion]
         return self
 
     def transform(self, X, y=None):

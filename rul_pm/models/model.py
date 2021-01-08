@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 from rul_pm.iterators.batcher import get_batcher
+from rul_pm.store.store import store
 from rul_pm.transformation.transformers import Transformer
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,6 @@ class TrainableModel(TrainableModelInterface):
                   Transformer to be applied on the dataset
     shuffle: Union[bool, str]
              Check rul_pm.iterators.iterator
-    models_path: Path
-                 Location where the models are stored
 
     patience: int. Default 4
               Patiente of early stopping
@@ -73,15 +72,12 @@ class TrainableModel(TrainableModelInterface):
                  step: Union[int, Tuple[str, int]] = 1,
                  transformer: Transformer = None,
                  shuffle: Union[bool, str] = 'all',
-                 models_path: Path = Path('.'),
                  patience: int = 4,
                  output_size: int = 1,
                  cache_size: int = 30,
                  evenly_spaced_points: Optional[int] = None,
                  sample_weight: str = 'equal',
                  add_last: bool = True):
-        if isinstance(models_path, str):
-            models_path = Path(models_path)
 
         self.window = window
         self.batch_size = batch_size
@@ -89,7 +85,6 @@ class TrainableModel(TrainableModelInterface):
         self.transformer = transformer
         self.shuffle = shuffle
         self.patience = patience
-        self.models_path = models_path
         self.model_filename_ = None
         self._model_filepath = None
         self.cache_size = cache_size
@@ -109,23 +104,8 @@ class TrainableModel(TrainableModelInterface):
         raise ValueError('Invalid step parameter')
 
     @property
-    def model_filename(self):
-        if self.model_filename_ is None:
-            hash_object = self._hash_parameters()
-            self.model_filename_ = self.name + '_' + hash_object
-        return self.model_filename_
-
-    @property
     def name(self):
-        raise NotImplementedError
-
-    def _hash_parameters(self):
-        return hashlib.md5(self._parameter_to_json()).hexdigest()
-
-    def _parameter_to_json(self):
-        return json.dumps(self.get_params(),
-                          sort_keys=True,
-                          default=json_to_str).encode('utf-8')
+        return type(self).__name__
 
     def get_params(self, deep=False):
         return {
@@ -134,8 +114,7 @@ class TrainableModel(TrainableModelInterface):
             'step': self.step,
             'shuffle': self.shuffle,
             'patience': self.patience,
-            'transformer': self.transformer,
-            'models_path': self.models_path
+            'transformer': self.transformer
         }
 
     def set_params(self, **parameters):
@@ -143,51 +122,29 @@ class TrainableModel(TrainableModelInterface):
             setattr(self, parameter, value)
         return self
 
-    def _get_params_serializable(self):
-        params = self.get_params()
-        params['transformer'] = params['transformer'].description()
-        return params
-
     @property
     def model_filepath(self):
         if self._model_filepath is None:
-            self._model_filepath = str(self.models_path / self.model_filename)
+            self._model_filepath = (
+                store.model_filename(self) +
+                store.keras_extension())
+
         return self._model_filepath
-
-    @property
-    def results_filename(self):
-        return self.model_filepath + 'results_.pkl'
-
-    def load_results(self):
-        with open(self.results_filename, 'rb') as infile:
-            return pickle.load(infile)
-
-    def _results(self):
-        return {
-            'parameters': self._get_params_serializable(),
-            'model_file': self.model_filepath
-        }
-
-    def save_results(self):
-        logger.info(f'Writing results {self.results_filename}')
-
-        with open(self.results_filename, 'wb') as outfile:
-            pickle.dump(self._results(), outfile)
 
     def true_values(self, dataset, step=None, transformer=None):
         step = self.step if step is None else step
         batcher = get_batcher(dataset,
                               self.window,
-                              512,
+                              2048,
                               transformer if transformer is not None else self.transformer,
                               step,
                               shuffle=False,
                               add_last=self.add_last)
         batcher.restart_at_end = False
         trues = []
-        for _, y in batcher:
+        for _, y, _ in batcher:
             trues.extend(y)
-        return trues
+        return np.concatenate(trues)
 
     @property
     def n_features(self):

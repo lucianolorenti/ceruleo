@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.model import TrainableModel
+from rul_pm.store.store import store
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint
@@ -43,7 +44,6 @@ class KerasTrainableModel(TrainableModel):
                  step,
                  transformer,
                  shuffle,
-                 models_path,
                  patience=4,
                  output_size: int = 1,
                  cache_size=30,
@@ -57,7 +57,6 @@ class KerasTrainableModel(TrainableModel):
                          step=step,
                          transformer=transformer,
                          shuffle=shuffle,
-                         models_path=models_path,
                          patience=patience,
                          output_size=output_size,
                          cache_size=cache_size,
@@ -175,8 +174,8 @@ class KerasTrainableModel(TrainableModel):
 
         a, b = self._generate_keras_batcher(train_batcher, val_batcher)
 
-        logger.info('Start fitting')
-        logger.info(self.model_filepath)
+        logger.debug('Start fitting')
+        logger.debug(self.model_filepath)
         self.history = self.model.fit(
             a,
             verbose=verbose,
@@ -191,8 +190,7 @@ class KerasTrainableModel(TrainableModel):
             self.callbacks,
             class_weight=class_weight)
 
-        self.save_results()
-        return self.load_results()
+        return self.history
 
     def build_model(self):
         raise NotImplementedError

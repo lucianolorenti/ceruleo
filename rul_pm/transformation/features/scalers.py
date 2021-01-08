@@ -4,10 +4,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class PandasMinMaxScaler(BaseEstimator, TransformerMixin):
-    def __init__(self, r: tuple):
+    def __init__(self, range: tuple):
         self.range = range
-        self.min = r[0]
-        self.max = r[1]
+        self.min = range[0]
+        self.max = range[1]
         self.data_min = None
         self.data_max = None
 

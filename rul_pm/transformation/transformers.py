@@ -8,7 +8,7 @@ from rul_pm.transformation.features.selection import (
     PandasVarianceThreshold)
 from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
                                          TargetIdentity)
-from sklearn.base import TransformerMixin
+from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
@@ -98,22 +98,6 @@ def transformation_pipeline(resampler=None,
     ])
 
 
-def step_set_enable(transformer, step_name, enabled):
-    if not (isinstance(transformer, Pipeline)):
-        return
-    for (name, step) in transformer.steps:
-        if name == step_name and not isinstance(step, str) and step is not None:
-            step.enabled = enabled
-
-
-def transformer_info(transformer):
-    if isinstance(transformer, Pipeline):
-        return [(name, transformer_info(step))
-                for name, step in transformer.steps]
-    elif isinstance(transformer, TransformerMixin):
-        return transformer.__dict__
-
-
 class Transformer:
     """
     Transform each life
@@ -128,24 +112,20 @@ class Transformer:
                   Transformer that will be applied to the life data
     transformerY: TransformerMixin default: TargetIdentity()
                   Transformer that will be applied to the target.
-    disable_resampling_when_fitting: bool = True
-                                     Wether to disable the resampling when the model is being fit.
-                                     This can reduce the memory requirements when fitting
+
     """
 
     def __init__(self,
                  target_column: str,
                  transformerX: LivesPipeline,
                  time_feature: str = None,
-                 transformerY: LivesPipeline = TargetIdentity(),
-                 disable_resampling_when_fitting: bool = True):
+                 transformerY: LivesPipeline = TargetIdentity()):
 
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.target_column = target_column
         self.features = None
         self.time_feature = time_feature
-        self.disable_resampling_when_fitting = disable_resampling_when_fitting
         if isinstance(self.target_column, str):
             self.target_column = [self.target_column]
 
@@ -219,9 +199,3 @@ class Transformer:
             'transformerX': transformer_info(self.transformerX),
             'transformerY': transformer_info(self.transformerY),
         }
-
-
-class SimpleTransformer(Transformer):
-    def __init__(self, target_column: str, time_feature: str = None, to_numpy: bool = True):
-        super().__init__(target_column, simple_pipeline(to_numpy=to_numpy),
-                         transformerY=TargetIdentity(), time_feature=time_feature, disable_resampling_when_fitting=True)
