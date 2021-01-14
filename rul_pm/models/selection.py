@@ -9,24 +9,14 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.model_selection._split import _BaseKFold
 
 
-class FoldedDataset(AbstractLivesDataset):
-    def __init__(self, dataset: AbstractLivesDataset, indices: list):
-        self.dataset = dataset
-        self.indices = indices
+class RULScorerWrapper:
+    def __init__(self, scorer):
+        from sklearn.metrics import get_scorer
+        self.scorer = get_scorer(scorer)
 
-    @property
-    def nlives(self):
-        return len(self.indices)
-
-    def __getitem__(self, i: int):
-        """
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
-        return self.dataset[self.indices[i]]
+    def __call__(self, estimator, X, y=None):
+        y_true = estimator.true_values(X)
+        return self.scorer(estimator, X, y_true)
 
 
 class RULGridSearchCV:

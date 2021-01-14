@@ -1,3 +1,6 @@
+from collections import Iterable
+from typing import Union
+
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
@@ -15,10 +18,17 @@ class AbstractLivesDataset:
         """
         raise NotImplementedError
 
-    def __getitem__(self, i: int):
-        df = self.get_life(i)
-        df['life'] = i
-        return df
+    def __getitem__(self, i: Union[int, Iterable]):
+        if isinstance(i, Iterable):
+            return FoldedDataset(self, i)
+        else:
+            df = self.get_life(i)
+            df['life'] = i
+            return df
+
+    @property
+    def shape(self):
+        return (self.nlives, 1)
 
     @property
     def nlives(self):
@@ -79,3 +89,23 @@ class AbstractLivesDataset:
             life = self[i]
             f.append(set(life.columns.values))
         return f[0].intersection(*f)
+
+
+class FoldedDataset(AbstractLivesDataset):
+    def __init__(self, dataset: AbstractLivesDataset, indices: list):
+        self.dataset = dataset
+        self.indices = indices
+
+    @property
+    def nlives(self):
+        return len(self.indices)
+
+    def __getitem__(self, i: int):
+        """
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with the data of the life i
+        """
+        return self.dataset[self.indices[i]]
