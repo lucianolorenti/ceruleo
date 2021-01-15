@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from rul_pm.iterators.utils import get_features
 from rul_pm.models.model import TrainableModel
+from rul_pm.transformation.utils import column_names_window
 from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm.auto import tqdm
 
@@ -65,3 +66,12 @@ def permtuation_feature_importance(model: TrainableModel, dataset, metric, n_rep
         gc.collect()
     model.transformer.transformerX = original_pipeline
     return scores_dict
+
+
+def coefficient_table(model: TrainableModel) -> pd.DataFrame:
+    if not hasattr(model.model, 'coef_'):
+        raise ValueError('Model does not have coef_')
+    cnames = column_names_window(model.transformer.columns(), model.window)
+
+    return pd.DataFrame(zip(cnames, model.model.coef_),
+                        columns=['Column', 'Coef'])
