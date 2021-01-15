@@ -1,14 +1,13 @@
-import hashlib
-import json
+
 import logging
-import pickle
-from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import numpy as np
 from rul_pm.iterators.batcher import get_batcher
+from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.store.store import store
 from rul_pm.transformation.transformers import Transformer
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +38,12 @@ class TrainableModel(TrainableModelInterface):
     -----------
     window: int
             Lookback window size
-    batch_size: int
-                Batch size
     step: Union[int, Tuple[str, int]]
           Stride
     transformer : Transformer
                   Transformer to be applied on the dataset
     shuffle: Union[bool, str]
              Check rul_pm.iterators.iterator
-
-    patience: int. Default 4
-              Patiente of early stopping
 
     cache_size: int. Default 30
                 LRU Cache size of the iterator
@@ -68,11 +62,9 @@ class TrainableModel(TrainableModelInterface):
 
     def __init__(self,
                  window: int = 50,
-                 batch_size: int = 256,
                  step: Union[int, Tuple[str, int]] = 1,
                  transformer: Transformer = None,
                  shuffle: Union[bool, str] = 'all',
-                 patience: int = 4,
                  output_size: int = 1,
                  cache_size: int = 30,
                  evenly_spaced_points: Optional[int] = None,
@@ -80,11 +72,9 @@ class TrainableModel(TrainableModelInterface):
                  add_last: bool = True):
 
         self.window = window
-        self.batch_size = batch_size
         self.step = step
         self.transformer = transformer
         self.shuffle = shuffle
-        self.patience = patience
         self.model_filename_ = None
         self._model_filepath = None
         self.cache_size = cache_size
@@ -110,10 +100,8 @@ class TrainableModel(TrainableModelInterface):
     def get_params(self, deep=False):
         return {
             'window': self.window,
-            'batch_size': self.batch_size,
             'step': self.step,
             'shuffle': self.shuffle,
-            'patience': self.patience,
             'transformer': self.transformer
         }
 
@@ -132,19 +120,9 @@ class TrainableModel(TrainableModelInterface):
         return self._model_filepath
 
     def true_values(self, dataset, step=None, transformer=None):
-        step = self.step if step is None else step
-        batcher = get_batcher(dataset,
-                              self.window,
-                              2048,
-                              transformer if transformer is not None else self.transformer,
-                              step,
-                              shuffle=False,
-                              add_last=self.add_last)
-        batcher.restart_at_end = False
-        trues = []
-        for _, y, _ in batcher:
-            trues.extend(y)
-        return np.concatenate(trues)
+        it = self.iterator(dataset, step=step,
+                           transformer=transformer, shuffle=False)
+        return np.concatenate([y for _, y, _ in it])
 
     @property
     def n_features(self):
@@ -172,6 +150,42 @@ class TrainableModel(TrainableModelInterface):
     def reset(self):
         pass
 
+    def get_data(self, dataset, shuffle=None):
+        it = self.iterator(dataset, shuffle=shuffle)
+        X = np.zeros((len(it), self.window*self.transformer.n_features))
+        y = np.zeros((len(it), self.output_size))
+        sample_weight = np.zeros(len(it))
+
+        for i, (X_, y_, sample_weight_) in enumerate(it):
+            X[i, :] = X_.flatten()
+            y[i, :] = y_.flatten()
+            sample_weight[i] = sample_weight_[0]
+        return X, y, sample_weight
+
+    def iterator(self, dataset, step=None, transformer=None, shuffle=None):
+        transformer = self.transformer if transformer is None else transformer
+        step = self.step if step is None else step
+        shuffle = self.shuffle if shuffle is None else shuffle
+        return WindowedDatasetIterator(dataset,
+                                       self.window,
+                                       transformer,
+                                       step=step,
+                                       output_size=self.output_size,
+                                       shuffle=shuffle,
+                                       cache_size=self.cache_size,
+                                       evenly_spaced_points=self.evenly_spaced_points,
+                                       sample_weight=self.sample_weight,
+                                       add_last=self.add_last)
+
+
+class BatchTrainableModel(TrainableModel):
+
+    def __init__(self,
+                 batch_size: int = 64,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.batch_size = batch_size
+
     def _create_batchers(self, train_dataset, validation_dataset):
         logger.debug('Creating batchers')
         train_batcher = get_batcher(train_dataset,
@@ -197,3 +211,10 @@ class TrainableModel(TrainableModelInterface):
                                   restart_at_end=False,
                                   add_last=self.add_last)
         return train_batcher, val_batcher
+
+    def get_params(self, deep=False):
+        d = super().get_params()
+        d.update({
+            'batch_size': self.batch_size,
+        })
+        return d

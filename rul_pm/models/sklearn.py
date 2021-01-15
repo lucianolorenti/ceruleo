@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.model import TrainableModel
 from tqdm.auto import tqdm
@@ -10,22 +11,70 @@ class SKLearnModel(TrainableModel):
     def __init__(self,
                  model,
                  window,
+                 step,
+                 transformer,
+                 shuffle,
+                 cache_size=30):
+        super().__init__(window,
+                         step,
+                         transformer,
+                         shuffle,
+                         cache_size=cache_size)
+        self._model = model
+        if not hasattr(self.model, 'fit'):
+            raise ValueError('Model must allow to fit')
+
+    def build_model(self):
+        return self._model
+
+    def fit(self, train_dataset):
+        X, y, sample_weight = self.get_data(train_dataset)
+        self.model.fit(X, y)
+        return self
+
+    def predict(self, dataset):
+        X, y, sample_weight = self.get_data(dataset, shuffle=False)
+        return self.model.predict(X)
+
+    def get_params(self, deep):
+        out = super().get_params(deep=deep)
+        out['model'] = self.model
+        if deep and hasattr(self.model, 'get_params'):
+            for key, value in self.model.get_params(deep=True).items():
+                out['model__%s' % key] = value
+        return out
+
+    def set_params(self, **params):
+        model_params = {}
+        for name, value in params.items():
+            if '__' in name:
+                model_params[name.split('__')[1]] = value
+        for name in model_params.keys():
+            params.pop(f'model__{name}')
+
+        super().set_params(**params)
+        self.model.set_params(**model_params)
+        return self
+
+
+class BatchSKLearnModel(TrainableModel):
+    def __init__(self,
+                 model,
+                 window,
                  batch_size,
                  step,
                  transformer,
                  shuffle,
-                 models_path,
-                 patience=4,
                  cache_size=30):
         super().__init__(window,
                          batch_size,
                          step,
                          transformer,
                          shuffle,
-                         models_path,
-                         patience=patience,
                          cache_size=cache_size)
         self._model = model
+        if not hasattr(self.model, 'partial_fit'):
+            raise ValueError('Model must allow to partial_fit')
 
     def build_model(self):
         return self._model

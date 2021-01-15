@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import get_batcher
-from rul_pm.models.model import TrainableModel
+from rul_pm.models.model import BatchTrainableModel
 from rul_pm.store.store import store
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
@@ -37,14 +37,23 @@ class TerminateOnNaN(Callback):
                 self.batcher.stop = True
 
 
-class KerasTrainableModel(TrainableModel):
+class KerasTrainableModel(BatchTrainableModel):
+    """
+        Base class for keras models
+
+    Parameters
+    ----------
+    patience: int
+              Patience for early stopping
+    """
+
     def __init__(self,
-                 window,
-                 batch_size,
-                 step,
-                 transformer,
-                 shuffle,
-                 patience=4,
+                 window: int = 30,
+                 batch_size: int = 256,
+                 step: int = 1,
+                 transformer=None,
+                 shuffle='all',
+                 patience: int = 4,
                  output_size: int = 1,
                  cache_size=30,
                  callbacks: list = [],
@@ -57,7 +66,6 @@ class KerasTrainableModel(TrainableModel):
                          step=step,
                          transformer=transformer,
                          shuffle=shuffle,
-                         patience=patience,
                          output_size=output_size,
                          cache_size=cache_size,
                          **kwargs)
@@ -66,6 +74,7 @@ class KerasTrainableModel(TrainableModel):
         self.learning_rate = learning_rate
         self.metrics = metrics
         self.loss = loss
+        self.patience = patience
 
     def load_best_model(self):
         self.model.load_weights(self.model_filepath)
@@ -157,6 +166,7 @@ class KerasTrainableModel(TrainableModel):
         if not overwrite and Path(self.results_filename).resolve().is_file():
             logger.info(f'Results already present {self.results_filename}')
             return
+
         if refit_transformer:
             self.transformer.fit(train_dataset)
         if reset:
