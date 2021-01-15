@@ -1,9 +1,21 @@
 
 
+import numpy as np
 import pandas as pd
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
                                             ZScoreOutlierRemover)
+from rul_pm.transformation.target import PicewiseRULThreshold
+
+
+class TestTargetTransformers():
+    def tes_PicewiseRUL(self):
+        t = PicewiseRULThreshold(26)
+        d = np.vstack(
+            (np.linspace(0, 30, 50),
+             np.linspace(0, 30, 50)))
+
+        d1 = t.fit_transform(d)
 
 
 class TestTransformers():
