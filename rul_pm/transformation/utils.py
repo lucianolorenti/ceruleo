@@ -100,3 +100,25 @@ class PandasFeatureUnion(FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
         return Xs
+
+
+def column_names_window(columns: list, window: int) -> list:
+    """
+
+    Parameters
+    ----------
+    columns: list
+             List of column names
+
+    window: int 
+            Window size
+
+    Return
+    ------
+    Column names with the format: w_{step}_{feature_name}
+    """
+    new_columns = []
+    for w in range(1, window+1):
+        for c in columns:
+            new_columns.append(f'w_{w}_{c}')
+    return new_columns
