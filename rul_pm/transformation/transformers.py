@@ -179,7 +179,7 @@ class Transformer:
         return self.transformerX.transform(df)
 
     def columns(self):
-        pass
+        return self.column_names
 
     @ property
     def n_features(self):
