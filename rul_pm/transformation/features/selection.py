@@ -102,11 +102,20 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
     def partial_fit(self, X, y=None):
         variances_ = X.var(skipna=True)
         partial_selected_columns_ = X.columns[variances_ > self.min_variance]
+        if self.selected_columns_ is not None and len(partial_selected_columns_) < len(self.selected_columns_)*0.5:
+            logger.warning(type(self).__name__)
+            logger.warning(
+                f'Life removed more than a half of the columns. Shape {X.shape}')
+            logger.warning(
+                f'Current: {len(self.selected_columns_)}. New ones: {len(partial_selected_columns_)}')
         if self.selected_columns_ is None:
             self.selected_columns_ = partial_selected_columns_
         else:
             self.selected_columns_ = [
                 f for f in self.selected_columns_ if f in partial_selected_columns_]
+        if len(self.selected_columns_) == 0:
+            logger.warning(type(self).__name__)
+            logger.warning('All features were removed')
         return self
 
     def fit(self, X, y=None):
@@ -132,13 +141,23 @@ class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
 
     def partial_fit(self, X, y=None):
         null_proportion = X.isnull().mean()
+
         partial_selected_columns_ = X.columns[null_proportion <
                                               self.max_null_proportion]
+        if self.selected_columns_ is not None and len(partial_selected_columns_) < len(self.selected_columns_)*0.5:
+            logger.warning(type(self).__name__)
+            logger.warning(
+                f'Life removed more than a half of the columns. Shape {X.shape}')
+            logger.warning(
+                f'Current: {len(self.selected_columns_)}. New ones: {len(partial_selected_columns_)}')
         if self.selected_columns_ is None:
             self.selected_columns_ = partial_selected_columns_
         else:
             self.selected_columns_ = [
                 f for f in self.selected_columns_ if f in partial_selected_columns_]
+        if len(self.selected_columns_) == 0:
+            logger.warning(type(self).__name__)
+            logger.warning('All features were removed')
         return self
 
     def fit(self, X, y=None):
