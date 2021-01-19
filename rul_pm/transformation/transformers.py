@@ -17,6 +17,29 @@ logger = logging.getLogger(__name__)
 RESAMPLER_STEP_NAME = 'resampler'
 
 
+def transformer_info(transformer):
+    if isinstance(transformer, LivesPipeline):
+        return [(name, transformer_info(step))
+                for name, step in transformer.steps]
+    elif isinstance(transformer, PandasFeatureUnion):
+        return [
+            ('name', 'FeatureUnion'),
+            ('steps', [(name, transformer_info(step))
+                       for name, step in transformer.transformer_list]),
+            ('transformer_weights', transformer.transformer_weights)
+        ]
+
+    elif hasattr(transformer, 'get_params'):
+        d = transformer.get_params()
+        d.update({'name': type(transformer).__name__})
+        return [(k, d[k]) for k in sorted(d.keys())]
+    elif isinstance(transformer, str) and transformer == 'passthrough':
+        return transformer
+    else:
+
+        raise ValueError('Pipeline elements must have the get_params method')
+
+
 class LivesPipeline(Pipeline):
     def partial_fit(self, X, y=None):
         args = [X, y]
@@ -62,7 +85,7 @@ def numericals_pipeline(numerical_features: list = None,
                 PandasNullProportionSelector, min_null_proportion)),
             ('variance_selector', step_if_argument_is_not_missing(
                 PandasVarianceThreshold, variance_threshold)),
-            ('imputer', imputer),
+            ('imputer', step_is_not_missing(imputer)),
             ('NullProportionSelector_1', step_if_argument_is_not_missing(
                 PandasNullProportionSelector, min_null_proportion)),
             ('variance_selector_1', step_if_argument_is_not_missing(
@@ -199,3 +222,6 @@ class Transformer:
             'transformerX': transformer_info(self.transformerX),
             'transformerY': transformer_info(self.transformerY),
         }
+
+    def __str__(self):
+        return str(self.description())
