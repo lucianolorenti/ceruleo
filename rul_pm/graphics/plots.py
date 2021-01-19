@@ -1,3 +1,5 @@
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
@@ -15,7 +17,7 @@ def plot_lives(ds: AbstractLivesDataset):
     return fig, ax
 
 
-def plot_errors_wrt_RUL(val_rul, pred_cont, treshhold=0, bins=15, **kwargs):
+def plot_errors_wrt_RUL(val_rul, pred_cont, treshhold=np.inf, bins=15, **kwargs):
     """
     Plot errors with respect to the RUL
 
@@ -67,9 +69,31 @@ def plot_errors_wrt_RUL(val_rul, pred_cont, treshhold=0, bins=15, **kwargs):
     return fig, ax
 
 
-def plot_true_vs_predicted(y_true, y_predicted, **kwargs):
+def plot_true_vs_predicted(y_true, y_predicted, ylabel: Optional[str] = None, **kwargs):
     fig, ax = plt.subplots(1, 1, **kwargs)
     ax.plot(y_predicted, 'o', label='Predicted', markersize=0.7)
     ax.plot(y_true, label='True')
+    ax.set_ylabel('Time [h]' if ylabel is None else ylabel)
     ax.legend()
     return fig, ax
+
+
+def cv_plot_errors_wrt_RUL(bin_edges, error_histogram):
+    """
+    """
+    fig, ax = plt.subplots()
+    labels = []
+    heights = []
+    xs = []
+    yerr = []
+    for i in range(len(error_histogram)):
+        xs.append(i)
+        heights.append(np.mean(error_histogram[i]))
+        yerr.append(np.std(error_histogram[i]))
+        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+
+    ax.bar(height=heights, x=xs, yerr=yerr, tick_label=labels)
+    ax.set_xlabel('RUL')
+    ax.set_ylabel('RMSE')
+
+    return fig
