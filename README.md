@@ -13,6 +13,13 @@ Remaining useful life estimation utilities
       *  Xiang Li
       *  Qian Ding
       *  Jian-Qiao Sunc
+  * [Remaining useful life prediction using multi-scale deep convolutional neural network](https://doi.org/10.1016/j.asoc.2020.106113)
+      * Han Li
+      * Wei Zhao
+      * Yuxi Zhang
+      * Enrico Zio
+  * Temporal Convolutional Memory Networks forRemaining Useful Life Estimation of Industrial Machinery
+      
 
 ## Example
 - [Example of usage](examples/ExampleAircraftEngine.ipynb) 
