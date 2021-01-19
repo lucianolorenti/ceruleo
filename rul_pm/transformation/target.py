@@ -6,13 +6,16 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 
 class PicewiseRUL(BaseEstimator, TransformerMixin):
     def __init__(self):
-        self.max_life_ = np.inf
+        self.max_life = np.inf
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        return np.clip(X, 0, self.max_life_)
+        return np.clip(X, 0, self.max_life)
+
+    def partial_fit(self, X, y=None):
+        return self
 
 
 class PicewiseRULQuantile(PicewiseRUL):
@@ -21,7 +24,10 @@ class PicewiseRULQuantile(PicewiseRUL):
         self.quantile = quantile
 
     def fit(self, X, y=None):
-        self.max_life_ = np.quantile(X, self.quantile)
+        self.max_life = np.quantile(X, self.quantile)
+        return self
+
+    def partial_fit(self, X, y=None):
         return self
 
 
@@ -40,9 +46,12 @@ class PicewiseRULThreshold(PicewiseRUL):
 
     def __init__(self, max_life: float):
         super().__init__()
-        self.max_life_ = max_life
+        self.max_life = max_life
 
     def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
         return self
 
 
