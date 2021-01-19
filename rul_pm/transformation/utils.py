@@ -63,7 +63,7 @@ class PandasTransformerWrapper(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
-        return pd.DataFrame(self.transformer.transform(X), columns=X.columns)
+        return pd.DataFrame(self.transformer.transform(X), columns=X.columns, index=X.index)
 
 
 class PandasFeatureUnion(FeatureUnion):
@@ -75,6 +75,8 @@ class PandasFeatureUnion(FeatureUnion):
         return self
 
     def merge_dataframes_by_column(self, Xs):
+        # indices = [X.index for X in Xs]
+        # TODO: Check equal indices
         names = [name for name, _, _ in self._iter()]
         X = Xs[0]
         X.columns = [f'{names[0]}_{c}' for c in X.columns]
