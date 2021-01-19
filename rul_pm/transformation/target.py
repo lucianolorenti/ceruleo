@@ -76,3 +76,17 @@ def combined_target_pipeline(preprocess):
                 ]))
             ]))
         ])
+
+
+class TargetIdentity(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        if len(X.shape) > 1:
+            return X.iloc[:, -1].values
+        else:
+            return X.values

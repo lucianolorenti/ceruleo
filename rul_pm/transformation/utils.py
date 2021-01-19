@@ -16,17 +16,6 @@ class PandasToNumpy(BaseEstimator, TransformerMixin):
         return X.values
 
 
-class TargetIdentity(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        if len(X.shape) > 1:
-            return X.iloc[:, -1].values
-        else:
-            return X.values
-
-
 class IdentityTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass

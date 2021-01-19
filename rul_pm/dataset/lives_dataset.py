@@ -1,20 +1,39 @@
-from collections import Iterable
-from typing import Union
+from collections.abc import Iterable
+from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from tqdm.auto import tqdm
 
 
 class AbstractLivesDataset:
 
-    def get_life(self, i: int):
+    def get_life(self, i: int) -> pd.DataFrame:
         """
 
         Returns
         -------
         pd.DataFrame
             DataFrame with the data of the life i
+        """
+        raise NotImplementedError
+
+    @property
+    def rul_column(self) -> str:
+        """
+        Return
+        ------
+        str:
+            The name of the RUL column
+        """
+        raise NotImplementedError
+
+    @property
+    def nlives(self) -> int:
+        """
+        Return
+        ------
+        int:
+            The number of lives in the dataset
         """
         raise NotImplementedError
 
@@ -27,18 +46,8 @@ class AbstractLivesDataset:
             return df
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int]:
         return (self.nlives, 1)
-
-    @property
-    def nlives(self):
-        """
-        Return
-        ------
-        int:
-            The number of lives in the dataset
-        """
-        raise NotImplementedError
 
     def __len__(self):
         """
@@ -49,7 +58,7 @@ class AbstractLivesDataset:
         """
         return self.nlives
 
-    def toPandas(self, proportion=1.0):
+    def toPandas(self, proportion=1.0) -> pd.DataFrame:
         """
         Create a dataset with the lives concatenated
 
@@ -66,26 +75,16 @@ class AbstractLivesDataset:
         """
         df = []
         common_features = self.commonFeatures()
-        for i in tqdm(range(self.nlives)):
+        for i in range(self.nlives):
             if proportion < 1.0 and np.random.rand() > proportion:
                 continue
             current_life = self[i][common_features]
             df.append(current_life)
         return pd.concat(df)
 
-    @property
-    def rul_column(self):
-        """
-        Return
-        ------
-        str:
-            The name of the RUL column
-        """
-        raise NotImplementedError
-
-    def commonFeatures(self):
+    def commonFeatures(self) -> List[str]:
         f = []
-        for i in tqdm(range(self.nlives)):
+        for i in range(self.nlives):
             life = self[i]
             f.append(set(life.columns.values))
         return f[0].intersection(*f)

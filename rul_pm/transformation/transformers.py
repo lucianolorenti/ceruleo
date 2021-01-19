@@ -6,8 +6,8 @@ from rul_pm.transformation.features.generation import OneHotCategoricalPandas
 from rul_pm.transformation.features.selection import (
     ByNameFeatureSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
-from rul_pm.transformation.utils import (PandasFeatureUnion, PandasToNumpy,
-                                         TargetIdentity)
+from rul_pm.transformation.target import TargetIdentity
+from rul_pm.transformation.utils import PandasFeatureUnion, PandasToNumpy
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
