@@ -29,7 +29,7 @@ class SKLearnModel(TrainableModel):
 
     def fit(self, train_dataset):
         X, y, sample_weight = self.get_data(train_dataset)
-        self.model.fit(X, y)
+        self.model.fit(X, y.ravel())
         return self
 
     def predict(self, dataset):
