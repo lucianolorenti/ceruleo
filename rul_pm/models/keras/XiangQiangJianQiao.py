@@ -43,22 +43,8 @@ class XiangQiangJianQiaoModel(KerasTrainableModel):
                  n_filters: int,
                  filter_size: int,
                  dropout: float,
-                 window: int,
-                 batch_size: int,
-                 step: int, transformer,
-                 shuffle, models_path,
-                 patience: int = 4,
-                 cache_size: int = 30,
                  **kwargs):
-        super().__init__(window,
-                         batch_size,
-                         step,
-                         transformer,
-                         shuffle,
-                         models_path,
-                         patience=patience,
-                         cache_size=cache_size,
-                         **kwargs)
+        super().__init__(**kwargs)
         self.n_filters = n_filters
         self.filter_size = filter_size
         self.dropout = dropout
@@ -110,6 +96,17 @@ class XiangQiangJianQiaoModel(KerasTrainableModel):
             outputs=[output],
         )
         return model
+
+    def get_params(self, deep):
+        params = super().get_params(deep=deep)
+        params.update(
+            {
+                'n_filters': self.n_filters,
+                'filter_size': self.filter_size,
+                'dropout': self.dropout
+            }
+        )
+        return params
 
     @property
     def name(self):
