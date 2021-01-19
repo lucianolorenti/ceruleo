@@ -6,7 +6,7 @@ import pandas as pd
 import scipy
 from scipy.signal import firwin, lfilter
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_extraction.text import CountVectorizer
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,9 @@ class LifeExceededCumSum(BaseEstimator, TransformerMixin):
         self.life_id_col = life_id_col
         self.columns = columns
 
+    def partial_fit(self, X, y=None):
+        return self
+
     def fit(self, X, y=None):
         if self.columns is None:
             self.columns = set(X.columns.values) - set(['life'])
@@ -80,23 +83,24 @@ class LifeExceededCumSum(BaseEstimator, TransformerMixin):
 class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
     def __init__(self, feature):
         self.feature = feature
+        self.categories = set()
         self.encoder = None
 
-    def fit(self, X, y=None):
+    def partial_fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
 
-        self.encoder = (
-            OneHotEncoder(handle_unknown='ignore', sparse=False)
-            .fit(X[self.feature].values.reshape(-1, 1)))
+    def fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
         return self
 
     def transform(self, X, y=None):
-        categories = [
-            f'{self.feature}_{feature_name}'
-            for feature_name in self.encoder.categories_[0]]
-        d = self.encoder.transform(X[self.feature].values.reshape(-1, 1))
-        return pd.DataFrame(d,
-                            index=X.index,
-                            columns=categories)
+        categories = sorted(list(self.categories))
+        d = pd.Categorical(X[self.feature], categories=categories)
+
+        df = pd.get_dummies(d)
+        df.index = X.index
+        return df
 
 
 class LowFrequencies(BaseEstimator, TransformerMixin):
