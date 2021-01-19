@@ -4,6 +4,7 @@ from typing import Optional
 
 import numpy as np
 import tensorflow as tf
+from pandas.io.formats.format import buffer_put_lines
 from rul_pm.iterators.batcher import get_batcher
 from rul_pm.models.model import BatchTrainableModel
 from rul_pm.store.store import store
@@ -139,20 +140,23 @@ class KerasTrainableModel(BatchTrainableModel):
             for X, y, w in val_batcher:
                 yield X, y, w
 
-        a = tf.data.Dataset.from_generator(
+        a = (tf.data.Dataset.from_generator(
             gen_train,
             (tf.float32, tf.float32, tf.float32),
             (
                 tf.TensorShape([None, self.window, n_features]),
                 tf.TensorShape([None, self.output_size, 1]),
                 tf.TensorShape([None, 1])))
-        b = tf.data.Dataset.from_generator(
+             .prefetch(self.batch_size*2)
+             )
+        b = (tf.data.Dataset.from_generator(
             gen_val,
             (tf.float32, tf.float32, tf.float32),
             (
                 tf.TensorShape([None, self.window, n_features]),
                 tf.TensorShape([None, self.output_size, 1]),
                 tf.TensorShape([None, 1])))
+             .prefetch(self.batch_size*2))
         return a, b
 
     def reset(self):
