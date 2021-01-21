@@ -64,8 +64,8 @@ class DatasetIterator:
         """
         if life not in self.cache.data:
             data = self.dataset[life]
-            X, y = self.transformer.transform(data)
-            self.cache.add(life, (X, y))
+            X, y, metadata = self.transformer.transform(data)
+            self.cache.add(life, (X, y, metadata))
         return self.cache.get(life)
 
 
@@ -189,9 +189,10 @@ class WindowedDatasetIterator(DatasetIterator):
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
-        if isinstance(sample_weight, str) and sample_weight not in ('equal', 'proportional_to_length'):
-            raise ValueError(
-                'Invalid sample_weight parameter. Valid values are equal or proportional_to_length')
+        if isinstance(sample_weight, str):
+            if sample_weight not in ('equal', 'proportional_to_length'):
+                raise ValueError(
+                    'Invalid sample_weight parameter. Valid values are equal or proportional_to_length')
         elif not callable(sample_weight):
             raise ValueError('sample_weight should be an string or a callable')
 
@@ -203,14 +204,14 @@ class WindowedDatasetIterator(DatasetIterator):
         self.output_size = output_size
         self.add_last = add_last
 
-    def _sample_weight(self, life: pd.DataFrame):
+    def _sample_weight(self, y, i: int, metadata):
         if isinstance(self.sample_weight, str):
             if self.sample_weight == 'equal':
                 return 1
             else:
-                return 1 / life.shape[0]
+                return 1 / y.shape[0]
         elif callable(self.sample_weight):
-            return self.sample_weight(life)
+            return self.sample_weight(y, i, metadata)
 
     def _windowed_element_list(self):
         def window_evenly_spaced(y, i):
@@ -219,12 +220,12 @@ class WindowedDatasetIterator(DatasetIterator):
 
         olifes = []
         oelements = []
-        sample_weights = {}
+        sample_weights = []
         logger.debug('Computing windows')
         for life in range(self.dataset.nlives):
 
-            _, y = self._load_data(life)
-            sample_weights[life] = self._sample_weight(life)
+            _, y, metadata = self._load_data(life)
+
             list_ranges = range(self.window_size-1, y.shape[0], self.step)
             if self.evenly_spaced_points is not None:
                 is_valid_point = window_evenly_spaced
@@ -237,6 +238,7 @@ class WindowedDatasetIterator(DatasetIterator):
             for i in list_ranges:
                 olifes.append(life)
                 oelements.append(i)
+                sample_weights.append(self._sample_weight(y, i, metadata))
 
         return olifes, oelements, sample_weights
 
@@ -286,12 +288,11 @@ class WindowedDatasetIterator(DatasetIterator):
 
     def __getitem__(self, i: int):
         (life, timestamp) = (self.lifes[i], self.elements[i])
-        sample_weight = self.sample_weights[self.lifes[i]]
-        X, y = self._load_data(life)
+        X, y, _ = self._load_data(life)
         window = windowed_signal_generator(
             X, y, timestamp, self.window_size, self.output_size, self.add_last)
         # return *window, [sample_weight]
-        return window[0], window[1], [sample_weight]
+        return window[0], window[1], [self.sample_weights[i]]
 
     def at_end(self):
         return self.i == len(self.elements)

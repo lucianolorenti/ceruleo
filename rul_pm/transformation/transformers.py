@@ -1,14 +1,15 @@
 import copy
 import logging
+from typing import Optional
 
 import numpy as np
+import pandas as pd
 from rul_pm.transformation.features.generation import OneHotCategoricalPandas
 from rul_pm.transformation.features.selection import (
     ByNameFeatureSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
 from rul_pm.transformation.target import TargetIdentity
 from rul_pm.transformation.utils import PandasFeatureUnion, PandasToNumpy
-from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
@@ -142,10 +143,12 @@ class Transformer:
                  target_column: str,
                  transformerX: LivesPipeline,
                  time_feature: str = None,
-                 transformerY: LivesPipeline = TargetIdentity()):
+                 transformerY: LivesPipeline = TargetIdentity(),
+                 transformerMetadata: Optional[LivesPipeline] = None):
 
         self.transformerX = transformerX
         self.transformerY = transformerY
+        self.transformerMetadata = transformerMetadata
         self.target_column = target_column
         self.features = None
         self.time_feature = time_feature
@@ -164,8 +167,9 @@ class Transformer:
     def fit(self, dataset, proportion=1.0):
         logger.debug('Fitting Transformer')
         for life in dataset:
-            self.partial_fitX(life)
-            self.partial_fitY(life)
+            self.transformerX.partial_fit(life)
+            self.transformerY.partial_fit(self._target(life))
+            self.fitTransformerMetadata(life)
 
         self.minimal_df = dataset[0].head(n=5)
         X = self.transformerX.transform(self.minimal_df)
@@ -174,13 +178,12 @@ class Transformer:
         self.column_names = self._compute_column_names()
         return self
 
-    def partial_fitX(self, df):
-        self.transformerX.partial_fit(df)
+    def fitTransformerMetadata(self, life: pd.DataFrame):
+        if self.transformerMetadata is not None:
+            if hasattr(self.transformerMetadata, 'partial_fit'):
+                self.transformerMetadata.partial_fit(life)
 
-    def partial_fitY(self, df):
-        self.transformerY.partial_fit(self._target(df))
-
-    def _target(self, df):
+    def _target(self, df: pd.DataFrame):
         if self.time_feature is not None:
             if isinstance(self.target_column, list):
                 select_features = [self.time_feature] + self.target_column
@@ -190,9 +193,15 @@ class Transformer:
         else:
             return df[self.target_column]
 
-    def transform(self, df):
+    def transform(self, df: pd.DataFrame):
         check_is_fitted(self, 'fitted_')
-        return (self.transformX(df), self.transformY(df))
+        return (self.transformX(df), self.transformY(df), self.transformMetadata(df))
+
+    def transformMetadata(self, df: pd.DataFrame) -> Optional[any]:
+        if self.transformerMetadata is not None:
+            return self.transformerMetadata.transform(df)
+        else:
+            return None
 
     def transformY(self, df):
         return np.squeeze(
