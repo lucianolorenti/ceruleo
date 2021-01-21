@@ -45,13 +45,13 @@ class MockDataset(AbstractLivesDataset):
 
 class TestSKLearn():
     def test_sklearn(self):
-        faetures = ['feature1', 'feature2']
+        features = ['feature1', 'feature2']
         transformer = Transformer(
             'RUL',
             transformation_pipeline(
                 numericals_pipeline=LivesPipeline(
                     steps=[
-                        ('ss', ByNameFeatureSelector(faetures)),
+                        ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
                     ]),
                 output_df=False)

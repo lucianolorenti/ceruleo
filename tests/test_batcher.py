@@ -60,6 +60,7 @@ class TestBatcher():
         ds = MockDataset(5)
         b = get_batcher(ds, window_size, batch_size,
                         transformer, 1, restart_at_end=False)
+        assert len(b) == 16
         X, y, w = next(b)
         assert len(y.ravel()) == batch_size
         assert X.shape[0] == batch_size
