@@ -30,3 +30,17 @@ class ResamplerTransformer(BaseEstimator, TransformerMixin):
             return X
         else:
             return df
+
+
+class SubSampleTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, step: int):
+        self.step = step
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, df):
+        return df.iloc[range(0, df.shape[0], self.step), :].copy()
