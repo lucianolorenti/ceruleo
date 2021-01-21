@@ -1,9 +1,10 @@
 import logging
 import random
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
+from pandas.core.algorithms import isin
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.transformers import Transformer
 from rul_pm.utils.lrucache import LRUDataCache
@@ -52,7 +53,7 @@ class DatasetIterator:
         except NotFittedError:
             self.transformer.fit(dataset)
 
-    def _load_data(self, life):
+    def _load_data(self, life) -> pd.DataFrame:
         """
         Return a DataFrame with the contents of the life
 
@@ -98,7 +99,7 @@ class LifeDatasetIterator(DatasetIterator):
             random.shuffle(self.elements)
         return self
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.dataset)
 
     def __next__(self):
@@ -179,16 +180,21 @@ class WindowedDatasetIterator(DatasetIterator):
                  shuffle: Union[str, bool] = False,
                  cache_size: int = CACHE_SIZE,
                  evenly_spaced_points: Optional[int] = None,
-                 sample_weight: str = 'equal',
+                 sample_weight: Union[
+                     str,
+                     Callable[[pd.DataFrame], float]] = 'equal',
                  add_last: bool = True):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.evenly_spaced_points = evenly_spaced_points
         self.window_size = window_size
         self.step = step
         self.shuffle = shuffle
-        if sample_weight not in ('equal', 'proportional_to_length'):
+        if isinstance(sample_weight, str) and sample_weight not in ('equal', 'proportional_to_length'):
             raise ValueError(
                 'Invalid sample_weight parameter. Valid values are equal or proportional_to_length')
+        elif not callable(sample_weight):
+            raise ValueError('sample_weight should be an string or a callable')
+
         self.sample_weight = sample_weight
 
         self.orig_lifes, self.orig_elements, self.sample_weights = self._windowed_element_list()
@@ -196,6 +202,15 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i = 0
         self.output_size = output_size
         self.add_last = add_last
+
+    def _sample_weight(self, life: pd.DataFrame):
+        if isinstance(self.sample_weight, str):
+            if self.sample_weight == 'equal':
+                return 1
+            else:
+                return 1 / life.shape[0]
+        elif callable(self.sample_weight):
+            return self.sample_weight(life)
 
     def _windowed_element_list(self):
         def window_evenly_spaced(y, i):
@@ -209,9 +224,7 @@ class WindowedDatasetIterator(DatasetIterator):
         for life in range(self.dataset.nlives):
 
             _, y = self._load_data(life)
-            sample_weights[life] = (1
-                                    if self.sample_weight == 'equal'
-                                    else 1/y.shape[0])
+            sample_weights[life] = self._sample_weight(life)
             list_ranges = range(self.window_size-1, y.shape[0], self.step)
             if self.evenly_spaced_points is not None:
                 is_valid_point = window_evenly_spaced
