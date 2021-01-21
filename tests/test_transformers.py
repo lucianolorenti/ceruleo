@@ -5,17 +5,19 @@ import pandas as pd
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
                                             ZScoreOutlierRemover)
+from rul_pm.transformation.resamplers import SubSampleTransformer
 from rul_pm.transformation.target import PicewiseRULThreshold
 
 
 class TestTargetTransformers():
-    def tes_PicewiseRUL(self):
+    def test_PicewiseRUL(self):
         t = PicewiseRULThreshold(26)
         d = np.vstack(
             (np.linspace(0, 30, 50),
              np.linspace(0, 30, 50)))
 
         d1 = t.fit_transform(d)
+        assert d1.max() == 26
 
 
 class TestTransformers():
@@ -52,3 +54,16 @@ class TestTransformers():
         df_new = remover.fit_transform(df)
         assert pd.isnull(df_new['a'][5])
         assert pd.isnull(df_new['b'][8])
+
+
+class TestResamplers():
+    def test_resampler(self):
+
+        remover = SubSampleTransformer(2)
+        df = pd.DataFrame({
+            'a': [0, 0.5, 0.2, 0.1, 0.9, 15, 0.5, 0.3, 0.5, 12],
+            'b': [5, 6,   7,   5,   9,   5,  6,   5,   45, 12],
+        })
+        df_new = remover.fit_transform(df)
+
+        assert df_new.shape[0] == int(df.shape[0]/2)
