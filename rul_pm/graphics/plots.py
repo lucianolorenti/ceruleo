@@ -78,10 +78,10 @@ def plot_true_vs_predicted(y_true, y_predicted, ylabel: Optional[str] = None, **
     return fig, ax
 
 
-def cv_plot_errors_wrt_RUL(bin_edges, error_histogram):
+def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     """
     """
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(**kwargs)
     labels = []
     heights = []
     xs = []
