@@ -21,16 +21,6 @@ class XGBoostModel(TrainableModel):
         self.step = step
         self.xgbr = XGBRegressor(**kwargs)
 
-    def _transform(self, ds, fit=False):
-        X, y = WindowedDatasetIterator(
-            ds, self.window,
-            self.transformer, step=self.step).toArray()
-        if fit:
-            self.n_features = X.shape[2]
-            self.window = X.shape[1]
-        X = X.reshape(X.shape[0], X.shape[1]*X.shape[2])
-        return X, y
-
     def fit(self, train_dataset):
         X, y, sample_weight = self.get_data(train_dataset)
         self.xgbr.fit(X, y, sample_weight=sample_weight)
