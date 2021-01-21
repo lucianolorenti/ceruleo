@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.models.sklearn import SKLearnModel
+from rul_pm.models.xgboost_ import XGBoostModel
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
 from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
@@ -64,6 +65,35 @@ class TestSKLearn():
             step=2,
             transformer=transformer,
             shuffle='all'
+        )
+
+        model.fit(ds)
+
+        y_pred = model.predict(ds)
+        y_true = model.true_values(ds)
+
+        assert np.sum(y_pred - y_true) < 0.001
+
+
+def TestXGBoost():
+    def test_xgboost(self):
+        features = ['feature1', 'feature2']
+        transformer = Transformer(
+            'RUL',
+            transformation_pipeline(
+                numericals_pipeline=LivesPipeline(
+                    steps=[
+                        ('ss', ByNameFeatureSelector(features)),
+                        ('scaler', PandasMinMaxScaler((-1, 1)))
+                    ]),
+                output_df=False)
+        )
+
+        ds = MockDataset(5)
+        model = XGBoostModel(
+            window=1,
+            step=2,
+            transformer=transformer,
         )
 
         model.fit(ds)
