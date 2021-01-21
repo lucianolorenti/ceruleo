@@ -75,7 +75,7 @@ class TestSKLearn():
         assert np.sum(y_pred - y_true) < 0.001
 
 
-def TestXGBoost():
+class TestXGBoost():
     def test_xgboost(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
@@ -88,7 +88,6 @@ def TestXGBoost():
                     ]),
                 output_df=False)
         )
-
         ds = MockDataset(5)
         model = XGBoostModel(
             window=1,
