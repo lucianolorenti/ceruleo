@@ -49,33 +49,21 @@ class KerasTrainableModel(BatchTrainableModel):
     """
 
     def __init__(self,
-                 window: int = 30,
-                 batch_size: int = 256,
-                 step: int = 1,
-                 transformer=None,
-                 shuffle='all',
                  patience: int = 4,
-                 output_size: int = 1,
-                 cache_size=30,
                  callbacks: list = [],
                  learning_rate=0.001,
                  metrics=[root_mean_squared_error],
                  loss='mse',
+                 prefetch_size: Optional[int] = None,
                  **kwargs):
-        super().__init__(window=window,
-                         batch_size=batch_size,
-                         step=step,
-                         transformer=transformer,
-                         shuffle=shuffle,
-                         output_size=output_size,
-                         cache_size=cache_size,
-                         **kwargs)
+        super().__init__(**kwargs)
         self.compiled = False
         self.callbacks = callbacks
         self.learning_rate = learning_rate
         self.metrics = metrics
         self.loss = loss
         self.patience = patience
+        self.prefetch_size = prefetch_size
 
     def load_best_model(self):
         self.model.load_weights(self.model_filepath)
@@ -146,9 +134,7 @@ class KerasTrainableModel(BatchTrainableModel):
             (
                 tf.TensorShape([None, self.window, n_features]),
                 tf.TensorShape([None, self.output_size, 1]),
-                tf.TensorShape([None, 1])))
-             .prefetch(self.batch_size*2)
-             )
+                tf.TensorShape([None, 1]))))
         b = (tf.data.Dataset.from_generator(
             gen_val,
             (tf.float32, tf.float32, tf.float32),
@@ -156,7 +142,10 @@ class KerasTrainableModel(BatchTrainableModel):
                 tf.TensorShape([None, self.window, n_features]),
                 tf.TensorShape([None, self.output_size, 1]),
                 tf.TensorShape([None, 1])))
-             .prefetch(self.batch_size*2))
+             )
+        if self.prefetch_size is not None:
+            a = a.prefetch(self.batch_size*2)
+            b = b.prefetch(self.batch_size*2)
         return a, b
 
     def reset(self):
