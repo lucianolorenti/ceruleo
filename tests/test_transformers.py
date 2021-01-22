@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+from rul_pm.transformation.features.selection import NullProportionSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
                                             ZScoreOutlierRemover)
@@ -67,3 +68,20 @@ class TestResamplers():
         df_new = remover.fit_transform(df)
 
         assert df_new.shape[0] == int(df.shape[0]/2)
+
+
+class TestSelection():
+    def test_selection(self):
+        df = pd.DataFrame({
+            'a': [0, 0.5, None, None],  # 0.5
+            'b': [5, None, None, None],  # 0.75
+            'c': [5, 2, 3, None],  # 0.25
+        })
+
+        selector = NullProportionSelector(0.3)
+        df_new = selector.fit_transform(df)
+        assert set(df_new.columns) == set(['a', 'c'])
+
+        selector = NullProportionSelector(0.55)
+        df_new = selector.fit_transform(df)
+        assert set(df_new.columns) == set(['c'])
