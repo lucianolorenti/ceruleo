@@ -61,6 +61,7 @@ class PandasFeatureUnion(FeatureUnion):
         self._validate_transformers()
         for name, trans, weight in self._iter():
             trans.partial_fit(X, y)
+
         return self
 
     def merge_dataframes_by_column(self, Xs):

@@ -53,7 +53,7 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        return X.loc[:, self.features_computed_]
+        return X.loc[:, self.features_computed_].copy()
 
     @property
     def n_features(self):

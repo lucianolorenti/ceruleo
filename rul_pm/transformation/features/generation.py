@@ -32,24 +32,35 @@ class AccumulateEWMAOutOfRange(BaseEstimator, TransformerMixin):
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
+        self.columns = None
 
     def partial_fit(self, X, y=None):
-        LCL, UCL = self._compute_limits(X)
-        self.LCL = (np.min(LCL, self.LCL) if self.LCL is not None
+        if self.columns is None:
+            self.columns = X.columns.values
+        else:
+            self.columns = [c for c in self.columns if c in X.columns]
+        if self.LCL is not None:
+            self.LCL = self.LCL.loc[self.columns].copy()
+            self.UCL = self.UCL.loc[self.columns].copy()
+        LCL, UCL = self._compute_limits(X[self.columns].copy())
+        self.LCL = (np.minimum(LCL, self.LCL) if self.LCL is not None
                     else LCL)
-        self.UCL = (np.min(UCL, self.LCL) if self.UCL is not None
+        self.UCL = (np.maximum(UCL, self.UCL) if self.UCL is not None
                     else UCL)
         return self
 
     def _compute_limits(self, X):
+
         mean = np.nanmean(X, axis=0)
         s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
             np.nanstd(X, axis=0)
         UCL = mean + 3*s
         LCL = mean - 3*s
-        return LCL, UCL
+        return (pd.Series(LCL, index=self.columns),
+                pd.Series(UCL, index=self.columns))
 
     def fit(self, X, y=None):
+        self.columns = X.columns
         LCL, UCL = self._compute_limits(X)
         self.LCL = LCL
         self.UCL = UCL
@@ -57,8 +68,8 @@ class AccumulateEWMAOutOfRange(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         mask = (
-            (X < (self.LCL)) |
-            (X > (self.UCL))
+            (X[self.columns] < (self.LCL)) |
+            (X[self.columns] > (self.UCL))
         )
         return mask.astype('int').cumsum()
 
@@ -307,3 +318,23 @@ class ExpandingStatistics(BaseEstimator, TransformerMixin):
                 X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
 
         return X_new
+
+
+class Difference(BaseEstimator, TransformerMixin):
+    def __init__(self, feature_set1: list, feature_set2: list):
+        if len(feature_set1) != len(feature_set2):
+            raise ValueError(
+                'Feature set 1 and feature set 2 must have the same length')
+        self.feature_set1 = feature_set1
+        self.feature_set2 = feature_set2
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        new_X = X[self.feature_set1].copy()
+        new_X = new_X - X[self.feature_set2].values
+        return new_X

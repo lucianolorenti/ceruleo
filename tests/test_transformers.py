@@ -2,9 +2,10 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    Accumulate, AccumulateEWMAOutOfRange)
+    Accumulate, AccumulateEWMAOutOfRange, Difference)
 from rul_pm.transformation.features.selection import NullProportionSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
@@ -23,6 +24,52 @@ class MockDataset(AbstractLivesDataset):
                 'RUL': np.linspace(100, 0, 50)
             })
             for i in range(nlives)]
+
+    def get_life(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return 'RUL'
+
+    @property
+    def nlives(self):
+        return len(self.lives)
+
+
+class MockDataset2(AbstractLivesDataset):
+    def __init__(self, nlives: int):
+        N = 500
+        self.lives = [
+            pd.DataFrame({
+                'feature1': np.random.randn(N)*0.5 + 2,
+                'feature2': np.random.randn(N)*0.5 + 5,
+                'RUL': np.linspace(100, 0, N)
+            })
+            for i in range(nlives-1)]
+
+        self.lives.append(
+            pd.DataFrame({
+                'feature1': np.random.randn(N)*0.5 + 1,
+                'feature2': np.random.randn(N)*0.5 + 5,
+                'feature3': np.random.randn(N)*0.5 + 2,
+                'feature4': np.random.randn(N)*0.5 + 4,
+                'RUL': np.linspace(100, 0, N)
+            })
+        )
+
+        for j in range(self.nlives-1):
+            for k in range(5):
+                p = np.random.randint(N)
+                self.lives[j]['feature1'][p] = 5000
+                self.lives[j]['feature2'][p] = 5000
+
+        for k in range(5):
+            p = np.random.randint(N)
+            self.lives[-1]['feature1'][p] = 5000
+            self.lives[-1]['feature2'][p] = 5000
+            self.lives[-1]['feature3'][p] = 5000
+            self.lives[-1]['feature4'][p] = 5000
 
     def get_life(self, i: int):
         return self.lives[i]
@@ -118,15 +165,16 @@ class TestGenerators:
         df = pd.DataFrame({
             'a': [1, 2, 3, 4],
             'b': [2, 4, 6, 8],
-            'c': [1, 0, 1, 0],
+            'c': [2, 2, 2, 2],
+            'd': [1, 0, 1, 0]
         })
         transformer = Accumulate()
         df_new = transformer.fit_transform(df)
 
         assert df_new['a'].iloc[-1] == 10
         assert df_new['b'].iloc[-1] == 20
-        assert df_new['c'].iloc[-1] == 2
-        assert (df_new['c'].values == np.array([1, 1, 2, 2])).all()
+        assert df_new['c'].iloc[-1] == 8
+        assert (df_new['d'].values == np.array([1, 1, 2, 2])).all()
 
         ds = MockDataset(5)
         transformer = Accumulate()
@@ -161,3 +209,26 @@ class TestGenerators:
 
         assert df_new['a'].iloc[-1] == 2
         assert df_new['b'].iloc[-1] == 3
+
+        ds = MockDataset2(5)
+        transformer = AccumulateEWMAOutOfRange()
+        for life in ds:
+            transformer.partial_fit(life)
+        new_life = transformer.transform(ds[-1])
+
+    def test_Difference(self):
+        df = pd.DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2, 4, 6, 8],
+            'c': [2, 2, 2, 2],
+            'd': [1, 1, 1, 1]
+        })
+        with pytest.raises(ValueError):
+            transformer = Difference(['a', 'b'], ['d'])
+
+        transformer = Difference(['a', 'b'], ['c', 'd'])
+        df_new = transformer.fit_transform(df)
+        print(df_new.columns)
+        assert (df_new['a'].values == np.array([1-2, 2-2, 3-2, 4-2])).all()
+        assert (df_new['b'].values == np.array([2-1, 4-1, 6-1, 8-1])).all()
+        assert (df_new.shape[1] == 2)
