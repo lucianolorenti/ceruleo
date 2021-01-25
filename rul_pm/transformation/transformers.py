@@ -8,9 +8,9 @@ from rul_pm.transformation.features.generation import OneHotCategoricalPandas
 from rul_pm.transformation.features.selection import (
     ByNameFeatureSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
+from rul_pm.transformation.pipeline import LivesPipeline
 from rul_pm.transformation.target import TargetIdentity
 from rul_pm.transformation.utils import PandasFeatureUnion, PandasToNumpy
-from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
 logger = logging.getLogger(__name__)
@@ -39,20 +39,6 @@ def transformer_info(transformer):
     else:
 
         raise ValueError('Pipeline elements must have the get_params method')
-
-
-class LivesPipeline(Pipeline):
-    def partial_fit(self, X, y=None):
-        args = [X, y]
-        for name, est in self.steps:
-            if est == 'passthrough':
-                continue
-
-            est.partial_fit(*args)
-
-            X_transformed = est.transform(args[0])
-            args = [X_transformed, y]
-        return self
 
 
 def simple_pipeline(features=[], to_numpy: bool = True):

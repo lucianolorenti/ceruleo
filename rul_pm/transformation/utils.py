@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
+from rul_pm.transformation.transformerstep import TransformerStep
 from scipy import sparse
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import FeatureUnion, _transform_one
 
 
-class PandasToNumpy(BaseEstimator, TransformerMixin):
+class PandasToNumpy(TransformerStep):
     def fit(self, X, y=None):
         return self
 
@@ -16,7 +16,7 @@ class PandasToNumpy(BaseEstimator, TransformerMixin):
         return X.values
 
 
-class IdentityTransformer(BaseEstimator, TransformerMixin):
+class IdentityTransformer(TransformerStep):
     def __init__(self):
         pass
 
@@ -30,7 +30,7 @@ class IdentityTransformer(BaseEstimator, TransformerMixin):
             return input_array*1
 
 
-class PandasTransformerWrapper(BaseEstimator, TransformerMixin):
+class PandasTransformerWrapper(TransformerStep):
     def __init__(self, transformer):
         self.transformer = transformer
 
@@ -94,6 +94,14 @@ class PandasFeatureUnion(FeatureUnion):
         return Xs
 
 
+class PandasConcatenate(TransformerStep):
+    def __call__(self, steps):
+        return PandasFeatureUnion(
+            transformer_list=[(f'{step.__class__.__name__}_{i}', step)
+                              for i, step in enumerate(steps)]
+        )
+
+
 def column_names_window(columns: list, window: int) -> list:
     """
 
@@ -102,7 +110,7 @@ def column_names_window(columns: list, window: int) -> list:
     columns: list
              List of column names
 
-    window: int 
+    window: int
             Window size
 
     Return

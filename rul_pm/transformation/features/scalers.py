@@ -1,9 +1,9 @@
 
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
+from rul_pm.transformation.transformerstep import TransformerStep
 
 
-class PandasMinMaxScaler(BaseEstimator, TransformerMixin):
+class PandasMinMaxScaler(TransformerStep):
     def __init__(self, range: tuple):
         self.range = range
         self.min = range[0]

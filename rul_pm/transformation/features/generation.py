@@ -4,14 +4,14 @@ import logging
 import numpy as np
 import pandas as pd
 import scipy
+from rul_pm.transformation.transformerstep import TransformerStep
 from scipy.signal import firwin, lfilter
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer
 
 logger = logging.getLogger(__name__)
 
 
-class Accumulate(BaseEstimator, TransformerMixin):
+class Accumulate(TransformerStep):
     def fit(self, X, y=None):
         return self
 
@@ -22,7 +22,7 @@ class Accumulate(BaseEstimator, TransformerMixin):
         return X.cumsum()
 
 
-class AccumulateEWMAOutOfRange(BaseEstimator, TransformerMixin):
+class AccumulateEWMAOutOfRange(TransformerStep):
     """
     Compute the EWMA limits and accumulate the number of points
     outsite UCL and LCL
@@ -74,7 +74,7 @@ class AccumulateEWMAOutOfRange(BaseEstimator, TransformerMixin):
         return mask.astype('int').cumsum()
 
 
-class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
+class OneHotCategoricalPandas(TransformerStep):
     def __init__(self, feature):
         self.feature = feature
         self.categories = set()
@@ -98,7 +98,7 @@ class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
         return df
 
 
-class LowFrequencies(BaseEstimator, TransformerMixin):
+class LowFrequencies(TransformerStep):
     def __init__(self, window):
         self.window = window
 
@@ -119,7 +119,7 @@ class LowFrequencies(BaseEstimator, TransformerMixin):
         return new_X
 
 
-class HighFrequencies(BaseEstimator, TransformerMixin):
+class HighFrequencies(TransformerStep):
     def __init__(self, window):
         self.window = window
 
@@ -140,7 +140,7 @@ class HighFrequencies(BaseEstimator, TransformerMixin):
         return new_X
 
 
-class MedianFilter(BaseEstimator, TransformerMixin):
+class MedianFilter(TransformerStep):
     def __init__(self, window: int, min_periods: int = 15):
         self.window = window
         self.min_periods = min_periods
@@ -152,7 +152,7 @@ class MedianFilter(BaseEstimator, TransformerMixin):
         return X.rolling(self.window, min_periods=self.min_periods).median()
 
 
-class MeanFilter(BaseEstimator, TransformerMixin):
+class MeanFilter(TransformerStep):
     def __init__(self, window: int, min_periods: int = 15):
         self.window = window
         self.min_periods = min_periods
@@ -161,14 +161,14 @@ class MeanFilter(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        return X.rolling(self.window, min_periods=self.min_periods).mean()
+        return X.rolling(self.window, min_periods=self.min_periods).mean(skip_na=True)
 
 
 def rolling_kurtosis(s: pd.Series, window, min_periods):
     return s.rolling(window, min_periods=min_periods).kurt(skipna=True)
 
 
-class RollingStatistics(BaseEstimator, TransformerMixin):
+class RollingStatistics(TransformerStep):
     def __init__(self, window, min_periods: int = 15, to_compute=None):
         self.window = window
         self.min_periods = min_periods
@@ -249,7 +249,7 @@ class RollingStatistics(BaseEstimator, TransformerMixin):
         return X_new
 
 
-class ExpandingStatistics(BaseEstimator, TransformerMixin):
+class ExpandingStatistics(TransformerStep):
     def __init__(self, min_points=2,  to_compute=None):
         self.min_points = min_points
         valid_stats = ['kurtosis', 'skeweness', 'max',
@@ -320,7 +320,7 @@ class ExpandingStatistics(BaseEstimator, TransformerMixin):
         return X_new
 
 
-class Difference(BaseEstimator, TransformerMixin):
+class Difference(TransformerStep):
     def __init__(self, feature_set1: list, feature_set2: list):
         if len(feature_set1) != len(feature_set2):
             raise ValueError(

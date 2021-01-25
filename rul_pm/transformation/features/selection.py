@@ -2,12 +2,12 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
+from rul_pm.transformation.transformerstep import TransformerStep
 
 logger = logging.getLogger(__name__)
 
 
-class NullProportionSelector(BaseEstimator, TransformerMixin):
+class NullProportionSelector(TransformerStep):
     def __init__(self, min_null_proportion=0.5):
         self.min_null_proportion = min_null_proportion
 
@@ -25,7 +25,7 @@ class NullProportionSelector(BaseEstimator, TransformerMixin):
         return X.loc[:, self.mask].copy()
 
 
-class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
+class ByNameFeatureSelector(TransformerStep):
     def __init__(self, features=[]):
         self.features = features
         self.features_indices = None
@@ -60,12 +60,9 @@ class ByNameFeatureSelector(BaseEstimator, TransformerMixin):
         return len(self.features_computed_)
 
 
-class LocateFeatures(BaseEstimator, TransformerMixin):
+class LocateFeatures(TransformerStep):
     def __init__(self, features):
         self.features = features
-
-    def fit(self, X, y=None):
-        return self
 
     def transform(self, X):
         cols = list(X.columns)
@@ -76,7 +73,7 @@ class LocateFeatures(BaseEstimator, TransformerMixin):
         return X
 
 
-class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
+class DiscardByNameFeatureSelector(TransformerStep):
     def __init__(self, features=[]):
         self.features = features
         self.features_indices = None
@@ -94,7 +91,7 @@ class DiscardByNameFeatureSelector(BaseEstimator, TransformerMixin):
         return len(self.features)
 
 
-class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
+class PandasVarianceThreshold(TransformerStep):
     def __init__(self, min_variance: float):
         self.min_variance = min_variance
         self.selected_columns_ = None
@@ -134,7 +131,7 @@ class PandasVarianceThreshold(BaseEstimator, TransformerMixin):
         return X[self.selected_columns_].copy()
 
 
-class PandasNullProportionSelector(BaseEstimator, TransformerMixin):
+class PandasNullProportionSelector(TransformerStep):
     def __init__(self, max_null_proportion: float):
         self.max_null_proportion = max_null_proportion
         self.selected_columns_ = None
