@@ -2,12 +2,37 @@
 
 import numpy as np
 import pandas as pd
+from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.transformation.features.generation import Accumulate
 from rul_pm.transformation.features.selection import NullProportionSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
                                             ZScoreOutlierRemover)
 from rul_pm.transformation.resamplers import SubSampleTransformer
 from rul_pm.transformation.target import PicewiseRULThreshold
+
+
+class MockDataset(AbstractLivesDataset):
+    def __init__(self, nlives: int):
+
+        self.lives = [
+            pd.DataFrame({
+                'feature1': np.linspace(0, 100, 50),
+                'feature2': np.random.randint(2, size=(50,)),
+                'RUL': np.linspace(100, 0, 50)
+            })
+            for i in range(nlives)]
+
+    def get_life(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return 'RUL'
+
+    @property
+    def nlives(self):
+        return len(self.lives)
 
 
 class TestTargetTransformers():
@@ -85,3 +110,32 @@ class TestSelection():
         selector = NullProportionSelector(0.55)
         df_new = selector.fit_transform(df)
         assert set(df_new.columns) == set(['c'])
+
+
+class TestGenerators:
+    def test_generators(self):
+        df = pd.DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2, 4, 6, 8],
+            'c': [1, 0, 1, 0],
+        })
+        transformer = Accumulate()
+        df_new = transformer.fit_transform(df)
+
+        assert df_new['a'].iloc[-1] == 10
+        assert df_new['b'].iloc[-1] == 20
+        assert df_new['c'].iloc[-1] == 2
+        assert (df_new['c'].values == np.array([1, 1, 2, 2])).all()
+
+        ds = MockDataset(5)
+        transformer = Accumulate()
+        transformer.fit(ds)
+
+        life_0 = transformer.transform(ds.lives[0])
+        life_1 = transformer.transform(ds.lives[1])
+
+        assert (life_0['feature1'] == ds.lives[0]['feature1'].cumsum()).all()
+        assert (life_0['feature2'] == ds.lives[0]['feature2'].cumsum()).all()
+
+        assert (life_1['feature1'] == ds.lives[1]['feature1'].cumsum()).all()
+        assert (life_1['feature2'] == ds.lives[1]['feature2'].cumsum()).all()

@@ -11,32 +11,15 @@ from sklearn.feature_extraction.text import CountVectorizer
 logger = logging.getLogger(__name__)
 
 
-class LifeCumSum(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=None, life_id_col='life'):
-        self.life_id_col = life_id_col
-        self.columns = columns
-
+class Accumulate(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
-        if self.columns is None:
-            self.columns = X.columns
-        self.columns = [f for f in self.columns if f != self.life_id_col]
+        return self
+
+    def partial_fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        X_new = pd.DataFrame(
-            np.zeros((len(X.index), len(self.columns))),
-            index=X.index,
-            columns=self.columns
-        )
-        X_new.columns = [f'{c}_cumsum' for c in self.columns]
-        for life in X[self.life_id_col].unique():
-            data = X[X[self.life_id_col] == life]
-            data_columns = (data[self.columns]
-                            .cumsum())
-            for c in self.columns:
-                X_new.loc[X[self.life_id_col] == life,
-                          f'{c}_cumsum'] = data_columns[c]
-        return X_new
+        return X.cumsum()
 
 
 class LifeExceededCumSum(BaseEstimator, TransformerMixin):
@@ -95,7 +78,8 @@ class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        categories = sorted(list(self.categories))
+        categories = sorted(
+            list([c for c in self.categories if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
 
         df = pd.get_dummies(d)
