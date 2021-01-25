@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.features.generation import Accumulate
+from rul_pm.transformation.features.generation import (
+    Accumulate, AccumulateEWMAOutOfRange)
 from rul_pm.transformation.features.selection import NullProportionSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
@@ -113,7 +114,7 @@ class TestSelection():
 
 
 class TestGenerators:
-    def test_generators(self):
+    def test_Accumulate(self):
         df = pd.DataFrame({
             'a': [1, 2, 3, 4],
             'b': [2, 4, 6, 8],
@@ -139,3 +140,24 @@ class TestGenerators:
 
         assert (life_1['feature1'] == ds.lives[1]['feature1'].cumsum()).all()
         assert (life_1['feature2'] == ds.lives[1]['feature2'].cumsum()).all()
+
+    def test_AccumulateEWMAOutOfRange(self):
+        a = np.random.randn(500)*0.5 + 2
+        b = np.random.randn(500)*0.5 + 5
+        a[120] = 1500
+        a[320] = 5000
+
+        b[120] = 1500
+        b[320] = 5000
+        b[215] = 1500
+
+        df = pd.DataFrame({
+            'a': a,
+            'b': b,
+        })
+
+        transformer = AccumulateEWMAOutOfRange()
+        df_new = transformer.fit_transform(df)
+
+        assert df_new['a'].iloc[-1] == 2
+        assert df_new['b'].iloc[-1] == 3

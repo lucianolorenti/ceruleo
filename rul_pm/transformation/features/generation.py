@@ -22,45 +22,45 @@ class Accumulate(BaseEstimator, TransformerMixin):
         return X.cumsum()
 
 
-class LifeExceededCumSum(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=None,  life_id_col='life', lambda_=0.5):
+class AccumulateEWMAOutOfRange(BaseEstimator, TransformerMixin):
+    """
+    Compute the EWMA limits and accumulate the number of points
+    outsite UCL and LCL
+    """
+
+    def __init__(self, lambda_=0.5):
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
-        self.life_id_col = life_id_col
-        self.columns = columns
 
     def partial_fit(self, X, y=None):
+        LCL, UCL = self._compute_limits(X)
+        self.LCL = (np.min(LCL, self.LCL) if self.LCL is not None
+                    else LCL)
+        self.UCL = (np.min(UCL, self.LCL) if self.UCL is not None
+                    else UCL)
         return self
 
-    def fit(self, X, y=None):
-        if self.columns is None:
-            self.columns = set(X.columns.values) - set(['life'])
-        mean = np.nanmean(X[self.columns], axis=0)
+    def _compute_limits(self, X):
+        mean = np.nanmean(X, axis=0)
         s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
-            np.nanstd(X[self.columns], axis=0)
-        self.UCL = mean + 3*s
-        self.LCL = mean - 3*s
+            np.nanstd(X, axis=0)
+        UCL = mean + 3*s
+        LCL = mean - 3*s
+        return LCL, UCL
+
+    def fit(self, X, y=None):
+        LCL, UCL = self._compute_limits(X)
+        self.LCL = LCL
+        self.UCL = UCL
         return self
 
     def transform(self, X):
-
-        cnames = [f'{c}_cumsum' for c in self.columns]
-        new_X = pd.DataFrame({}, columns=cnames, index=X.index)
-        for life in X[self.life_id_col].unique():
-            data = X[X[self.life_id_col] == life]
-            data_columns = data[self.columns]
-            mask = (
-                (data_columns < (self.LCL)) |
-                (data_columns > (self.UCL))
-            )
-            df_cumsum = mask.astype('int').cumsum()
-            for c in self.columns:
-                new_X.loc[
-                    X[self.life_id_col] == life,
-                    f'{c}_cumsum'] = df_cumsum[c]
-
-        return new_X
+        mask = (
+            (X < (self.LCL)) |
+            (X > (self.UCL))
+        )
+        return mask.astype('int').cumsum()
 
 
 class OneHotCategoricalPandas(BaseEstimator, TransformerMixin):
