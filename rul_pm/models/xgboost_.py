@@ -10,20 +10,35 @@ class XGBoostModel(TrainableModel):
                  transformer=None,
                  cache_size: int = 15,
                  sample_weight: str = 'equal',
+                 shuffle: str = 'all',
                  **kwargs):
         super().__init__(window,
                          step,
                          transformer,
                          cache_size=cache_size,
-                         sample_weight=sample_weight)
+                         sample_weight=sample_weight,
+                         shuffle=shuffle)
         self.window = window
         self.transformer = transformer
         self.step = step
         self.xgbr = XGBRegressor(**kwargs)
 
-    def fit(self, train_dataset):
-        X, y, sample_weight = self.get_data(train_dataset)
-        self.xgbr.fit(X, y, sample_weight=sample_weight)
+    def fit(self, train_dataset, validation_dataset=None, refit_transformer: bool = True, **kwargs):
+        if refit_transformer:
+            self.transformer.fit(train_dataset)
+        X_train, y_train, sample_weight_train = self.get_data(
+            train_dataset, shuffle=self.shuffle)
+
+        params = {}
+        if validation_dataset is not None:
+            X_val, y_val, sample_weight_val = self.get_data(
+                validation_dataset, shuffle=None)
+            params.update({
+                'eval_set': [(X_val, y_val)]
+
+            })
+        self.xgbr.fit(X_train, y_train,
+                      sample_weight=sample_weight_train, **params, **kwargs)
         return self
 
     def predict(self, dataset):
