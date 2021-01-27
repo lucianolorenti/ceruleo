@@ -2,12 +2,12 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
+from rul_pm.transformation.transformerstep import TransformerStep
 
 logger = logging.getLogger(__name__)
 
 
-class PandasRemoveInf(BaseEstimator, TransformerMixin):
+class PandasRemoveInf(TransformerStep):
     def fit(self, X, y=None):
         return self
 
@@ -18,7 +18,7 @@ class PandasRemoveInf(BaseEstimator, TransformerMixin):
         return self
 
 
-class PandasMedianImputer(BaseEstimator, TransformerMixin):
+class PandasMedianImputer(TransformerStep):
     def fit(self, X, y=None):
         self.median = X.median(axis=0).to_dict()
         return self
@@ -30,7 +30,7 @@ class PandasMedianImputer(BaseEstimator, TransformerMixin):
         return self
 
 
-class PandasMeanImputer(BaseEstimator, TransformerMixin):
+class PandasMeanImputer(TransformerStep):
     def partial_fit(self, X, y=None):
         return self
 
@@ -42,7 +42,7 @@ class PandasMeanImputer(BaseEstimator, TransformerMixin):
         return X.fillna(value=self.mean)
 
 
-class RollingImputer(BaseEstimator, TransformerMixin):
+class RollingImputer(TransformerStep):
     def __init__(self, window_size, func):
         self.window_size = window_size
         self.function = func
@@ -77,7 +77,7 @@ class RollingMeanImputer(RollingImputer):
         super().__init__(window_size, np.mean)
 
 
-class ForwardFillImputer(BaseEstimator, TransformerMixin):
+class ForwardFillImputer(TransformerStep):
     def fit(self, X, y=None):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
