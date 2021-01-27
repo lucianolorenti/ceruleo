@@ -1,5 +1,6 @@
 
 import logging
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Accumulate(TransformerStep):
+
     def fit(self, X, y=None):
         return self
 
@@ -28,7 +30,8 @@ class AccumulateEWMAOutOfRange(TransformerStep):
     outsite UCL and LCL
     """
 
-    def __init__(self, lambda_=0.5):
+    def __init__(self, lambda_=0.5, name: Optional[str] = None):
+        super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
@@ -75,7 +78,8 @@ class AccumulateEWMAOutOfRange(TransformerStep):
 
 
 class OneHotCategoricalPandas(TransformerStep):
-    def __init__(self, feature):
+    def __init__(self, feature, name: Optional[str] = None):
+        super().__init__(name)
         self.feature = feature
         self.categories = set()
         self.encoder = None
@@ -99,7 +103,8 @@ class OneHotCategoricalPandas(TransformerStep):
 
 
 class LowFrequencies(TransformerStep):
-    def __init__(self, window):
+    def __init__(self, window, name: Optional[str] = None):
+        super().__init__(name)
         self.window = window
 
     def fit(self, X, y=None):
@@ -120,7 +125,8 @@ class LowFrequencies(TransformerStep):
 
 
 class HighFrequencies(TransformerStep):
-    def __init__(self, window):
+    def __init__(self, window, name: Optional[str] = None):
+        super().__init__(name)
         self.window = window
 
     def fit(self, X, y=None):
@@ -141,7 +147,8 @@ class HighFrequencies(TransformerStep):
 
 
 class MedianFilter(TransformerStep):
-    def __init__(self, window: int, min_periods: int = 15):
+    def __init__(self, window: int, min_periods: int = 15, name: Optional[str] = None):
+        super().__init__(name)
         self.window = window
         self.min_periods = min_periods
 
@@ -153,7 +160,8 @@ class MedianFilter(TransformerStep):
 
 
 class MeanFilter(TransformerStep):
-    def __init__(self, window: int, min_periods: int = 15):
+    def __init__(self, window: int, min_periods: int = 15, name: Optional[str] = None):
+        super().__init__(name)
         self.window = window
         self.min_periods = min_periods
 
@@ -169,7 +177,8 @@ def rolling_kurtosis(s: pd.Series, window, min_periods):
 
 
 class RollingStatistics(TransformerStep):
-    def __init__(self, window, min_periods: int = 15, to_compute=None):
+    def __init__(self, window, min_periods: int = 15, to_compute=None, name: Optional[str] = None):
+        super().__init__(name)
         self.window = window
         self.min_periods = min_periods
 
@@ -250,7 +259,8 @@ class RollingStatistics(TransformerStep):
 
 
 class ExpandingStatistics(TransformerStep):
-    def __init__(self, min_points=2,  to_compute=None):
+    def __init__(self, min_points=2,  to_compute=None, name: Optional[str] = None):
+        super().__init__(name)
         self.min_points = min_points
         valid_stats = ['kurtosis', 'skeweness', 'max',
                        'min', 'std', 'peak', 'impulse', 'clearance',
@@ -321,7 +331,8 @@ class ExpandingStatistics(TransformerStep):
 
 
 class Difference(TransformerStep):
-    def __init__(self, feature_set1: list, feature_set2: list):
+    def __init__(self, feature_set1: list, feature_set2: list, name: Optional[str] = None):
+        super().__init__(name)
         if len(feature_set1) != len(feature_set2):
             raise ValueError(
                 'Feature set 1 and feature set 2 must have the same length')

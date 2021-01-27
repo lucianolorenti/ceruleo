@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -8,7 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 class NullProportionSelector(TransformerStep):
-    def __init__(self, min_null_proportion=0.5):
+    def __init__(self, min_null_proportion=0.5, name: Optional[str] = None):
+        super().__init__(name)
         self.min_null_proportion = min_null_proportion
 
     def fit(self, X, y=None):
@@ -26,7 +28,9 @@ class NullProportionSelector(TransformerStep):
 
 
 class ByNameFeatureSelector(TransformerStep):
-    def __init__(self, features=[]):
+
+    def __init__(self, features=[], name: Optional[str] = None):
+        super().__init__(name)
         self.features = features
         self.features_indices = None
         self.features_computed_ = []
@@ -61,7 +65,8 @@ class ByNameFeatureSelector(TransformerStep):
 
 
 class LocateFeatures(TransformerStep):
-    def __init__(self, features):
+    def __init__(self, features, name: Optional[str] = None):
+        super().__init__(name)
         self.features = features
 
     def transform(self, X):
@@ -74,7 +79,8 @@ class LocateFeatures(TransformerStep):
 
 
 class DiscardByNameFeatureSelector(TransformerStep):
-    def __init__(self, features=[]):
+    def __init__(self, features=[], name: Optional[str] = None):
+        super().__init__(name)
         self.features = features
         self.features_indices = None
 
@@ -92,7 +98,8 @@ class DiscardByNameFeatureSelector(TransformerStep):
 
 
 class PandasVarianceThreshold(TransformerStep):
-    def __init__(self, min_variance: float):
+    def __init__(self, min_variance: float, name: Optional[str] = None):
+        super().__init__(name)
         self.min_variance = min_variance
         self.selected_columns_ = None
 
@@ -132,7 +139,8 @@ class PandasVarianceThreshold(TransformerStep):
 
 
 class PandasNullProportionSelector(TransformerStep):
-    def __init__(self, max_null_proportion: float):
+    def __init__(self, max_null_proportion: float, name: Optional[str] = None):
+        super().__init__(name)
         self.max_null_proportion = max_null_proportion
         self.selected_columns_ = None
 

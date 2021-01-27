@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from rul_pm.transformation.transformerstep import TransformerStep
@@ -17,8 +19,6 @@ class PandasToNumpy(TransformerStep):
 
 
 class IdentityTransformer(TransformerStep):
-    def __init__(self):
-        pass
 
     def fit(self, input_array, y=None):
         return self
@@ -31,7 +31,8 @@ class IdentityTransformer(TransformerStep):
 
 
 class PandasTransformerWrapper(TransformerStep):
-    def __init__(self, transformer):
+    def __init__(self, transformer, name: Optional[str] = None):
+        super().__init__(name)
         self.transformer = transformer
 
     def fit(self, X, y=None):
@@ -92,14 +93,6 @@ class PandasFeatureUnion(FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
         return Xs
-
-
-class PandasConcatenate(TransformerStep):
-    def __call__(self, steps):
-        return PandasFeatureUnion(
-            transformer_list=[(f'{step.__class__.__name__}_{i}', step)
-                              for i, step in enumerate(steps)]
-        )
 
 
 def column_names_window(columns: list, window: int) -> list:

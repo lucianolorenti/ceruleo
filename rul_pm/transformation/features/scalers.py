@@ -1,10 +1,13 @@
 
+from typing import Optional
+
 import pandas as pd
 from rul_pm.transformation.transformerstep import TransformerStep
 
 
 class PandasMinMaxScaler(TransformerStep):
-    def __init__(self, range: tuple):
+    def __init__(self, range: tuple, name: Optional[str] = None):
+        super().__init__(name)
         self.range = range
         self.min = range[0]
         self.max = range[1]
