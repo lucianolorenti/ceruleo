@@ -191,10 +191,11 @@ class Transformer:
 
     def transformY(self, df):
         return np.squeeze(
-            self.transformerY.transform(self._target(df)))
+            self.transformerY.transform(self._target(df)).values
+        )
 
     def transformX(self, df):
-        return self.transformerX.transform(df)
+        return self.transformerX.transform(df).values
 
     def columns(self):
         return self.column_names
