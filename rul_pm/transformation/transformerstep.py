@@ -1,7 +1,6 @@
 from copy import copy
 from typing import Optional
 
-from baikal import Step
 from numpy.lib.arraysetops import isin
 from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.base import BaseEstimator, TransformerMixin
