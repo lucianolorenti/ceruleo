@@ -86,6 +86,7 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     heights = []
     xs = []
     yerr = []
+
     for i in range(len(error_histogram)):
         xs.append(i)
         heights.append(np.mean(error_histogram[i]))
@@ -95,5 +96,42 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     ax.bar(height=heights, x=xs, yerr=yerr, tick_label=labels)
     ax.set_xlabel('RUL')
     ax.set_ylabel('RMSE')
+
+    return fig
+
+
+def compute_bars(error_histogram):
+
+    heights = []
+    xs = []
+    yerr = []
+    for i in range(len(error_histogram)):
+        xs.append(i)
+        heights.append(np.mean(error_histogram[i]))
+        yerr.append(np.std(error_histogram[i]))
+    return heights, xs, yerr
+
+
+def cv_plot_errors_wrt_RUL_multiple_models(bin_edges, error_histograms, model_names, width=0.5, **kwargs):
+    """
+    """
+    fig, ax = plt.subplots(**kwargs)
+    labels = []
+    bars = [compute_bars(e) for e in error_histograms]
+
+    deltax = (width) / len(bars)
+    for i in range(len(error_histograms[0])):
+        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+
+    for i, (heights, xs, yerr) in enumerate(bars):
+        xx = np.array(xs) + (deltax*(i+1)) - width
+
+        ax.bar(height=heights, width=(width / len(bars))-0.01, x=xx, yerr=yerr,
+               label=model_names[i])
+    ax.set_xlabel('RUL')
+    ax.set_ylabel('RMSE')
+    ax.set_xticklabels(labels)
+    ax.set_xticks(list(range(len(labels))))
+    ax.legend()
 
     return fig
