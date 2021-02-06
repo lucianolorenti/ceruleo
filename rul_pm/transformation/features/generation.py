@@ -4,8 +4,6 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import tsfresh
-import tsfresh.feature_extraction.feature_calculators as tsfresh_features
 from rul_pm.transformation.features.extraction import (compute, roll_matrix,
                                                        stats_order)
 from rul_pm.transformation.transformerstep import TransformerStep
