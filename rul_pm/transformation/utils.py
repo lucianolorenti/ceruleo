@@ -2,7 +2,8 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from rul_pm.transformation.transformerstep import TransformerStep
+from rul_pm.transformation.transformerstep import (TransformerStep,
+                                                   TransformerStepMixin)
 from scipy import sparse
 from sklearn.pipeline import FeatureUnion, _transform_one
 
@@ -56,7 +57,7 @@ class PandasTransformerWrapper(TransformerStep):
         return pd.DataFrame(self.transformer.transform(X), columns=X.columns, index=X.index)
 
 
-class PandasFeatureUnion(FeatureUnion):
+class PandasFeatureUnion(FeatureUnion, TransformerStepMixin):
 
     def partial_fit(self,  X, y=None):
         self._validate_transformers()
@@ -93,6 +94,10 @@ class PandasFeatureUnion(FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
         return Xs
+
+    def get_params(self, deep=True):
+        params = super().get_params(deep=deep)
+        return params
 
 
 def column_names_window(columns: list, window: int) -> list:

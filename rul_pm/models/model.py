@@ -6,8 +6,8 @@ import numpy as np
 from rul_pm.iterators.batcher import get_batcher
 from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.store.store import store
+from rul_pm.transformation.pipeline import LivesPipeline
 from rul_pm.transformation.transformers import Transformer
-from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +120,12 @@ class TrainableModel(TrainableModelInterface):
         return self._model_filepath
 
     def true_values(self, dataset, step=None, transformer=None):
+        orig_transformer = self.transformer.transformerX
+        self.transformer.transformerX = LivesPipeline(
+            steps=[('empty', 'passthrough')])
         it = self.iterator(dataset, step=step,
                            transformer=transformer, shuffle=False)
+        self.transformer.transformerX = orig_transformer
         return np.concatenate([y for _, y, _ in it])
 
     @property
@@ -152,9 +156,10 @@ class TrainableModel(TrainableModelInterface):
 
     def get_data(self, dataset, shuffle=None):
         it = self.iterator(dataset, shuffle=shuffle)
-        X = np.zeros((len(it), self.window*self.transformer.n_features))
-        y = np.zeros((len(it), self.output_size))
-        sample_weight = np.zeros(len(it))
+        X = np.zeros(
+            (len(it), self.window*self.transformer.n_features), dtype=np.float32)
+        y = np.zeros((len(it), self.output_size), dtype=np.float32)
+        sample_weight = np.zeros(len(it), dtype=np.float32)
 
         for i, (X_, y_, sample_weight_) in enumerate(it):
             X[i, :] = X_.flatten()

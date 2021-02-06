@@ -8,6 +8,24 @@ from tensorflow.keras.layers import Concatenate, Dense, Lambda, Multiply
 tfd = tfp.distributions
 
 
+class VariationalWeibullLayer(tf.keras.Model):
+    def call(self, input_tensor, training=False):
+        
+        # X ~ Chi-Squared(0.1) -> c*X ~ Gamma(0.1/2, 2c)
+        # U ~ Uniform(0, 1) -> n*U ~ Uninform(0, n)
+        # Let  J = sum(cX_i ~ Gamma(1, 2c)), i =1...U then
+        # J ~ Gamma((0.1/2)*U, 2c)
+        # Finally 1/J ~ Inv-Gamma((0.1/2)*U, 2c)
+
+        lambda_pipe = self.x1(input_tensor)
+        lambda_pipe = self.lamb(lambda_pipe)
+
+        k_pipe = self.x2(input_tensor)
+        k_pipe = self.k(k_pipe) + tf.constant(1.)
+
+        return self._result(lambda_pipe, k_pipe)
+
+
 class WeibullLayer(tf.keras.Model):
     def __init__(self, return_params=True, regression='mode', name=''):
         super().__init__(name=name)

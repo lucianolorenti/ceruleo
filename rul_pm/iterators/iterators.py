@@ -16,6 +16,14 @@ CACHE_SIZE = 30
 
 logger = logging.getLogger(__name__)
 
+SAMPLE_WEIGHT_PROPORTIONAL_TO_LENGTH = 'proportional_to_length'
+SAMPLE_WEIGHT_RUL_INV = 'rul_inv'
+SAMPLE_WEIGHT_EQUAL = 'equal'
+
+VALID_SAMPLE_WEIGHTS = [SAMPLE_WEIGHT_PROPORTIONAL_TO_LENGTH,
+                        SAMPLE_WEIGHT_RUL_INV,
+                        SAMPLE_WEIGHT_EQUAL]
+
 
 class DatasetIterator:
     """
@@ -182,7 +190,7 @@ class WindowedDatasetIterator(DatasetIterator):
                  evenly_spaced_points: Optional[int] = None,
                  sample_weight: Union[
                      str,
-                     Callable[[pd.DataFrame], float]] = 'equal',
+                     Callable[[pd.DataFrame], float]] = SAMPLE_WEIGHT_EQUAL,
                  add_last: bool = True):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.evenly_spaced_points = evenly_spaced_points
@@ -190,9 +198,9 @@ class WindowedDatasetIterator(DatasetIterator):
         self.step = step
         self.shuffle = shuffle
         if isinstance(sample_weight, str):
-            if sample_weight not in ('equal', 'proportional_to_length'):
+            if sample_weight not in VALID_SAMPLE_WEIGHTS:
                 raise ValueError(
-                    'Invalid sample_weight parameter. Valid values are equal or proportional_to_length')
+                    f'Invalid sample_weight parameter. Valid values are {VALID_SAMPLE_WEIGHTS}')
         elif not callable(sample_weight):
             raise ValueError('sample_weight should be an string or a callable')
 
@@ -206,10 +214,12 @@ class WindowedDatasetIterator(DatasetIterator):
 
     def _sample_weight(self, y, i: int, metadata):
         if isinstance(self.sample_weight, str):
-            if self.sample_weight == 'equal':
+            if self.sample_weight == SAMPLE_WEIGHT_EQUAL:
                 return 1
-            else:
-                return 1 / y.shape[0]
+            elif self.sample_weight == SAMPLE_WEIGHT_RUL_INV:
+                return ((1 / (y[i]+1)))
+            elif self.sample_weight == SAMPLE_WEIGHT_PROPORTIONAL_TO_LENGTH:
+                return (1 / y[0])
         elif callable(self.sample_weight):
             return self.sample_weight(y, i, metadata)
 
@@ -223,8 +233,9 @@ class WindowedDatasetIterator(DatasetIterator):
         sample_weights = []
         logger.debug('Computing windows')
         for life in range(self.dataset.nlives):
-
-            _, y, metadata = self._load_data(life)
+            life_data = self.dataset[life]
+            y = self.transformer.transformY(life_data)
+            metadata = self.transformer.transformMetadata(life_data)
 
             list_ranges = range(self.window_size-1, y.shape[0], self.step)
             if self.evenly_spaced_points is not None:

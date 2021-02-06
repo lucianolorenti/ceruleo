@@ -41,7 +41,7 @@ class Concatenate:
 
         union = PandasFeatureUnion(transformer_list=union)
         if parent_pipe is None:
-            return union
+            return LivesPipeline(steps=[('union', union)])
         else:
             i = len(parent_pipe.steps) + 1
             name = self.name
@@ -49,6 +49,38 @@ class Concatenate:
                 0,
                 (f'{name}_{i}', union))
             return parent_pipe
+
+
+class TransformerStepMixin:
+    def __init__(self, name=None):
+        self.name_ = name
+        self.prevs = []
+
+    @ property
+    def name(self):
+        if self.name_ is not None:
+            return self.name_
+        else:
+
+            return self.__class__.__name__
+
+    def add_prev(self, child):
+        self.prevs.append(child)
+
+    def __call__(self, prev):
+        step = self
+        step.add_prev(prev)
+        return step
+
+    def build(self, parent_pipe: LivesPipeline = None) -> LivesPipeline:
+        if parent_pipe is None:
+            parent_pipe = LivesPipeline(steps=[('initial', 'passthrough')])
+        i = len(parent_pipe.steps) + 1
+        name = self.name
+        parent_pipe.steps.insert(0, (f'{name}_{i}', self))
+        if len(self.prevs) > 0:
+            self.prevs[0].build(parent_pipe=parent_pipe)
+        return parent_pipe
 
 
 class TransformerStep(BaseEstimator, TransformerMixin):
@@ -81,9 +113,6 @@ class TransformerStep(BaseEstimator, TransformerMixin):
         if len(self.prevs) > 0:
             self.prevs[0].build(parent_pipe=parent_pipe)
         return parent_pipe
-
-    def fit(self, X, y=None):
-        return self
 
     def partial_fit(self, X, y=None):
         return self

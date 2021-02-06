@@ -12,6 +12,7 @@ from rul_pm.transformation.pipeline import LivesPipeline
 from rul_pm.transformation.target import TargetIdentity
 from rul_pm.transformation.utils import PandasFeatureUnion, PandasToNumpy
 from sklearn.utils.validation import check_is_fitted
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ def transformer_info(transformer):
     elif isinstance(transformer, str) and transformer == 'passthrough':
         return transformer
     else:
+        print(type(transformer))
 
         raise ValueError('Pipeline elements must have the get_params method')
 
@@ -152,7 +154,7 @@ class Transformer:
 
     def fit(self, dataset, proportion=1.0):
         logger.debug('Fitting Transformer')
-        for life in dataset:
+        for life in tqdm(dataset):
             self.transformerX.partial_fit(life)
             self.transformerY.partial_fit(self._target(life))
             self.fitTransformerMetadata(life)

@@ -41,9 +41,32 @@ class XGBoostModel(TrainableModel):
                       sample_weight=sample_weight_train, **params, **kwargs)
         return self
 
+    def build_model(self):
+        return self.xgbr
+
     def predict(self, dataset):
         X, _, _ = self.get_data(dataset, shuffle=False)
         return self.xgbr.predict(X)
 
     def feature_importances(self):
         return self.xgbr.feature_importances_.reshape((self.window, self.n_features))
+
+    def get_params(self, deep):
+        out = super().get_params(deep=deep)
+        out['model'] = self.model
+        if deep and hasattr(self.model, 'get_params'):
+            for key, value in self.model.get_params(deep=True).items():
+                out['model__%s' % key] = value
+        return out
+
+    def set_params(self, **params):
+        model_params = {}
+        for name, value in params.items():
+            if '__' in name:
+                model_params[name.split('__')[1]] = value
+        for name in model_params.keys():
+            params.pop(f'model__{name}')
+
+        super().set_params(**params)
+        self.model.set_params(**model_params)
+        return self

@@ -4,12 +4,61 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import scipy
+import tsfresh
+import tsfresh.feature_extraction.feature_calculators as tsfresh_features
+from rul_pm.transformation.features.extraction import (compute, roll_matrix,
+                                                       stats_order)
 from rul_pm.transformation.transformerstep import TransformerStep
-from scipy.signal import firwin, lfilter
 from sklearn.feature_extraction.text import CountVectorizer
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+class ExpandingCentering(TransformerStep):
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X - X.expanding().mean()
+
+
+class ExpandingNormalization(TransformerStep):
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return (X - X.expanding().mean()) / (X.expanding().std())
+
+
+class MeanCentering(TransformerStep):
+    def __init__(self):
+        super().__init__()
+        self.N = 0
+        self.sum = None
+
+    def fit(self, X, y=None):
+        self.mean = X.mean()
+
+    def partial_fit(self, X, y=None):
+        if self.sum is None:
+            self.sum = X.sum()
+        else:
+            self.sum += X.sum()
+
+        self.N += X.shape[0]
+        self.mean = self.sum / self.N
+
+    def transform(self, X):
+        return X - self.mean
 
 
 class Accumulate(TransformerStep):
@@ -22,6 +71,18 @@ class Accumulate(TransformerStep):
 
     def transform(self, X):
         return X.cumsum()
+
+
+class Diff(TransformerStep):
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X.diff()
 
 
 class AccumulateEWMAOutOfRange(TransformerStep):
@@ -102,6 +163,29 @@ class OneHotCategoricalPandas(TransformerStep):
         return df
 
 
+class SimpleEncodingCategorical(TransformerStep):
+    def __init__(self, feature, name: Optional[str] = None):
+        super().__init__(name)
+        self.feature = feature
+        self.categories = set()
+        self.encoder = None
+
+    def partial_fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def transform(self, X, y=None):
+        categories = sorted(
+            list([c for c in self.categories if c is not None]))
+        d = pd.Categorical(X[self.feature], categories=categories)
+
+        return pd.DataFrame(d.codes, index=X.index)
+
+
 class LowFrequencies(TransformerStep):
     def __init__(self, window, name: Optional[str] = None):
         super().__init__(name)
@@ -177,24 +261,14 @@ def rolling_kurtosis(s: pd.Series, window, min_periods):
 
 
 class RollingStatistics(TransformerStep):
-    def __init__(self, window, min_periods: int = 15, to_compute=None, name: Optional[str] = None):
+    def __init__(self, window, step=1, min_periods: int = 15, time: bool = True, frequency: bool = True, name: Optional[str] = None):
         super().__init__(name)
         self.window = window
         self.min_periods = min_periods
-
-        if to_compute is None:
-            self.to_compute = ['kurtosis', 'skeweness', 'max',
-                               'min', 'std', 'peak', 'impulse', 'clearance',
-                               'rms', 'shape', 'crest', 'spectral_kurtosis']
-        else:
-            valid_stats = ['kurtosis', 'skeweness', 'mean', 'max',
-                           'min', 'std', 'peak', 'impulse', 'clearance',
-                           'rms', 'shape', 'crest', 'spectral_kurtosis']
-            for f in to_compute:
-                if f not in valid_stats:
-                    raise ValueError(
-                        f'Invalid feature to compute {f}. Valids are {valid_stats}')
-            self.to_compute = to_compute
+        self.step = step
+        self.fs = 1
+        self.time = time
+        self.frequency = frequency
 
     def fit(self, X, y=None):
         return self
@@ -202,58 +276,25 @@ class RollingStatistics(TransformerStep):
     def partial_fit(self, X, y=None):
         return self
 
-    def _mean(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).mean(skipna=True)
-
-    def _kurtosis(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).kurt(skipna=True)
-
-    def _skeweness(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).skew(skipna=True)
-
-    def _max(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).max(skipna=True)
-
-    def _min(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).min(skipna=True)
-
-    def _std(self, s: pd.Series):
-        return s.rolling(self.window, min_periods=self.min_periods).std(skipna=True)
-
-    def _peak(self, s: pd.Series):
-        return (s.rolling(self.window, min_periods=self.min_periods).max(skipna=True) -
-                s.rolling(self.window, min_periods=self.min_periods).min(skipna=True))
-
-    def _spectral_kurtosis(self, s: pd.Series):
-        def spectral_kurtosis(x):
-            return scipy.stats.kurtosis(np.abs(np.fft.rfft(x)))
-        return s.rolling(self.window).apply(spectral_kurtosis)
-
-    def _impulse(self, s: pd.Series):
-        return self._peak(s) / s.abs().rolling(self.window, min_periods=self.min_periods).mean()
-
-    def _clearance(self, s: pd.Series):
-        return self._peak(s) / s.abs().pow(1./2).rolling(self.window, min_periods=self.min_periods).mean().pow(2)
-
-    def _rms(self, s: pd.Series):
-        return (s.pow(2)
-                 .rolling(self.window, min_periods=self.min_periods)
-                 .mean(skipna=True)
-                 .pow(1/2.))
-
-    def _shape(self, s: pd.Series):
-        return self._rms(s) / s.abs().rolling(self.window, min_periods=self.min_periods).mean(skipna=True)
-
-    def _crest(self, s: pd.Series):
-        return self._peak(s) / self._rms(s)
-
     def transform(self, X):
 
-        X_new = pd.DataFrame(index=X.index)
+        columns = []
+        stat_columns_dict = {}
+        for column in X.columns:
+            for stat in stats_order(time=self.time, frequency=self.frequency):
+                new_cname = f'{column}_{stat}'
+                stat_columns_dict.setdefault(column, []).append(len(columns))
+                columns.append(new_cname)
 
-        for c in X.columns:
-            for stats in self.to_compute:
-                X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
+        X_new = pd.DataFrame(
+            np.zeros((len(X.index), len(columns))),
+            index=X.index,
+            columns=columns,
+            dtype=np.float32)
+        X_values = X.values
+        X_new_values = X_new.values
+        roll_matrix(X_values, self.window, self.min_periods,
+                    X_new_values, time=self.time, frequency=self.frequency)
 
         return X_new
 
@@ -262,11 +303,11 @@ class ExpandingStatistics(TransformerStep):
     def __init__(self, min_points=2,  to_compute=None, name: Optional[str] = None):
         super().__init__(name)
         self.min_points = min_points
-        valid_stats = ['kurtosis', 'skeweness', 'max',
+        valid_stats = ['kurtosis', 'skewness', 'max',
                        'min', 'std', 'peak', 'impulse', 'clearance',
                        'rms', 'shape', 'crest']
         if to_compute is None:
-            self.to_compute = ['kurtosis', 'skeweness', 'max',
+            self.to_compute = ['kurtosis', 'skewness', 'max',
                                'min', 'std', 'peak', 'impulse', 'clearance',
                                'rms', 'shape', 'crest']
         else:
@@ -283,10 +324,10 @@ class ExpandingStatistics(TransformerStep):
         return self
 
     def _kurtosis(self, s: pd.Series):
-        return s.expanding(self.min_points).kurt(skipna=True)
+        return s.expanding(self.min_points).kurtosis(skipna=True)
 
-    def _skeweness(self, s: pd.Series):
-        return s.expanding(self.min_points).skew(skipna=True)
+    def _skewness(self, s: pd.Series):
+        return s.expanding(self.min_points).skewness(skipna=True)
 
     def _max(self, s: pd.Series):
         return s.expanding(self.min_points).max(skipna=True)

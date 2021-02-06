@@ -27,7 +27,6 @@ class PandasMinMaxScaler(TransformerStep):
             self.data_max = (pd
                              .concat([self.data_max, partial_data_max], axis=1)
                              .max(axis=1))
-
         return self
 
     def fit(self, df, y=None):

@@ -1,16 +1,27 @@
 import hashlib
 import json
+import logging
+import os
 import pickle
+import tempfile
+import warnings
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
 import mlflow
+import mlflowstone as mlflows
 import numpy as np
+import pandas as pd
+import sklearn
 from mlflow.exceptions import MlflowException
 from mlflow.tracking.client import MlflowClient
 from mlflow.tracking.fluent import _get_experiment_id
+from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 from rul_pm.transformation.transformers import LivesPipeline
 from rul_pm.transformation.utils import PandasFeatureUnion
+
+logger = logging.getLogger(__name__)
 
 
 def transformer_info(transformer):
@@ -46,12 +57,7 @@ def json_to_str(elem):
         return str(elem)
 
 
-class ResultsStore:
-    def __init__(self):
-        pass
-
-
-class ModelStore:
+class ModelStore(mlflows.Store):
     def __init__(self):
         self.models_path = Path('.')
 
@@ -64,12 +70,8 @@ class ModelStore:
         if tracking_uri is not None:
             mlflow.set_tracking_uri(tracking_uri)
 
-    def set_experiment(self, name: str):
-        exp = mlflow.get_experiment_by_name(name)
-        if exp is None:
-            mlflow.create_experiment(
-                name, artifact_location=str(self.models_path / name))
-        mlflow.set_experiment(name)
+    def experiment(self, name: str, models_path: Path):
+        return MLFlowExperiment(name, models_path, self)
 
     def store_model(self, model: 'TrainableModel'):
         pass
@@ -137,11 +139,11 @@ class ModelStore:
         experiment_id = experiment_id if experiment_id is not None else _get_experiment_id()
 
         query_string = f"""
-        tags.model_name='{model.name}' AND 
+        tags.model_name='{model.name}' AND
         tags.model_type='keras' AND
         tags.model_classname='{type(model).__name__}' AND
         params.transformer_X = "{str(transformer_info(model.transformer.transformerX))}" AND
-        params.transformer_y = "{str(transformer_info(model.transformer.transformerY))}" 
+        params.transformer_y = "{str(transformer_info(model.transformer.transformerY))}"
         """
         return mlflow.search_runs(
             [experiment_id], query_string

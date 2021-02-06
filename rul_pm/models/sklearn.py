@@ -10,16 +10,9 @@ from sklearn.metrics import mean_squared_error
 class SKLearnModel(TrainableModel):
     def __init__(self,
                  model,
-                 window,
-                 step,
-                 transformer,
-                 shuffle,
-                 cache_size=30):
-        super().__init__(window,
-                         step,
-                         transformer,
-                         shuffle,
-                         cache_size=cache_size)
+                 **kwargs):
+        super().__init__(
+            **kwargs)
         self._model = model
         if not hasattr(self.model, 'fit'):
             raise ValueError('Model must allow to fit')
@@ -31,7 +24,7 @@ class SKLearnModel(TrainableModel):
         if refit_transformer:
             self.transformer.fit(train_dataset)
         X, y, sample_weight = self.get_data(train_dataset)
-        self.model.fit(X, y.ravel())
+        self.model.fit(X, y.ravel(), sample_weight)
         return self
 
     def predict(self, dataset):

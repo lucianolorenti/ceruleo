@@ -87,6 +87,6 @@ class TargetIdentity(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         if len(X.shape) > 1:
-            return X.iloc[:, -1].values
+            return X.iloc[:, -1]
         else:
-            return X.values
+            return X

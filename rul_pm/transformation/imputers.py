@@ -1,10 +1,68 @@
 import logging
+from typing import Optional
 
 import numpy as np
 import pandas as pd
-from rul_pm.transformation.transformerstep import TransformerStep
+from rul_pm.transformation.transformerstep import (TransformerStep,
+                                                   TransformerStepMixin)
+from sklearn.base import BaseEstimator, TransformerMixin
+from tsfresh.utilities.dataframe_functions import impute_dataframe_range
 
 logger = logging.getLogger(__name__)
+
+
+class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
+    """
+    """
+
+    def __init__(self, name: Optional[str] = None):
+
+        super().__init__(name)
+        self.data_min = None
+        self.data_max = None
+        self.data_median = None
+
+    def partial_fit(self, X, y=None):
+        X = X.replace([np.inf, -np.inf], np.nan)
+        col_to_max = X.max()
+        col_to_min = X.max()
+        col_to_median = X.median()
+        if self.data_min is None:
+            self.data_min = col_to_min
+            self.data_max = col_to_max
+            self.data_median = col_to_median
+        else:
+            self.data_min = (pd
+                             .concat([self.data_min, col_to_min], axis=1)
+                             .min(axis=1))
+            self.data_max = (pd
+                             .concat([self.data_max, col_to_max], axis=1)
+                             .max(axis=1))
+            self.data_median = (pd
+                                .concat([self.data_max, col_to_median], axis=1)
+                                .median(axis=1))
+        self._remove_na()
+
+    def _remove_na(self):
+        self.data_max.fillna(0, inplace=True)
+        self.data_min.fillna(0, inplace=True)
+        self.data_median.fillna(0, inplace=True)
+
+    def fit(self, X, y=None):
+        X = X.replace([np.inf, -np.inf], np.nan)
+        col_to_max = X.max()
+        col_to_min = X.max()
+        col_to_median = X.median()
+
+        self.data_min = col_to_min
+        self.data_max = col_to_max
+        self.data_median = col_to_median
+
+        self._remove_na()
+
+    def transform(self, X, y=None):
+
+        return impute_dataframe_range(X, self.data_max.to_dict(), self.data_min.to_dict(), self.data_median.to_dict())
 
 
 class PandasRemoveInf(TransformerStep):
