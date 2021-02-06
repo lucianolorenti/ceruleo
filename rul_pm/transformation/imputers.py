@@ -6,7 +6,6 @@ import pandas as pd
 from rul_pm.transformation.transformerstep import (TransformerStep,
                                                    TransformerStepMixin)
 from sklearn.base import BaseEstimator, TransformerMixin
-from tsfresh.utilities.dataframe_functions import impute_dataframe_range
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +60,12 @@ class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
         self._remove_na()
 
     def transform(self, X, y=None):
-
-        return impute_dataframe_range(X, self.data_max.to_dict(), self.data_min.to_dict(), self.data_median.to_dict())
+        X_new = X.copy()
+        for c in X_new.columns:
+            X_new[c] = X_new[c].replace([np.inf], self.data_max[c])
+            X_new[c] = X_new[c].replace([-np.inf], self.data_min[c])
+            X_new[c] = X_new[c].replace([np.nan], self.data_median[c])
+        return X_new
 
 
 class PandasRemoveInf(TransformerStep):
