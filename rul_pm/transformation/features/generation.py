@@ -2,6 +2,7 @@
 import logging
 from typing import Optional
 
+import emd
 import numpy as np
 import pandas as pd
 from rul_pm.transformation.features.extraction import (compute, roll_matrix,
@@ -387,4 +388,56 @@ class Difference(TransformerStep):
     def transform(self, X):
         new_X = X[self.feature_set1].copy()
         new_X = new_X - X[self.feature_set2].values
+        return new_X
+
+
+class EMD(TransformerStep):
+    def __init__(self,  name: Optional[str] = 'EMD'):
+        super().__init__(name)
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        new_X = pd.DataFrame(index=X.index)
+        n = 4
+        for c in X.columns:
+            try:
+                imf = emd.sift.sift(X[c].values, max_imfs=n)
+                for j in range(n):
+                    if j < imf.shape[1]:
+                        new_X[f'{c}_{j}'] = imf[:, j]
+                    else:
+                        new_X[f'{c}_{j}'] = np.nan
+            except Exception as e:
+                print(e)
+                for j in range(n):
+                    new_X[f'{c}_{j}'] = np.nan
+
+        return new_X
+
+
+class EMDFilter(TransformerStep):
+    def __init__(self,  name: Optional[str] = 'EMD'):
+        super().__init__(name)
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        new_X = pd.DataFrame(index=X.index)
+        n = 8
+        for c in X.columns:
+            try:
+                imf = emd.sift.sift(X[c].values, max_imfs=n)
+                new_X[c] = np.sum(imf[:, 1:], axis=1)
+            except Exception as e:
+                new_X[c] = X[c]
+
         return new_X
