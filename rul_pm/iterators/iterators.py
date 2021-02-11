@@ -191,7 +191,8 @@ class WindowedDatasetIterator(DatasetIterator):
                  sample_weight: Union[
                      str,
                      Callable[[pd.DataFrame], float]] = SAMPLE_WEIGHT_EQUAL,
-                 add_last: bool = True):
+                 add_last: bool = True,
+                 discard_threshold: Optional[float] = None):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
         self.evenly_spaced_points = evenly_spaced_points
         self.window_size = window_size
@@ -205,7 +206,7 @@ class WindowedDatasetIterator(DatasetIterator):
             raise ValueError('sample_weight should be an string or a callable')
 
         self.sample_weight = sample_weight
-
+        self.discard_threshold = discard_threshold
         self.orig_lifes, self.orig_elements, self.sample_weights = self._windowed_element_list()
         self.lifes, self.elements = self.orig_lifes, self.orig_elements
         self.i = 0
@@ -228,6 +229,11 @@ class WindowedDatasetIterator(DatasetIterator):
             w = y[i-self.window_size:i+1].diff().dropna().abs()
             return np.all(w <= self.evenly_spaced_points)
 
+        if self.discard_threshold is not None:
+            def should_discard(y, i): return y[i] > self.discard_threshold
+        else:
+            def should_discard(y, i): return False
+
         olifes = []
         oelements = []
         sample_weights = []
@@ -242,8 +248,9 @@ class WindowedDatasetIterator(DatasetIterator):
                 is_valid_point = window_evenly_spaced
             else:
                 def is_valid_point(y, i): return True
+
             list_ranges = [
-                i for i in list_ranges if is_valid_point(y, i)
+                i for i in list_ranges if is_valid_point(y, i) and not should_discard(y, i)
             ]
 
             for i in list_ranges:

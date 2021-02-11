@@ -69,7 +69,8 @@ class TrainableModel(TrainableModelInterface):
                  cache_size: int = 30,
                  evenly_spaced_points: Optional[int] = None,
                  sample_weight: str = 'equal',
-                 add_last: bool = True):
+                 add_last: bool = True,
+                 discard_threshold: Optional[float] = None):
 
         self.window = window
         self.step = step
@@ -83,6 +84,7 @@ class TrainableModel(TrainableModelInterface):
         self.evenly_spaced_points = evenly_spaced_points
         self.sample_weight = sample_weight
         self.add_last = add_last
+        self.discard_threshold = discard_threshold
 
     @property
     def computed_step(self):
@@ -180,7 +182,8 @@ class TrainableModel(TrainableModelInterface):
                                        cache_size=self.cache_size,
                                        evenly_spaced_points=self.evenly_spaced_points,
                                        sample_weight=self.sample_weight,
-                                       add_last=self.add_last)
+                                       add_last=self.add_last,
+                                       discard_threshold=self.discard_threshold)
 
 
 class BatchTrainableModel(TrainableModel):
