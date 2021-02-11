@@ -6,13 +6,14 @@ from rul_pm.transformation.transformerstep import TransformerStep
 
 
 class PandasMinMaxScaler(TransformerStep):
-    def __init__(self, range: tuple, name: Optional[str] = None):
+    def __init__(self, range: tuple, name: Optional[str] = None, clip: bool = True):
         super().__init__(name)
         self.range = range
         self.min = range[0]
         self.max = range[1]
         self.data_min = None
         self.data_max = None
+        self.clip = clip
 
     def partial_fit(self, df, y=None):
         partial_data_min = df.min()
@@ -35,4 +36,38 @@ class PandasMinMaxScaler(TransformerStep):
         return self
 
     def transform(self, X):
-        return ((X-self.data_min)/(self.data_max-self.data_min) * (self.max - self.min)) + self.min
+        X = ((X-self.data_min)/(self.data_max-self.data_min)
+             * (self.max - self.min)) + self.min
+        if self.clip:
+            X.clip(lower=self.min, upper=self.max, inplace=True)
+        return X
+
+
+class PandasStandardScaler(TransformerStep):
+    def __init__(self,  name: Optional[str] = None):
+        super().__init__(name)
+        self.std = None
+        self.mean = None
+
+    def partial_fit(self, df, y=None):
+        partial_data_mean = df.mean()
+        partial_data_std = df.std()
+        if self.mean is None:
+            self.mean = partial_data_mean
+            self.std = partial_data_std
+        else:
+            self.mean = (pd
+                         .concat([self.mean, partial_data_mean], axis=1)
+                         .mean(axis=1))
+            self.std = (pd
+                        .concat([self.std, partial_data_std], axis=1)
+                        .mean(axis=1))
+        return self
+
+    def fit(self, df, y=None):
+        self.mean = df.mean()
+        self.std = df.std()
+        return self
+
+    def transform(self, X):
+        return (X-self.mean)/(self.std)
