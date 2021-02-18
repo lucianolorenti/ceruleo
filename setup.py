@@ -18,7 +18,8 @@ setup(
         'gwpy',
         'mlflow',
         'emd',
-        'numba'
+        'numba',
+        'mlflowstone'
     ],
     license='MIT',
     include_package_data=True,
