@@ -17,7 +17,8 @@ setup(
         'xgboost',
         'gwpy',
         'mlflow',
-        'emd'
+        'emd',
+        'numba'
     ],
     license='MIT',
     include_package_data=True,
