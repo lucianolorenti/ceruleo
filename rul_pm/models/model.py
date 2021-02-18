@@ -8,6 +8,7 @@ from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.store.store import store
 from rul_pm.transformation.pipeline import LivesPipeline
 from rul_pm.transformation.transformers import Transformer
+from rul_pm.utils import progress_bar
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class TrainableModel(TrainableModelInterface):
     """
 
     def __init__(self,
+
                  window: int = 50,
                  step: Union[int, Tuple[str, int]] = 1,
                  transformer: Transformer = None,
@@ -85,6 +87,7 @@ class TrainableModel(TrainableModelInterface):
         self.sample_weight = sample_weight
         self.add_last = add_last
         self.discard_threshold = discard_threshold
+        # self.iterator = None
 
     @property
     def computed_step(self):
@@ -163,7 +166,7 @@ class TrainableModel(TrainableModelInterface):
         y = np.zeros((len(it), self.output_size), dtype=np.float32)
         sample_weight = np.zeros(len(it), dtype=np.float32)
 
-        for i, (X_, y_, sample_weight_) in enumerate(it):
+        for i, (X_, y_, sample_weight_) in progress_bar(enumerate(it), n=len(it)):
             X[i, :] = X_.flatten()
             y[i, :] = y_.flatten()
             sample_weight[i] = sample_weight_[0]

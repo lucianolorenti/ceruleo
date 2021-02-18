@@ -14,6 +14,20 @@ from tqdm.auto import tqdm
 logger = logging.getLogger(__name__)
 
 
+class SampleNumber(TransformerStep):
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        df = pd.DataFrame(index=X.index)
+        df['sample_number'] = list(range(X.shape[0]))
+        return df
+
+
 class ExpandingCentering(TransformerStep):
 
     def fit(self, X, y=None):
@@ -441,3 +455,20 @@ class EMDFilter(TransformerStep):
                 new_X[c] = X[c]
 
         return new_X
+
+
+class ChangesCounter(TransformerStep):
+    def __init__(self, feature_name: str,  name: Optional[str] = 'ChangesCounter'):
+        super().__init__(name)
+        self.feature_name = feature_name
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return ((X[[self.feature_name]] != X[[self.feature_name]]
+                 .shift(axis=0))
+                .cumsum())
