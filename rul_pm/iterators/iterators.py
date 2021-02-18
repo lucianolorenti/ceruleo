@@ -292,7 +292,7 @@ class WindowedDatasetIterator(DatasetIterator):
             df = df.sample(frac=1, axis=0)
 
         elif self.shuffle == 'ordered':
-            df = df.sort_values(by=['elements'])
+            df = df.sort_values(by=['elements'], ascending=False)
         self.lifes = df['life'].values.tolist()
         self.elements = df['elements'].values.tolist()
 
