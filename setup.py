@@ -16,7 +16,8 @@ setup(
         'savona',
         'xgboost',
         'gwpy',
-        'mlflow'
+        'mlflow',
+        'emd'
     ],
     license='MIT',
     include_package_data=True,
