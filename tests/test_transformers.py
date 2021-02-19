@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    Accumulate, AccumulateEWMAOutOfRange, Difference)
+    EMD, Accumulate, AccumulateEWMAOutOfRange, ChangesCounter, Difference)
 from rul_pm.transformation.features.selection import NullProportionSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
@@ -161,6 +161,30 @@ class TestSelection():
 
 
 class TestGenerators:
+    def test_EMD(self):
+        emd = EMD(3)
+        df = pd.DataFrame({
+            'feature1': np.linspace(-50, 50, 500),
+            'feature2': np.cos(np.linspace(-1, 50, 500)),
+        })
+        df_t = emd.fit_transform(df)
+        assert len(df_t['feature1_1'].dropna()) == 0
+        assert(df_t.shape[1] == 6)
+
+    def test_ChangesCounter(self):
+
+        df = pd.DataFrame({
+            'feature1': ['a', 'a', 'a', 'b', 'b', 'a', 'a', 'c'],
+            'feature2': ['a', 'a', 'b', 'b', 'c', 'c', 'c', 'c']
+        })
+        df_gt = pd.DataFrame({
+            'feature1': [1, 1, 1, 2, 2, 3, 3, 4],
+            'feature2': [1, 1, 2, 2, 3, 3, 3, 3]
+        })
+        t = ChangesCounter()
+        df1 = t.fit_transform(df)
+        assert (df1.equals(df_gt))
+
     def test_Accumulate(self):
         df = pd.DataFrame({
             'a': [1, 2, 3, 4],

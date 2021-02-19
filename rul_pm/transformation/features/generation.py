@@ -100,21 +100,35 @@ class Diff(TransformerStep):
 
 class AccumulateEWMAOutOfRange(TransformerStep):
     """
-    Compute the EWMA limits and accumulate the number of points
+    Compute the EWMA control charts limits and accumulate the number of points
     outsite UCL and LCL
 
     Parameters
     ----------
+    lambda_: float. Default 0.5
+             Memory of the EWMA
+
+    L: float. Default 3
+       Number of standard deviation of the EWMA mean to consider 
+       a point to be an outlier.
+
+    scale: bool. Default false
+           Wether to scale the weight of the outliers values at the
+           cumsum according to the inverse of the RUL
+
+    name: Optional[str]
+          Name of the step
 
     """
 
-    def __init__(self, lambda_=0.5, scale: bool = False, name: Optional[str] = None):
+    def __init__(self, lambda_=0.5, L: float = 3, scale: bool = False, name: Optional[str] = None):
         super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.columns = None
         self.scale = scale
+        self.L = L
 
     def partial_fit(self, X, y=None):
         if self.columns is None:
@@ -134,10 +148,11 @@ class AccumulateEWMAOutOfRange(TransformerStep):
     def _compute_limits(self, X):
 
         mean = np.nanmean(X, axis=0)
+        # Estimated std of the EWMA statistic
         s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
             np.nanstd(X, axis=0)
-        UCL = mean + 3*s
-        LCL = mean - 3*s
+        UCL = mean + self.L*s
+        LCL = mean - self.L*s
         return (pd.Series(LCL, index=self.columns),
                 pd.Series(UCL, index=self.columns))
 
@@ -411,8 +426,9 @@ class Difference(TransformerStep):
 
 
 class EMD(TransformerStep):
-    def __init__(self,  name: Optional[str] = 'EMD'):
+    def __init__(self,  n: int, name: Optional[str] = 'EMD'):
         super().__init__(name)
+        self.n = n
 
     def fit(self, X, y=None):
         return self
@@ -422,26 +438,33 @@ class EMD(TransformerStep):
 
     def transform(self, X):
         new_X = pd.DataFrame(index=X.index)
-        n = 4
         for c in X.columns:
             try:
-                imf = emd.sift.sift(X[c].values, max_imfs=n)
-                for j in range(n):
+                imf = emd.sift.sift(X[c].values, max_imfs=self.n)
+                for j in range(self.n):
                     if j < imf.shape[1]:
                         new_X[f'{c}_{j}'] = imf[:, j]
                     else:
                         new_X[f'{c}_{j}'] = np.nan
             except Exception as e:
-                print(e)
-                for j in range(n):
+                for j in range(self.n):
                     new_X[f'{c}_{j}'] = np.nan
 
         return new_X
 
 
 class EMDFilter(TransformerStep):
-    def __init__(self,  name: Optional[str] = 'EMD'):
+    """Filter the signals using Empirical Mode decomposition
+
+    Parameters
+    ----------
+    n: int
+       Number of 
+    """
+
+    def __init__(self,  n: int, name: Optional[str] = 'EMD'):
         super().__init__(name)
+        self.n = n
 
     def fit(self, X, y=None):
         return self
@@ -451,10 +474,10 @@ class EMDFilter(TransformerStep):
 
     def transform(self, X):
         new_X = pd.DataFrame(index=X.index)
-        n = 8
+
         for c in X.columns:
             try:
-                imf = emd.sift.sift(X[c].values, max_imfs=n)
+                imf = emd.sift.sift(X[c].values, max_imfs=self.n)
                 new_X[c] = np.sum(imf[:, 1:], axis=1)
             except Exception as e:
                 new_X[c] = X[c]
@@ -463,9 +486,12 @@ class EMDFilter(TransformerStep):
 
 
 class ChangesCounter(TransformerStep):
-    def __init__(self, feature_name: str,  name: Optional[str] = 'ChangesCounter'):
-        super().__init__(name)
-        self.feature_name = feature_name
+    """
+    Compute how many changes there are in a categorical variable
+    ['a', 'a', 'b', 'c] -> [1, 1, 2, 3]
+
+
+    """
 
     def fit(self, X, y=None):
         return self
@@ -474,6 +500,5 @@ class ChangesCounter(TransformerStep):
         return self
 
     def transform(self, X):
-        return ((X[[self.feature_name]] != X[[self.feature_name]]
-                 .shift(axis=0))
+        return ((X != X.shift(axis=0))
                 .cumsum())
