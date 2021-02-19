@@ -31,9 +31,11 @@ pipe = PandasRemoveInf()(pipe)
 pipe = PandasTransformerWrapper(
            SimpleImputer(fill_value=-2, strategy='constant'))(pipe)
 
+target_pipe = ByNameFeatureSelector(['RUL'])
+
 transformer = Transformer(
-    target_column='RUL',
     transformerX=pipe.build()    
+    transformerY=target_pipe.build()
 )
 ```
 ### Plotting utilities for displaying results of model evaluation
