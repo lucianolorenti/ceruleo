@@ -113,33 +113,27 @@ class Transformer:
     Transform each life
 
     Parameters
-    ----------
-    target_column : str
-                    Column name with the target. Usually where the RUL resides
+    ----------   
+    transformerX: LivesPipeline,
+                  Transformer that will be applied to the life data
+    transformerY: LivesPipeline 
+                  Transformer that will be applied to the target.
     time_feature: str
                   Column name of the timestamp feature
-    transformerX: TransformerMixin,
-                  Transformer that will be applied to the life data
-    transformerY: TransformerMixin default: TargetIdentity()
-                  Transformer that will be applied to the target.
 
     """
 
     def __init__(self,
-                 target_column: str,
                  transformerX: LivesPipeline,
+                 transformerY: LivesPipeline,
                  time_feature: str = None,
-                 transformerY: LivesPipeline = TargetIdentity(),
                  transformerMetadata: Optional[LivesPipeline] = None):
 
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.transformerMetadata = transformerMetadata
-        self.target_column = target_column
         self.features = None
         self.time_feature = time_feature
-        if isinstance(self.target_column, str):
-            self.target_column = [self.target_column]
 
     def _process_selected_features(self):
         if self.transformerX['selector'] is not None:
@@ -150,12 +144,11 @@ class Transformer:
     def clone(self):
         return copy.deepcopy(self)
 
-    def fit(self, dataset, proportion=1.0):
+    def fit(self, dataset):
         logger.debug('Fitting Transformer')
-        for life in tqdm(dataset):
-            self.transformerX.partial_fit(life)
-            self.transformerY.partial_fit(self._target(life))
-            self.fitTransformerMetadata(life)
+        self.transformerX.fit(dataset)
+        self.transformerY.fit(dataset)
+        self.fitTransformerMetadata(dataset)
 
         self.minimal_df = dataset[0].head(n=5)
         X = self.transformerX.transform(self.minimal_df)
@@ -169,16 +162,6 @@ class Transformer:
             if hasattr(self.transformerMetadata, 'partial_fit'):
                 self.transformerMetadata.partial_fit(life)
 
-    def _target(self, df: pd.DataFrame):
-        if self.time_feature is not None:
-            if isinstance(self.target_column, list):
-                select_features = [self.time_feature] + self.target_column
-            else:
-                select_features = [self.time_feature,  self.target_column]
-            return df[select_features]
-        else:
-            return df[self.target_column]
-
     def transform(self, df: pd.DataFrame):
         check_is_fitted(self, 'fitted_')
         return (self.transformX(df), self.transformY(df), self.transformMetadata(df))
@@ -191,7 +174,7 @@ class Transformer:
 
     def transformY(self, df):
         return np.squeeze(
-            self.transformerY.transform(self._target(df)).values
+            self.transformerY.transform(df).values
         )
 
     def transformX(self, df):
@@ -213,7 +196,6 @@ class Transformer:
 
     def description(self):
         return {
-            'target_column': self.target_column,
             'features': self.features,
             'transformerX': transformer_info(self.transformerX),
             'transformerY': transformer_info(self.transformerY),

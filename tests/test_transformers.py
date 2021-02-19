@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -241,6 +239,7 @@ class TestGenerators:
         new_life = transformer.transform(ds[-1])
 
     def test_Difference(self):
+
         df = pd.DataFrame({
             'a': [1, 2, 3, 4],
             'b': [2, 4, 6, 8],

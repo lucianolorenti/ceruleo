@@ -48,13 +48,14 @@ class TestSKLearn():
     def test_sklearn(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            'RUL',
             transformation_pipeline(
                 numericals_pipeline=LivesPipeline(
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]))
+                    ])),
+            ByNameFeatureSelector(['RUL']).build()
+
         )
 
         ds = MockDataset(5)
@@ -78,13 +79,13 @@ class TestXGBoost():
     def test_xgboost(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            'RUL',
             transformation_pipeline(
                 numericals_pipeline=LivesPipeline(
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]))
+                    ])),
+            ByNameFeatureSelector(['RUL']).build()
         )
         ds = MockDataset(5)
         model = XGBoostModel(

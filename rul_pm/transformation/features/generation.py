@@ -34,28 +34,6 @@ class ExpandingNormalization(TransformerStep):
         return (X - X.expanding().mean()) / (X.expanding().std())
 
 
-class MeanCentering(TransformerStep):
-    def __init__(self):
-        super().__init__()
-        self.N = 0
-        self.sum = None
-
-    def fit(self, X, y=None):
-        self.mean = X.mean()
-
-    def partial_fit(self, X, y=None):
-        if self.sum is None:
-            self.sum = X.sum()
-        else:
-            self.sum += X.sum()
-
-        self.N += X.shape[0]
-        self.mean = self.sum / self.N
-
-    def transform(self, X):
-        return X - self.mean
-
-
 class Accumulate(TransformerStep):
     def transform(self, X):
         return X.cumsum()
@@ -80,7 +58,7 @@ class AccumulateEWMAOutOfRange(TransformerStep):
        Number of standard deviation of the EWMA mean to consider 
        a point to be an outlier.
 
-    scale: bool. Default false
+    scale_column: Optional[str]: str. Default None
            Wether to scale the weight of the outliers values at the
            cumsum according to the inverse of the RUL
 
@@ -89,18 +67,20 @@ class AccumulateEWMAOutOfRange(TransformerStep):
 
     """
 
-    def __init__(self, lambda_=0.5, L: float = 3, scale: bool = False, name: Optional[str] = None):
+    def __init__(self, lambda_=0.5, L: float = 3, scale_column: Optional[str] = None, name: Optional[str] = None):
         super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.columns = None
-        self.scale = scale
+        self.scale_column = scale_column
         self.L = L
 
     def partial_fit(self, X, y=None):
         if self.columns is None:
-            self.columns = X.columns.values
+            self.columns = [
+                c for c in X.columns.values
+                if c != self.scale_column]
         else:
             self.columns = [c for c in self.columns if c in X.columns]
         if self.LCL is not None:
@@ -111,6 +91,11 @@ class AccumulateEWMAOutOfRange(TransformerStep):
                     else LCL)
         self.UCL = (np.maximum(UCL, self.UCL) if self.UCL is not None
                     else UCL)
+
+        mask = (
+            (X[self.columns] < (self.LCL)) |
+            (X[self.columns] > (self.UCL))
+        )
         return self
 
     def _compute_limits(self, X):

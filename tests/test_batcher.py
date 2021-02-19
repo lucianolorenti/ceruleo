@@ -46,13 +46,14 @@ class TestBatcher():
     def test_batcher(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            'RUL',
             transformation_pipeline(
                 numericals_pipeline=LivesPipeline(
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]))
+                    ])),
+            ByNameFeatureSelector(['RUL']).build()
+
         )
         batch_size = 15
         window_size = 5

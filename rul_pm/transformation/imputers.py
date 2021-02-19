@@ -69,14 +69,8 @@ class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
 
 
 class PandasRemoveInf(TransformerStep):
-    def fit(self, X, y=None):
-        return self
-
     def transform(self, X, y=None):
         return X.replace([np.inf, -np.inf], np.nan)
-
-    def partial_fit(self, X, y=None):
-        return self
 
 
 class PandasMedianImputer(TransformerStep):
