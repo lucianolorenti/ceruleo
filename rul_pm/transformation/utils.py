@@ -2,9 +2,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from rul_pm.transformation.transformerstep import (TransformerStep,
-                                                   TransformerStepMixin)
-from scipy import sparse
+from rul_pm.transformation.transformerstep import TransformerStep
 from sklearn.pipeline import FeatureUnion, _transform_one
 
 
@@ -55,49 +53,6 @@ class PandasTransformerWrapper(TransformerStep):
         if not isinstance(X, pd.DataFrame):
             raise ValueError('Input array must be a data frame')
         return pd.DataFrame(self.transformer.transform(X), columns=X.columns, index=X.index)
-
-
-class PandasFeatureUnion(FeatureUnion, TransformerStepMixin):
-
-    def partial_fit(self,  X, y=None):
-        self._validate_transformers()
-        for name, trans, weight in self._iter():
-            trans.partial_fit(X, y)
-
-        return self
-
-    def merge_dataframes_by_column(self, Xs):
-        # indices = [X.index for X in Xs]
-        # TODO: Check equal indices
-        names = [name for name, _, _ in self._iter()]
-        X = Xs[0]
-        X.columns = [f'{names[0]}_{c}' for c in X.columns]
-        for name, otherX in zip(names[1:], Xs[1:]):
-            for c in otherX.columns:
-                X[f'{name}_{c}'] = otherX[c]
-        return X
-
-    def transform(self, X):
-        Xs = []
-        for name, trans, weight in self._iter():
-            Xs.append(_transform_one(
-                transformer=trans,
-                X=X,
-                y=None,
-                weight=weight)
-            )
-        if not Xs:
-            # All transformers are None
-            return np.zeros((X.shape[0], 0))
-        if any(sparse.issparse(f) for f in Xs):
-            Xs = sparse.hstack(Xs).tocsr()
-        else:
-            Xs = self.merge_dataframes_by_column(Xs)
-        return Xs
-
-    def get_params(self, deep=True):
-        params = super().get_params(deep=deep)
-        return params
 
 
 def column_names_window(columns: list, window: int) -> list:

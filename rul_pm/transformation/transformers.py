@@ -8,9 +8,8 @@ from rul_pm.transformation.features.generation import OneHotCategoricalPandas
 from rul_pm.transformation.features.selection import (
     ByNameFeatureSelector, PandasNullProportionSelector,
     PandasVarianceThreshold)
+from rul_pm.transformation.featureunion import PandasFeatureUnion
 from rul_pm.transformation.pipeline import LivesPipeline
-from rul_pm.transformation.target import TargetIdentity
-from rul_pm.transformation.utils import PandasFeatureUnion, PandasToNumpy
 from sklearn.utils.validation import check_is_fitted
 from tqdm.auto import tqdm
 
@@ -41,13 +40,6 @@ def transformer_info(transformer):
         print(type(transformer))
 
         raise ValueError('Pipeline elements must have the get_params method')
-
-
-def simple_pipeline(features=[], to_numpy: bool = True):
-    return LivesPipeline(steps=[
-        ('initial_selection', ByNameFeatureSelector(features)),
-        ('to_numpy', PandasToNumpy() if to_numpy else 'passthrough')
-    ])
 
 
 def step_is_not_missing(step):

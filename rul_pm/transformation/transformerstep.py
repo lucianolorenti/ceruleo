@@ -26,7 +26,7 @@ class Concatenate:
         return self
 
     def build(self, parent_pipe: LivesPipeline = None):
-        from rul_pm.transformation.utils import PandasFeatureUnion
+        from rul_pm.transformation.featureunion import PandasFeatureUnion
 
         prev_steps = None
         if self.step_names is not None:

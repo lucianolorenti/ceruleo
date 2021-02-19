@@ -9,17 +9,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-import mlflow
 import mlflowstone as mlflows
 import numpy as np
 import pandas as pd
 import sklearn
+from rul_pm.transformation.featureunion import PandasFeatureUnion
+from rul_pm.transformation.transformers import LivesPipeline
+
+import mlflow
 from mlflow.exceptions import MlflowException
 from mlflow.tracking.client import MlflowClient
 from mlflow.tracking.fluent import _get_experiment_id
 from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
-from rul_pm.transformation.transformers import LivesPipeline
-from rul_pm.transformation.utils import PandasFeatureUnion
 
 logger = logging.getLogger(__name__)
 
