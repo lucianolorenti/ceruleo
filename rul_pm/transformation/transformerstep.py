@@ -116,3 +116,6 @@ class TransformerStep(BaseEstimator, TransformerMixin):
 
     def partial_fit(self, X, y=None):
         return self
+
+    def fit(self, X, y=None):
+        return self

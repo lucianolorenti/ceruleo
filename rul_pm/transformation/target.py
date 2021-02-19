@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from rul_pm.transformation.transformerstep import TransformerStep
 from rul_pm.transformation.utils import IdentityTransformer
@@ -6,41 +8,26 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 
 
 class HealthPercentage(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return (X / X.iloc[0, 0])*100
 
-    def partial_fit(self, X, y=None):
-        return self
 
-
-class PicewiseRUL(BaseEstimator, TransformerMixin):
-    def __init__(self):
+class PicewiseRUL(TransformerStep):
+    def __init__(self, name: Optional[str] = None):
+        super().__init__(name)
         self.max_life = np.inf
-
-    def fit(self, X, y=None):
-        return self
 
     def transform(self, X):
         return np.clip(X, 0, self.max_life)
 
-    def partial_fit(self, X, y=None):
-        return self
-
 
 class PicewiseRULQuantile(PicewiseRUL):
-    def __init__(self, quantile):
-        super().__init__()
+    def __init__(self, quantile, name: Optional[str] = None):
+        super().__init__(name)
         self.quantile = quantile
 
     def fit(self, X, y=None):
         self.max_life = np.quantile(X, self.quantile)
-        return self
-
-    def partial_fit(self, X, y=None):
         return self
 
 
@@ -57,15 +44,9 @@ class PicewiseRULThreshold(PicewiseRUL):
 
     """
 
-    def __init__(self, max_life: float):
-        super().__init__()
+    def __init__(self, max_life: float, name: Optional[str] = None):
+        super().__init__(name)
         self.max_life = max_life
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
 
 
 class TTEBinarizer(BaseEstimator, TransformerMixin):

@@ -15,12 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class SampleNumber(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
+    """Return a column with increasing number    
+    """
 
     def transform(self, X):
         df = pd.DataFrame(index=X.index)
@@ -29,25 +25,11 @@ class SampleNumber(TransformerStep):
 
 
 class ExpandingCentering(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return X - X.expanding().mean()
 
 
 class ExpandingNormalization(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return (X - X.expanding().mean()) / (X.expanding().std())
 
@@ -75,25 +57,11 @@ class MeanCentering(TransformerStep):
 
 
 class Accumulate(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return X.cumsum()
 
 
 class Diff(TransformerStep):
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return X.diff()
 
@@ -282,9 +250,6 @@ class MeanFilter(TransformerStep):
         self.window = window
         self.min_periods = min_periods
 
-    def fit(self, X, y=None):
-        return self
-
     def transform(self, X, y=None):
         return X.rolling(self.window, min_periods=self.min_periods).mean(skip_na=True)
 
@@ -430,12 +395,6 @@ class EMD(TransformerStep):
         super().__init__(name)
         self.n = n
 
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         new_X = pd.DataFrame(index=X.index)
         for c in X.columns:
@@ -466,12 +425,6 @@ class EMDFilter(TransformerStep):
         super().__init__(name)
         self.n = n
 
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         new_X = pd.DataFrame(index=X.index)
 
@@ -492,12 +445,6 @@ class ChangesCounter(TransformerStep):
 
 
     """
-
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
 
     def transform(self, X):
         return ((X != X.shift(axis=0))
