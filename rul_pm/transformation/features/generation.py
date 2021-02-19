@@ -102,14 +102,19 @@ class AccumulateEWMAOutOfRange(TransformerStep):
     """
     Compute the EWMA limits and accumulate the number of points
     outsite UCL and LCL
+
+    Parameters
+    ----------
+
     """
 
-    def __init__(self, lambda_=0.5, name: Optional[str] = None):
+    def __init__(self, lambda_=0.5, scale: bool = False, name: Optional[str] = None):
         super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.columns = None
+        self.scale = scale
 
     def partial_fit(self, X, y=None):
         if self.columns is None:

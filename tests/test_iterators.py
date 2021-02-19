@@ -52,8 +52,7 @@ class TestIterators():
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]),
-                output_df=False)
+                    ]))
         )
         batch_size = 15
         window_size = 5

@@ -54,8 +54,7 @@ class TestSKLearn():
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]),
-                output_df=False)
+                    ]))
         )
 
         ds = MockDataset(5)
@@ -85,8 +84,7 @@ class TestXGBoost():
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ]),
-                output_df=False)
+                    ]))
         )
         ds = MockDataset(5)
         model = XGBoostModel(

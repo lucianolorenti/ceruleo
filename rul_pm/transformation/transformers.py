@@ -92,8 +92,7 @@ def categorial_pipeline(categoricals: list) -> PandasFeatureUnion:
 
 def transformation_pipeline(resampler=None,
                             numericals_pipeline=None,
-                            categorial_pipeline=None,
-                            output_df=False) -> LivesPipeline:
+                            categorial_pipeline=None) -> LivesPipeline:
     main_step = None
     if categorial_pipeline is not None:
         main_step = PandasFeatureUnion([
@@ -105,8 +104,7 @@ def transformation_pipeline(resampler=None,
 
     return LivesPipeline(steps=[
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
-        ('main_step', main_step),
-        ('to_numpy', PandasToNumpy() if not output_df else 'passthrough')
+        ('main_step', main_step)
     ])
 
 

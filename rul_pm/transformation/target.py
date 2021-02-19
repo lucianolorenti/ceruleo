@@ -1,7 +1,20 @@
 import numpy as np
+from rul_pm.transformation.transformerstep import TransformerStep
 from rul_pm.transformation.utils import IdentityTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import FeatureUnion, Pipeline
+
+
+class HealthPercentage(TransformerStep):
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return (X / X.iloc[0, 0])*100
+
+    def partial_fit(self, X, y=None):
+        return self
 
 
 class PicewiseRUL(BaseEstimator, TransformerMixin):
