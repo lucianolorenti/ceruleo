@@ -2,9 +2,7 @@
 Remaining useful life estimation utilities
 
 [![Coverage Status](https://coveralls.io/repos/github/lucianolorenti/rul_pm/badge.svg?branch=main&t=dYuRdM)](https://coveralls.io/github/lucianolorenti/rul_pm?branch=main)
-
-## Documentation
-- [Reference](https://lucianolorenti.github.io/rul_pm/)
+[![Documentation](https://img.shields.io/badge/documentation-dev-brightgreen)](https://lucianolorenti.github.io/rul_pm/)
 
 
 ## Literature Review
