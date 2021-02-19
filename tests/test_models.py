@@ -59,7 +59,7 @@ class TestSKLearn():
 
         ds = MockDataset(5)
         model = SKLearnModel(
-            model=ElasticNet(alpha=0.1, l1_ratio=0.5, max_iter=100000),
+            model=ElasticNet(alpha=0.01, l1_ratio=0.1, max_iter=100000),
             window=1,
             step=2,
             transformer=transformer,
@@ -70,8 +70,8 @@ class TestSKLearn():
 
         y_pred = model.predict(ds)
         y_true = model.true_values(ds)
-
-        assert np.sum(y_pred - y_true) < 0.001
+        rmse = np.sqrt(np.mean((y_pred.ravel() - y_true.ravel())**2))
+        assert rmse < 0.5
 
 
 class TestXGBoost():
