@@ -4,7 +4,7 @@ from typing import Optional
 from numpy.lib.arraysetops import isin
 from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.base import BaseEstimator, TransformerMixin
-
+import pandas as pd
 
 class Concatenate:
     def __init__(self, name=None):
@@ -119,3 +119,10 @@ class TransformerStep(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         return self
+
+    def column_name(self, df:pd.DataFrame, cname:str):
+        columns = [c for c in df.columns if cname in c]
+        if len(columns) == 0:
+            raise ValueError('{cname} is not present in the dataset')
+        return columns[0]
+
