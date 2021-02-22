@@ -3,8 +3,8 @@ import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    EMD, Accumulate, AccumulateEWMAOutOfRange, ChangesCounter, Difference)
-from rul_pm.transformation.features.selection import NullProportionSelector
+    EMD, Accumulate, EWMAOutOfRange, ChangesCounter, Difference)
+from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
                                             ZScoreOutlierRemover)
@@ -211,7 +211,7 @@ class TestGenerators:
         assert (life_1['feature1'] == ds.lives[1]['feature1'].cumsum()).all()
         assert (life_1['feature2'] == ds.lives[1]['feature2'].cumsum()).all()
 
-    def test_AccumulateEWMAOutOfRange(self):
+    def test_EWMAOutOfRange(self):
         a = np.random.randn(500)*0.5 + 2
         b = np.random.randn(500)*0.5 + 5
         a[120] = 1500
@@ -225,18 +225,24 @@ class TestGenerators:
             'a': a,
             'b': b,
         })
-
-        transformer = AccumulateEWMAOutOfRange()
-        df_new = transformer.fit_transform(df)
+        transformer = ByNameFeatureSelector(['feature1', 'feature2'])
+        transformer = EWMAOutOfRange()(transformer)
+        transformer = Accumulate()(transformer)
+        df_new = transformer.build().fit_transform(df)
 
         assert df_new['a'].iloc[-1] == 2
         assert df_new['b'].iloc[-1] == 3
 
-        ds = MockDataset2(5)
-        transformer = AccumulateEWMAOutOfRange()
-        for life in ds:
-            transformer.partial_fit(life)
-        new_life = transformer.transform(ds[-1])
+        # TODO improve test
+        #ds = MockDataset2(5)
+        #transformer = ByNameFeatureSelector(['feature1', 'feature2'])
+        #transformer = EWMAOutOfRange()(transformer)
+        #transformer = Accumulate()(transformer)
+        #transformer = transformer.build()
+        
+        #transformer.fit(ds)
+        #new_life = transformer.transform(ds[-1])
+        
 
     def test_Difference(self):
 
