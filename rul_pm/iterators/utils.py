@@ -1,6 +1,5 @@
 import numpy as np
-from rul_pm.transformation.transformers import (PandasToNumpy, Transformer,
-                                                simple_pipeline)
+from rul_pm.transformation.transformers import Transformer, simple_pipeline
 
 
 def dataset_map(fun, dataset, step, transformer, window):
