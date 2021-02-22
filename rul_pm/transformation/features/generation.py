@@ -14,8 +14,57 @@ from tqdm.auto import tqdm
 logger = logging.getLogger(__name__)
 
 
+class TimeToPreviousBinaryValue(TransformerStep):
+    """Return a column with increasing number
+    """
+
+    def time_to_previous_event(self, X: pd.DataFrame, c: str):
+        def min_idex(group):
+            if group.iloc[0, 0] == 0:
+                return np.nan
+            else:
+                return np.min(group.index)
+
+        X_c_cumsum = X[[c]].cumsum()
+        min_index = X_c_cumsum.groupby(c).apply(min_idex)
+        X_merged = X_c_cumsum.merge(pd.DataFrame(min_index, columns=['start']),
+                                    left_on=c,
+                                    right_index=True)
+        return X_merged.index - X_merged['start']
+
+    def transform(self, X: pd.DataFrame):
+        new_X = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            new_X[f'ttp_{c}'] = self.time_to_previous_event(X, c)
+        return new_X
+
+
+class Sum(TransformerStep):
+    """
+    Sum each column
+    """
+    def __init__(self, column_name:str, name:Optional[str]=None):
+        super().__init__(name)
+        self.column_name = column_name
+
+    def transform(self, X: pd.DataFrame):
+        return pd.DataFrame(X.sum(axis=1), columns=[self.column_name])
+
+
+class Scale(TransformerStep):
+    """
+    Scale the dataframe
+    """
+    def __init__(self, scale_factor:float, name:Optional[str]=None):
+        super().__init__(name)
+        self.scale_factor = scale_factor
+
+    def transform(self, X: pd.DataFrame):
+        return X*self.scale_factor
+
+
 class SampleNumber(TransformerStep):
-    """Return a column with increasing number    
+    """Return a column with increasing number
     """
 
     def transform(self, X):
@@ -44,43 +93,22 @@ class Diff(TransformerStep):
         return X.diff()
 
 
-class AccumulateEWMAOutOfRange(TransformerStep):
+class EWMAOutOfRange(TransformerStep):
     """
-    Compute the EWMA control charts limits and accumulate the number of points
+    Compute the EWMA limits and accumulate the number of points
     outsite UCL and LCL
-
-    Parameters
-    ----------
-    lambda_: float. Default 0.5
-             Memory of the EWMA
-
-    L: float. Default 3
-       Number of standard deviation of the EWMA mean to consider 
-       a point to be an outlier.
-
-    scale_column: Optional[str]: str. Default None
-           Wether to scale the weight of the outliers values at the
-           cumsum according to the inverse of the RUL
-
-    name: Optional[str]
-          Name of the step
-
     """
 
-    def __init__(self, lambda_=0.5, L: float = 3, scale_column: Optional[str] = None, name: Optional[str] = None):
+    def __init__(self, lambda_=0.5, name: Optional[str] = None):
         super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.columns = None
-        self.scale_column = scale_column
-        self.L = L
 
     def partial_fit(self, X, y=None):
         if self.columns is None:
-            self.columns = [
-                c for c in X.columns.values
-                if c != self.scale_column]
+            self.columns = X.columns.values
         else:
             self.columns = [c for c in self.columns if c in X.columns]
         if self.LCL is not None:
@@ -91,21 +119,15 @@ class AccumulateEWMAOutOfRange(TransformerStep):
                     else LCL)
         self.UCL = (np.maximum(UCL, self.UCL) if self.UCL is not None
                     else UCL)
-
-        mask = (
-            (X[self.columns] < (self.LCL)) |
-            (X[self.columns] > (self.UCL))
-        )
         return self
 
     def _compute_limits(self, X):
 
         mean = np.nanmean(X, axis=0)
-        # Estimated std of the EWMA statistic
         s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
             np.nanstd(X, axis=0)
-        UCL = mean + self.L*s
-        LCL = mean - self.L*s
+        UCL = mean + 3*s
+        LCL = mean - 3*s
         return (pd.Series(LCL, index=self.columns),
                 pd.Series(UCL, index=self.columns))
 
@@ -121,7 +143,7 @@ class AccumulateEWMAOutOfRange(TransformerStep):
             (X[self.columns] < (self.LCL)) |
             (X[self.columns] > (self.UCL))
         )
-        return mask.astype('int').cumsum()
+        return mask.astype('int')
 
 
 class OneHotCategoricalPandas(TransformerStep):
@@ -403,7 +425,7 @@ class EMDFilter(TransformerStep):
     Parameters
     ----------
     n: int
-       Number of 
+       Number of
     """
 
     def __init__(self,  n: int, name: Optional[str] = 'EMD'):
