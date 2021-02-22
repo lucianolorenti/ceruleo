@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 from rul_pm.transformation.transformerstep import TransformerStep
-
+import numpy as np
 
 class PandasMinMaxScaler(TransformerStep):
     def __init__(self, range: tuple, name: Optional[str] = None, clip: bool = True):
@@ -71,3 +71,44 @@ class PandasStandardScaler(TransformerStep):
 
     def transform(self, X):
         return (X-self.mean)/(self.std)
+
+
+class ScaleInvRUL(TransformerStep):
+    """
+    Scale binary columns according the inverse of the RUL.
+    Usually this will be used before a CumSum transformation
+
+    Parameters
+    ----------
+    rul_column: str
+                Column with the RUL
+    """
+    def __init__(self, rul_column:str, name:Optional[str] = None):
+        super().__init__(name)
+        self.RUL_list_per_column = {}
+        self.penalty = {}
+        self.rul_column_in = rul_column
+        self.rul_column = None
+
+    def partial_fit(self, X:pd.DataFrame):
+        if self.rul_column is None:
+            self.rul_column = self.column_name(X, self.rul_column_in)
+        columns  =[c for c in X.columns if c != self.rul_column]
+        for c in columns:
+            mask = X[X[c] > 0].index
+            if len(mask) > 0:
+                RUL_list = self.RUL_list_per_column.setdefault(c, [])
+                RUL_list.extend(X[self.rul_column].loc[mask].values.tolist())
+
+        for k in self.RUL_list_per_column.keys():
+
+            self.penalty[k] = (1/np.median(self.RUL_list_per_column[k]))
+
+
+    def transform(self, X:pd.DataFrame):
+        columns  = [c for c in X.columns if c != self.rul_column]
+        X_new = pd.DataFrame(index=X.index)
+        for c in columns:
+            if (c in self.penalty):
+                X_new[c] = X[c] * self.penalty[c]
+        return X_new
