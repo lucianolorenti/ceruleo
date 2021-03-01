@@ -33,7 +33,7 @@ class Concatenate:
             prev_steps = zip(self.step_names, self.prevs)
         else:
             prev_steps = zip(
-                [f'step_{i}' for i, n in enumerate(self.prevs)],
+                [f'{n.name}_{i}' for i, n in enumerate(self.prevs)],
                 self.prevs)
         union = []
         for name, prev in prev_steps:

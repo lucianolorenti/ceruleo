@@ -73,22 +73,30 @@ def process_file_train(file):
 
 
 class CMAPSSDataset(AbstractLivesDataset):
-    def __init__(self, train=True, model=None):
-        if model is not None:
-            if model not in operation_mode:
-                raise ValueError(
-                    f'Invalid model: valid model are {list(operation_mode.keys())}')
+    def __init__(self, train=True, models=None):
+        if models is not None and isinstance(models, str):
+            models = [models]
+        self._validate_model_names(models)
         if train:
             processing_fun = process_file_train
         else:
             processing_fun = process_file_test
         self.lives = []
+        
         for engine in engines:
-            if model is not None and engine != model:
+            if models is not None and engine not in models:
                 continue
             for _, g in processing_fun(engine).groupby('UnitNumber'):
                 g.drop(columns=['UnitNumber'], inplace=True)
+                g['Engine'] = engine
                 self.lives.append(g)
+
+    def _validate_model_names(self, models):
+        if models is not None:
+            for model in models:
+                if model not in operation_mode:
+                    raise ValueError(
+                        f'Invalid model: valid model are {list(operation_mode.keys())}')
 
     def __getitem__(self, i):
         """
