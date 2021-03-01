@@ -6,6 +6,7 @@ import pandas as pd
 from rul_pm.transformation.transformerstep import (TransformerStep,
                                                    TransformerStepMixin)
 from sklearn.base import BaseEstimator, TransformerMixin
+from tdigest import TDigest
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,6 @@ logger = logging.getLogger(__name__)
 class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
     """
     """
-
     def __init__(self, name: Optional[str] = None):
 
         super().__init__(name)
@@ -31,15 +31,12 @@ class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
             self.data_max = col_to_max
             self.data_median = col_to_median
         else:
-            self.data_min = (pd
-                             .concat([self.data_min, col_to_min], axis=1)
-                             .min(axis=1))
-            self.data_max = (pd
-                             .concat([self.data_max, col_to_max], axis=1)
-                             .max(axis=1))
-            self.data_median = (pd
-                                .concat([self.data_max, col_to_median], axis=1)
-                                .median(axis=1))
+            self.data_min = (pd.concat([self.data_min, col_to_min],
+                                       axis=1).min(axis=1))
+            self.data_max = (pd.concat([self.data_max, col_to_max],
+                                       axis=1).max(axis=1))
+            self.data_median = (pd.concat([self.data_max, col_to_median],
+                                          axis=1).median(axis=1))
         self._remove_na()
 
     def _remove_na(self):
@@ -74,19 +71,42 @@ class PandasRemoveInf(TransformerStep):
 
 
 class PandasMedianImputer(TransformerStep):
+    def __init__(self, name: Optional[str] = None):
+        super().__init__(name)
+        self.tdigest_dict = None
+
     def fit(self, X, y=None):
         self.median = X.median(axis=0).to_dict()
         return self
 
+    def partial_fit(self, X):
+        if self.tdigest_dict is None:
+            self.tdigest_dict = {c: TDigest() for c in X.columns}
+        for c in X.columns:
+            self.tdigest_dict[c].batch_update(X[c].values)
+
+        self.median = {
+            c: self.tdigest_dict[c].percentile(50)
+            for c in self.tdigest_dict.keys()
+        }
+
     def transform(self, X, y=None):
         return X.fillna(value=self.median)
 
-    def partial_fit(self, X, y=None):
-        return self
-
 
 class PandasMeanImputer(TransformerStep):
+    def __init__(self, name: Optional[str] = None):
+        super().__init__(name)
+        self.sum = None
+
     def partial_fit(self, X, y=None):
+        if self.sum is None:
+            self.sum = X.sum(axis=0)
+            self.counts = X.shape[0]
+        else:
+            self.sum += X.sum(axis=0)
+            self.counts += X.shape[0]
+        self.mean = (self.sum / self.counts).to_dict()
         return self
 
     def fit(self, X, y=None):
@@ -103,7 +123,7 @@ class RollingImputer(TransformerStep):
         self.function = func
 
     def fit(self, X, y=None):
-        self.default_value = np.mean(X,  axis=0)
+        self.default_value = np.mean(X, axis=0)
         self.default_value[~np.isfinite(self.default_value)] = 0
         return self
 
