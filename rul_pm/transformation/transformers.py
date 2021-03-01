@@ -37,7 +37,7 @@ def transformer_info(transformer):
     elif isinstance(transformer, str) and transformer == 'passthrough':
         return transformer
     else:
-        print(type(transformer))
+        logger.error(type(transformer))
 
         raise ValueError('Pipeline elements must have the get_params method')
 
@@ -47,7 +47,7 @@ def step_is_not_missing(step):
 
 
 def step_if_argument_is_not_missing(cls, param):
-    return (cls(param) if param is not None else 'passthrough')
+    return cls(param) if param is not None else 'passthrough'
 
 
 def numericals_pipeline(numerical_features: list = None,
@@ -82,9 +82,9 @@ def categorial_pipeline(categoricals: list) -> PandasFeatureUnion:
     )
 
 
-def transformation_pipeline(resampler=None,
-                            numericals_pipeline=None,
-                            categorial_pipeline=None) -> LivesPipeline:
+def transformation_pipeline(numericals_pipeline=None,
+                            categorial_pipeline=None,
+                            resampler=None) -> LivesPipeline:
     main_step = None
     if categorial_pipeline is not None:
         main_step = PandasFeatureUnion([
@@ -93,7 +93,6 @@ def transformation_pipeline(resampler=None,
         ])
     else:
         main_step = numericals_pipeline
-
     return LivesPipeline(steps=[
         (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
         ('main_step', main_step)
