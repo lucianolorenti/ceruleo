@@ -445,14 +445,13 @@ class EMDFilter(TransformerStep):
         return new_X
 
 
-class ChangesCounter(TransformerStep):
+class ChangesDetector(TransformerStep):
     """
     Compute how many changes there are in a categorical variable
-    ['a', 'a', 'b', 'c] -> [1, 1, 2, 3]
+    ['a', 'a', 'b', 'c] -> [0, 0, 1, 1]
 
 
     """
 
     def transform(self, X):
-        return ((X != X.shift(axis=0))
-                .cumsum())
+        return (X != X.shift(axis=0))
