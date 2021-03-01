@@ -1,5 +1,7 @@
+from typing import List
 
 import tensorflow as tf
+from typing import Optional
 from rul_pm.models.keras.keras import KerasTrainableModel
 from tensorflow.keras import Input, Sequential, regularizers
 from tensorflow.keras.layers import (GRU, BatchNormalization, Conv1D, Dense,
@@ -7,42 +9,50 @@ from tensorflow.keras.layers import (GRU, BatchNormalization, Conv1D, Dense,
 
 
 class FCN(KerasTrainableModel):
+    """The model contains a series
+    a fully connected model with a RELU activation.
+
+
+    Parameters
+    -----------
+    layers_sizes: List[int]
+                  List of layer sizes
+
+    dropout: float
+             Dropout rate used in each layer
+
+    l2: Optional[float], default None
+        Strength of the l2 regularization for each dense layer
+
+    batch_normalization: bool
+                         Whether to use batch normalization
+    """
     def __init__(self,
-                 layers_sizes,
-                 dropout,
-                 l2,
-                 window,
-                 batch_size,
-                 step,
-                 transformer,
-                 shuffle,
-                 models_path,
-                 patience=7,
+                 layers_sizes: List[int],
+                 dropout: float,
+                 l2: Optional[float] = None,
+                 batch_normalization: bool = True,
                  **kwargs):
-        super(FCN, self).__init__(window,
-                                  batch_size,
-                                  step,
-                                  transformer,
-                                  shuffle,
-                                  models_path,
-                                  patience=patience,
-                                  **kwargs)
+
+        super(FCN, self).__init__(**kwargs)
         self.layers_ = []
         self.layers_sizes = layers_sizes
         self.dropout = dropout
         self.l2 = l2
+        self.batch_normalization = batch_normalization
 
     def build_model(self):
         s = Sequential()
-        print(self.input_shape)
         s.add(Flatten(input_shape=self.input_shape))
         for layer_size in self.layers_sizes:
             s.add(
                 Dense(layer_size,
                       activation='relu',
-                      kernel_regularizer=regularizers.l2(self.l2)))
+                      kernel_regularizer=(regularizers.l2(self.l2)
+                                          if self.l2 is not None else None)))
             s.add(Dropout(self.dropout))
-            s.add(BatchNormalization())
+            if self.batch_normalization:
+                s.add(BatchNormalization())
         s.add(Dense(1, activation='relu'))
         return s
 
@@ -71,10 +81,20 @@ class ConvolutionalSimple(KerasTrainableModel):
           Each element of the list is a layer of the network. The first element of the tuple contaings
           the number of filters, the second one, the kernel size.
     """
-
-    def __init__(self, layers_sizes, dropout, l2,  window,
-                 batch_size, step, transformer, shuffle, models_path,
-                 patience=4, cache_size=30, padding='same', activation='relu',
+    def __init__(self,
+                 layers_sizes,
+                 dropout,
+                 l2,
+                 window,
+                 batch_size,
+                 step,
+                 transformer,
+                 shuffle,
+                 models_path,
+                 patience=4,
+                 cache_size=30,
+                 padding='same',
+                 activation='relu',
                  learning_rate=0.001):
         super(ConvolutionalSimple, self).__init__(window,
                                                   batch_size,
@@ -130,9 +150,15 @@ class SimpleRecurrent(KerasTrainableModel):
     def __init__(self,
                  layers,
                  recurrent_type: str,
-                 dropout: float, window: int,
-                 batch_size: int, step: int, transformer, shuffle, models_path,
-                 patience: int = 4, cache_size: int = 30):
+                 dropout: float,
+                 window: int,
+                 batch_size: int,
+                 step: int,
+                 transformer,
+                 shuffle,
+                 models_path,
+                 patience: int = 4,
+                 cache_size: int = 30):
         super(SimpleRecurrent, self).__init__(window,
                                               batch_size,
                                               step,
@@ -158,11 +184,9 @@ class SimpleRecurrent(KerasTrainableModel):
         model.add(Input(shape=(self.window, n_features)))
         for i, n_filters in enumerate(self.layers):
             if i == len(self.layers) - 1:
-                model.add(self.layer_type()(
-                    n_filters))
+                model.add(self.layer_type()(n_filters))
             else:
-                model.add(self.layer_type()(
-                    n_filters, return_sequences=True))
+                model.add(self.layer_type()(n_filters, return_sequences=True))
 
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
