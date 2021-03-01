@@ -18,7 +18,9 @@ class Dataset(AbstractLivesDataset):
 for life in dataset:
   # life is a pandas DataFrame
 ```
-This dataset allows using the data transformation utilities provided
+This dataset allows using the data transformation utilities provided. An example of a dataset definition can be
+found in the [ExampleAircraftEngine.ipynb](examples/ExampleAircraftEngine.ipynb) of the example folder.
+
 ### Data transformation
 The data transformation module provides a functional API and an API similar to the scikit-learn pipeline transformation to extract features and transform the life data.
 ```python
@@ -38,6 +40,7 @@ transformer = Transformer(
     transformerY=target_pipe.build()
 )
 ```
+An example of the usage of the feature transformation module can be found in the [FeaturesTransformation.ipynb](examples/FeaturesTransformation.ipynb) notebook.
 ### Plotting utilities for displaying results of model evaluation
 ### Models
 The model class is an abstract class that provides functionalities for fitting models.
