@@ -19,7 +19,8 @@ setup(
         'mlflow',
         'emd',
         'numba',
-        'mlflowstone'
+        'mlflowstone',
+        'tdigest'
     ],
     license='MIT',
     include_package_data=True,
