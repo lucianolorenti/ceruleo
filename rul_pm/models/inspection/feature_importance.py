@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
-from rul_pm.iterators.utils import get_features
+
 from rul_pm.models.model import TrainableModel
 from rul_pm.transformation.utils import column_names_window
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -40,12 +40,7 @@ class PermuteColumn(BaseEstimator, TransformerMixin):
 
 def permtuation_feature_importance(model: TrainableModel, dataset, metric, n_repeats: int = 5):
     import gc
-    y_true = (
-        get_features(
-            dataset,  ['RUL'],
-            step=model.step,
-            window=model.window)
-        .get('RUL'))
+    y_true = model.true_values(dataset)
     y_pred = model.predict(dataset)
     baseline_score = metric(np.squeeze(y_true), np.squeeze(y_pred))
 
