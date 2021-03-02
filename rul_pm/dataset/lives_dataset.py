@@ -39,8 +39,10 @@ class AbstractLivesDataset:
 
     def __getitem__(self, i: Union[int, Iterable]):
         if isinstance(i, Iterable):
-            if not all(isinstance(item, int) for item in i):
+
+            if not all(isinstance(item, (int, np.integer)) for item in i):
                 raise ValueError('Invalid iterable index passed')
+            
             return FoldedDataset(self, i)
         else:
             df = self.get_life(i)
