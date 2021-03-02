@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    EMD, Accumulate, EWMAOutOfRange, ChangesCounter, Difference)
+    EMD, Accumulate, EWMAOutOfRange, ChangesDetector, Difference)
 from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
@@ -176,11 +176,12 @@ class TestGenerators:
             'feature2': ['a', 'a', 'b', 'b', 'c', 'c', 'c', 'c']
         })
         df_gt = pd.DataFrame({
-            'feature1': [1, 1, 1, 2, 2, 3, 3, 4],
-            'feature2': [1, 1, 2, 2, 3, 3, 3, 3]
+            'feature1': [1, 0, 0, 1, 0, 1, 0, 1],
+            'feature2': [1, 0, 1, 0, 1, 0, 0, 0]
         })
-        t = ChangesCounter()
-        df1 = t.fit_transform(df)
+        t = ChangesDetector()
+        df1 = t.fit_transform(df).astype('int')
+        print(df1)
         assert (df1.equals(df_gt))
 
     def test_Accumulate(self):
@@ -225,11 +226,10 @@ class TestGenerators:
             'a': a,
             'b': b,
         })
-        transformer = ByNameFeatureSelector(['feature1', 'feature2'])
+        transformer = ByNameFeatureSelector(['a', 'b'])
         transformer = EWMAOutOfRange()(transformer)
         transformer = Accumulate()(transformer)
         df_new = transformer.build().fit_transform(df)
-
         assert df_new['a'].iloc[-1] == 2
         assert df_new['b'].iloc[-1] == 3
 

@@ -28,7 +28,7 @@ class SKLearnModel(TrainableModel):
         return self
 
     def predict(self, dataset):
-        X, y, sample_weight = self.get_data(dataset, shuffle=False)
+        X, _, _ = self.get_data(dataset, shuffle=False)
         return self.model.predict(X)
 
     def get_params(self, deep):

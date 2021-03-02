@@ -6,7 +6,6 @@ import pandas as pd
 
 
 class AbstractLivesDataset:
-
     def get_life(self, i: int) -> pd.DataFrame:
         """
 
@@ -38,11 +37,28 @@ class AbstractLivesDataset:
         raise NotImplementedError
 
     def __getitem__(self, i: Union[int, Iterable]):
-        if isinstance(i, Iterable):
+        """Obtain a life or an splice of the dataset using a FoldedDataset
 
+        Parameters
+        ----------
+        i: Union[int, Iterable]
+           If the paramter is an in it will return a pd.DataFrame with the i-th lfie
+           If the parameter is a list of int it will return a FoldedDataset
+           with the lifes whose id are present in the lsit
+
+
+        Raises
+        ------
+        ValueError: WHen the list does not contain integer parameters
+
+        Returns:
+            pd.DataFrame: the i-th life
+            FoldedDataset: The dataset with the lives specified by the list
+        """
+        if isinstance(i, Iterable):
             if not all(isinstance(item, (int, np.integer)) for item in i):
                 raise ValueError('Invalid iterable index passed')
-            
+
             return FoldedDataset(self, i)
         else:
             df = self.get_life(i)
