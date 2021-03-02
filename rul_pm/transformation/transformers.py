@@ -117,7 +117,7 @@ class Transformer:
     def __init__(self,
                  transformerX: LivesPipeline,
                  transformerY: LivesPipeline,
-                 time_feature: str = None,
+                 time_feature: Optional[str] = None,
                  transformerMetadata: Optional[LivesPipeline] = None):
 
         self.transformerX = transformerX
