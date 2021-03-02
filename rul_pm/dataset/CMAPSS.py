@@ -98,7 +98,7 @@ class CMAPSSDataset(AbstractLivesDataset):
                     raise ValueError(
                         f'Invalid model: valid model are {list(operation_mode.keys())}')
 
-    def __getitem__(self, i):
+    def get_life(self, i):
         """
 
         Returns
