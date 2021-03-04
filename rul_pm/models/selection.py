@@ -1,7 +1,7 @@
 import math
 
 import numpy as np
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.dataset.lives_dataset import AbstractLivesDataset, FoldedDataset
 from tqdm.auto import tqdm
 
 from sklearn.base import clone
@@ -27,7 +27,7 @@ class RULGridSearchCV:
         self.param_list = []
         self.results = []
 
-    def fit(self, dataset, verbose=1):
+    def fit(self, dataset,  **fit_kwargs):
         self.param_list = []
         self.results = []
 
@@ -36,12 +36,15 @@ class RULGridSearchCV:
             model.reset()
             model.set_params(**p)
             params_results = []
-            for train, validation in tqdm(self.folds_genereator.split(dataset)):
+            for train, validation in self.folds_genereator.split(dataset):
                 train_dataset = FoldedDataset(dataset, train)
                 validation_dataset = FoldedDataset(dataset, validation)
-                r = model.fit(train_dataset, validation_dataset,
-                              verbose=verbose)
-                params_results.append(r)
+                model.fit(train_dataset, validation_dataset,
+                              **fit_kwargs)
+                y_pred = model.predict(validation_dataset)
+                y_true = model.true_values(validation_dataset)
+
+                params_results.append({'mse': np.mean((y_pred-y_true)**2)})
             self.param_list.append(p)
             self.results.append(params_results)
 
@@ -53,7 +56,7 @@ class RULGridSearchPredefinedValidation:
         self.param_list = []
         self.results = []
 
-    def fit(self, dataset_train, dataset_validation, verbose=1):
+    def fit(self, dataset_train, dataset_validation, **fit_kwargs):
         self.param_list = []
         self.results = []
 
@@ -61,7 +64,7 @@ class RULGridSearchPredefinedValidation:
             model = clone(self.model)
             model.reset()
             model.set_params(**p)
-            r = model.fit(dataset_train, dataset_validation, verbose=verbose)
+            r = model.fit(dataset_train, dataset_validation, **fit_kwargs)
             self.param_list.append(p)
             self.results.append([r])
 
