@@ -90,52 +90,7 @@ class Diff(TransformerStep):
         return X.diff()
 
 
-class EWMAOutOfRange(TransformerStep):
-    """
-    Compute the EWMA limits and accumulate the number of points
-    outsite UCL and LCL
-    """
-    def __init__(self, lambda_=0.5, name: Optional[str] = None):
-        super().__init__(name)
-        self.lambda_ = lambda_
-        self.UCL = None
-        self.LCL = None
-        self.columns = None
 
-    def partial_fit(self, X, y=None):
-        if self.columns is None:
-            self.columns = X.columns.values
-        else:
-            self.columns = [c for c in self.columns if c in X.columns]
-        if self.LCL is not None:
-            self.LCL = self.LCL.loc[self.columns].copy()
-            self.UCL = self.UCL.loc[self.columns].copy()
-        LCL, UCL = self._compute_limits(X[self.columns].copy())
-        self.LCL = (np.minimum(LCL, self.LCL) if self.LCL is not None else LCL)
-        self.UCL = (np.maximum(UCL, self.UCL) if self.UCL is not None else UCL)
-        return self
-
-    def _compute_limits(self, X):
-
-        mean = np.nanmean(X, axis=0)
-        s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
-            np.nanstd(X, axis=0)
-        UCL = mean + 3 * s
-        LCL = mean - 3 * s
-        return (pd.Series(LCL, index=self.columns),
-                pd.Series(UCL, index=self.columns))
-
-    def fit(self, X, y=None):
-        self.columns = X.columns
-        LCL, UCL = self._compute_limits(X)
-        self.LCL = LCL
-        self.UCL = UCL
-        return self
-
-    def transform(self, X):
-        mask = ((X[self.columns] < (self.LCL)) | (X[self.columns] >
-                                                  (self.UCL)))
-        return mask.astype('int')
 
 
 class OneHotCategoricalPandas(TransformerStep):
@@ -254,18 +209,7 @@ class MedianFilter(TransformerStep):
         return X.rolling(self.window, min_periods=self.min_periods).median()
 
 
-class MeanFilter(TransformerStep):
-    def __init__(self,
-                 window: int,
-                 min_periods: int = 15,
-                 name: Optional[str] = None):
-        super().__init__(name)
-        self.window = window
-        self.min_periods = min_periods
 
-    def transform(self, X, y=None):
-        return X.rolling(self.window,
-                         min_periods=self.min_periods).mean(skip_na=True)
 
 
 def rolling_kurtosis(s: pd.Series, window, min_periods):
@@ -316,6 +260,8 @@ class RollingStatistics(TransformerStep):
                     X_new_values,
                     time=self.time,
                     frequency=self.frequency)
+
+        X_new = X_new.loc[:, [c for c in X_new.columns if 'rms' in c]]
 
         return X_new
 
