@@ -3,10 +3,11 @@ import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    EMD, Accumulate, EWMAOutOfRange, ChangesDetector, Difference)
+    EMD, Accumulate, ChangesDetector, Difference)
 from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
+                                            EWMAOutOfRange,
                                             ZScoreOutlierRemover)
 from rul_pm.transformation.resamplers import SubSampleTransformer
 from rul_pm.transformation.target import PicewiseRULThreshold
