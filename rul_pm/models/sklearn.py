@@ -20,11 +20,11 @@ class SKLearnModel(TrainableModel):
     def build_model(self):
         return self._model
 
-    def fit(self, train_dataset, refit_transformer=True):
+    def fit(self, train_dataset, refit_transformer=True, **kwargs):
         if refit_transformer:
             self.transformer.fit(train_dataset)
         X, y, sample_weight = self.get_data(train_dataset)
-        self.model.fit(X, y.ravel(), sample_weight)
+        self.model.fit(X, y.ravel(), sample_weight, **kwargs)
         return self
 
     def predict(self, dataset):
@@ -40,6 +40,7 @@ class SKLearnModel(TrainableModel):
         return out
 
     def set_params(self, **params):
+        ## TODO Check invalid parameters
         model_params = {}
         for name, value in params.items():
             if '__' in name:
@@ -50,6 +51,7 @@ class SKLearnModel(TrainableModel):
         super().set_params(**params)
         self.model.set_params(**model_params)
         return self
+
 
 
 class BatchSKLearnModel(TrainableModel):
