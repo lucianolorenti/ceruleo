@@ -126,3 +126,11 @@ class TransformerStep(BaseEstimator, TransformerMixin):
             raise ValueError('{cname} is not present in the dataset')
         return columns[0]
 
+
+class TransformerLambda(TransformerStep):
+    def __init__(self, name:str, f):
+        super().__init__(name)
+        self.f = f
+
+    def transform(self, X, y=None):
+        return self.f(X)
