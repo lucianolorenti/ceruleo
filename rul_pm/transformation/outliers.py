@@ -16,10 +16,10 @@ class IQROutlierRemover(TransformerStep):
     imput.fit(X)
     X_t = imput.transform(X)
     """
-    def __init__(self,
-                 margin=1.5,
-                 proportion_to_sample=1.0,
-                 name: Optional[str] = None):
+
+    def __init__(
+        self, margin=1.5, proportion_to_sample=1.0, name: Optional[str] = None
+    ):
         super().__init__(name)
         self.margin = margin
         self.proportion_to_sample = proportion_to_sample
@@ -27,10 +27,9 @@ class IQROutlierRemover(TransformerStep):
 
     def partial_fit(self, X):
         if self.proportion_to_sample < 1:
-            sampled_points = np.random.choice(X.shape[0],
-                                              int(X.shape[0] *
-                                                  self.proportion_to_sample),
-                                              replace=False)
+            sampled_points = np.random.choice(
+                X.shape[0], int(X.shape[0] * self.proportion_to_sample), replace=False
+            )
             X = X.iloc[sampled_points, :]
         if self.tdigest_dict is None:
             self.tdigest_dict = {c: TDigest() for c in X.columns}
@@ -38,13 +37,11 @@ class IQROutlierRemover(TransformerStep):
             self.tdigest_dict[c].batch_update(X[c].values)
 
         self.Q1 = {
-            c: self.tdigest_dict[c].percentile(25)
-            for c in self.tdigest_dict.keys()
+            c: self.tdigest_dict[c].percentile(25) for c in self.tdigest_dict.keys()
         }
 
         self.Q3 = {
-            c: self.tdigest_dict[c].percentile(75)
-            for c in self.tdigest_dict.keys()
+            c: self.tdigest_dict[c].percentile(75) for c in self.tdigest_dict.keys()
         }
 
         self.IQR = {c: self.Q3[c] - self.Q1[c] for c in self.Q1.keys()}
@@ -53,10 +50,9 @@ class IQROutlierRemover(TransformerStep):
 
     def fit(self, X):
         if self.proportion_to_sample < 1:
-            sampled_points = np.random.choice(X.shape[0],
-                                              int(X.shape[0] *
-                                                  self.proportion_to_sample),
-                                              replace=False)
+            sampled_points = np.random.choice(
+                X.shape[0], int(X.shape[0] * self.proportion_to_sample), replace=False
+            )
             X = X.iloc[sampled_points, :]
         self.Q1 = X.quantile(0.25)
         self.Q3 = X.quantile(0.75)
@@ -67,12 +63,13 @@ class IQROutlierRemover(TransformerStep):
 
     def transform(self, X):
         X = X.copy()
-        check_is_fitted(self, 'Q1')
-        check_is_fitted(self, 'Q3')
-        check_is_fitted(self, 'IQR')
+        check_is_fitted(self, "Q1")
+        check_is_fitted(self, "Q3")
+        check_is_fitted(self, "IQR")
         for c in X.columns:
-            mask = ((X[c] < (self.Q1[c] - self.margin * self.IQR[c])) |
-                    (X[c] > (self.Q3[c] + self.margin * self.IQR[c])))
+            mask = (X[c] < (self.Q1[c] - self.margin * self.IQR[c])) | (
+                X[c] > (self.Q3[c] + self.margin * self.IQR[c])
+            )
             X.loc[mask, c] = np.nan
         return X
 
@@ -84,6 +81,7 @@ class ZScoreOutlierRemover(BaseEstimator, TransformerMixin):
     imput.fit(X)
     X_t = imput.transform(X)
     """
+
     def __init__(self, number_of_std_allowed):
         self.number_of_std_allowed = number_of_std_allowed
         self.scaler = StandardScaler()
@@ -111,7 +109,7 @@ class EWMAOutlierRemover(TransformerStep):
         return self
 
     def transform(self, X):
-        mask = ((X < (self.LCL)) | (X > (self.UCL)))
+        mask = (X < (self.LCL)) | (X > (self.UCL))
         X[mask] = np.nan
         return pd.DataFrame(X, columns=X.columns, index=X.index)
 
@@ -121,12 +119,19 @@ class EWMAOutOfRange(TransformerStep):
     Compute the EWMA limits and accumulate the number of points
     outsite UCL and LCL
     """
-    def __init__(self, lambda_=0.5, name: Optional[str] = None):
+
+    def __init__(
+        self,
+        lambda_=0.5,
+        return_mask: bool = True,
+        name: Optional[str] = None,
+    ):
         super().__init__(name)
         self.lambda_ = lambda_
         self.UCL = None
         self.LCL = None
         self.columns = None
+        self.return_mask = return_mask
 
     def partial_fit(self, X, y=None):
         if self.columns is None:
@@ -137,19 +142,17 @@ class EWMAOutOfRange(TransformerStep):
             self.LCL = self.LCL.loc[self.columns].copy()
             self.UCL = self.UCL.loc[self.columns].copy()
         LCL, UCL = self._compute_limits(X[self.columns].copy())
-        self.LCL = (np.minimum(LCL, self.LCL) if self.LCL is not None else LCL)
-        self.UCL = (np.maximum(UCL, self.UCL) if self.UCL is not None else UCL)
+        self.LCL = np.minimum(LCL, self.LCL) if self.LCL is not None else LCL
+        self.UCL = np.maximum(UCL, self.UCL) if self.UCL is not None else UCL
         return self
 
     def _compute_limits(self, X):
 
         mean = np.nanmean(X, axis=0)
-        s = np.sqrt(self.lambda_ / (2-self.lambda_)) * \
-            np.nanstd(X, axis=0)
+        s = np.sqrt(self.lambda_ / (2 - self.lambda_)) * np.nanstd(X, axis=0)
         UCL = mean + 3 * s
         LCL = mean - 3 * s
-        return (pd.Series(LCL, index=self.columns),
-                pd.Series(UCL, index=self.columns))
+        return (pd.Series(LCL, index=self.columns), pd.Series(UCL, index=self.columns))
 
     def fit(self, X, y=None):
         self.columns = X.columns
@@ -159,24 +162,36 @@ class EWMAOutOfRange(TransformerStep):
         return self
 
     def transform(self, X):
-        mask = ((X[self.columns] < (self.LCL)) | (X[self.columns] >
-                                                  (self.UCL)))
-        return mask.astype('int')
+        mask = (X[self.columns] < (self.LCL)) | (X[self.columns] > (self.UCL))
+        if self.return_mask:
+            return mask.astype("int")
+        else:
+            X = X.copy()
+            X[mask] = np.nan
+            return X
 
 
 class RollingMeanOutlierRemover(TransformerStep):
-    def __init__(self,
-                 window: int = 15,
-                 lambda_: float = 3,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        window: int = 15,
+        lambda_: float = 3,
+        return_mask: bool = True,
+        name: Optional[str] = None,
+    ):
         super().__init__(name)
         self.window = window
         self.lambda_ = lambda_
+        self.return_mask = return_mask
 
     def transform(self, X):
-        r = X.rolling(self.window)
-        upper = r.mean() + self.lambda_ * r.std()
-        lower = r.mean() - self.lambda_ * r.std()
-        mask = ((X > upper) | (X >lower))
-        return mask.astype('int')
-        
+        r = X.rolling(self.window, min_periods=1)
+        upper = r.mean() + (self.lambda_ * r.std())
+        lower = r.mean() - (self.lambda_ * r.std())
+        mask = (X > upper) | (X < lower)
+        if self.return_mask:
+            return mask.astype("int")
+        else:
+            X = X.copy()
+            X[mask] = np.nan
+            return X
