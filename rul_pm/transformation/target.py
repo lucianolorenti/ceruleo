@@ -5,7 +5,18 @@ from rul_pm.transformation.transformerstep import TransformerStep
 from rul_pm.transformation.utils import IdentityTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import FeatureUnion, Pipeline
+import pandas as pd
 
+
+class TargetToClasses(TransformerStep):
+    def __init__(self, bins):
+        super().__init__()
+        self.bins = bins 
+
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        X_new['RUL_class'] = np.digitize(X.iloc[:, 0].values, self.bins, right=False)
+        return X_new
 
 class HealthPercentage(TransformerStep):
     def transform(self, X):
