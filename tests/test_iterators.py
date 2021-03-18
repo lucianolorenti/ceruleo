@@ -1,5 +1,6 @@
 
 
+from rul_pm.iterators.iterators import WindowedDatasetIterator
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
@@ -8,6 +9,28 @@ from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
 from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
                                                 transformation_pipeline)
+
+
+class SimpleDataset(AbstractLivesDataset):
+    def __init__(self):
+
+        self.lives = [
+            pd.DataFrame({
+                'feature1': np.array(range(0, 100)),
+                'RUL': np.array(range(0, 100))
+            })]
+
+
+    def get_life(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return 'RUL'
+
+    @property
+    def nlives(self):
+        return len(self.lives)
 
 
 class MockDataset(AbstractLivesDataset):
@@ -64,3 +87,25 @@ class TestIterators():
         assert X.shape[0] == batch_size
         assert X.shape[1] == window_size
         assert X.shape[2] == 2
+
+    def test_2(self):
+        dataset = SimpleDataset()
+        pipe = ByNameFeatureSelector(['feature1'])
+        y_pipe = ByNameFeatureSelector(['RUL'])
+        transformer_raw = Transformer(
+            transformerX=pipe.build(),    
+            transformerY=y_pipe.build(),
+
+        )
+        it  = WindowedDatasetIterator(dataset, 5, transformer_raw)
+        X, y, sw = it[0]
+        assert np.all(X == np.array([[0,1,2,3,4]]).T)
+        assert y[0][0] == 4
+
+
+        X, y, sw = it[-1]
+        assert np.all(X == np.array([[95,96,97,98,99]]).T)
+        assert y[0][0] == 99
+        
+        
+

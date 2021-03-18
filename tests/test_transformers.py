@@ -259,6 +259,6 @@ class TestGenerators:
         transformer = Difference(['a', 'b'], ['c', 'd'])
         df_new = transformer.fit_transform(df)
         print(df_new.columns)
-        assert (df_new['a'].values == np.array([1-2, 2-2, 3-2, 4-2])).all()
-        assert (df_new['b'].values == np.array([2-1, 4-1, 6-1, 8-1])).all()
+        assert (df_new['a'].values == np.sqrt(np.array([1-2, 2-2, 3-2, 4-2])**2)).all()
+        assert (df_new['b'].values == np.sqrt(np.array([2-1, 4-1, 6-1, 8-1])**2)).all()
         assert (df_new.shape[1] == 2)
