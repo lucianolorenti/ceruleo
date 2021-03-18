@@ -139,7 +139,16 @@ class KerasTrainableModel(BatchTrainableModel):
         self.prefetch_size = prefetch_size
         self.batcher_generator = batcher_generator
 
+
+    def get_params(self, deep=False):
+        d = super().get_params(deep)
+        d['patience'] = self.patience
+        d['loss'] = self.loss
+        d['learning_rate'] = self.learning_rate
+        return d
+
     def load_best_model(self):
+        print(self.model_filepath)
         self.model.load_weights(self.model_filepath)
 
     def _checkpoint_callback(self):

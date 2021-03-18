@@ -13,6 +13,10 @@ def ExpandDimension():
     return Lambda(lambda x: K.expand_dims(x))
 
 
+
+def RemoveDimension(axis=0):
+    return Lambda(lambda x: K.squeeze(x, axis=axis))
+
 class MultiHeadAttention(tf.keras.layers.Layer):
     r"""MultiHead Attention layer.
     Defines the MultiHead Attention operation as described in

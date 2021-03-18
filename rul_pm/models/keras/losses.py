@@ -2,6 +2,15 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.losses import mse
 
+    
+def class_to_reg(y_true, y_pred ,bins):
+
+    aa = tf.convert_to_tensor(np.array([bins]).T, dtype=tf.float32)
+    y_pred = tf.matmul(y_pred, aa)
+    
+    y_true = tf.gather(aa, tf.cast(tf.squeeze(y_true),  tf.int64))
+    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
+
 
 def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
     '''
