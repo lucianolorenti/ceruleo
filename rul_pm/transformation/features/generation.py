@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Optional
 
@@ -223,6 +224,7 @@ class RollingStatistics(TransformerStep):
                  min_periods: int = 15,
                  time: bool = True,
                  frequency: bool = True,
+                 select_features: Optional[list] = None,
                  name: Optional[str] = None):
         super().__init__(name)
         self.window = window
@@ -231,6 +233,7 @@ class RollingStatistics(TransformerStep):
         self.fs = 1
         self.time = time
         self.frequency = frequency
+        self.select_features = select_features
 
     def fit(self, X, y=None):
         return self
@@ -260,8 +263,16 @@ class RollingStatistics(TransformerStep):
                     X_new_values,
                     time=self.time,
                     frequency=self.frequency)
+        if self.select_features:
+            selected_columns = []
+            for c in X_new.columns:
+                for f in self.select_features:
+                    if f in c:
+                        selected_columns.append(c)
+                        break
 
-        X_new = X_new.loc[:, [c for c in X_new.columns if 'rms' in c]]
+
+            X_new = X_new.loc[:, selected_columns]
 
         return X_new
 
@@ -297,10 +308,10 @@ class ExpandingStatistics(TransformerStep):
         return self
 
     def _kurtosis(self, s: pd.Series):
-        return s.expanding(self.min_points).kurtosis(skipna=True)
+        return s.expanding(self.min_points).kurt(skipna=True)
 
     def _skewness(self, s: pd.Series):
-        return s.expanding(self.min_points).skewness(skipna=True)
+        return s.expanding(self.min_points).skew(skipna=True)
 
     def _max(self, s: pd.Series):
         return s.expanding(self.min_points).max(skipna=True)
@@ -334,10 +345,9 @@ class ExpandingStatistics(TransformerStep):
         return self._peak(s) / self._rms(s)
 
     def transform(self, X):
-
         X_new = pd.DataFrame(index=X.index)
-
         for c in X.columns:
+            
             for stats in self.to_compute:
                 X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
 
@@ -364,7 +374,7 @@ class Difference(TransformerStep):
 
     def transform(self, X):
         new_X = X[self.feature_set1].copy()
-        new_X = new_X - X[self.feature_set2].values
+        new_X = np.sqrt((new_X - X[self.feature_set2].values)**2)
         return new_X
 
 
@@ -424,3 +434,10 @@ class ChangesDetector(TransformerStep):
     """
     def transform(self, X):
         return (X != X.shift(axis=0))
+
+class Interactions(TransformerStep):
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        for c1, c2 in itertools.combinations(X.columns, 2):
+            X_new[f'{c1}_{c2}'] = X[c1]*X[c2]
+        return X_new
