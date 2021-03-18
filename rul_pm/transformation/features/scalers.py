@@ -9,7 +9,8 @@ class PandasMinMaxScaler(TransformerStep):
     def __init__(self,
                  range: tuple,
                  name: Optional[str] = None,
-                 clip: bool = True):
+                 clip: bool = True,
+                 robust:bool = False):
         super().__init__(name)
         self.range = range
         self.min = range[0]
@@ -17,10 +18,15 @@ class PandasMinMaxScaler(TransformerStep):
         self.data_min = None
         self.data_max = None
         self.clip = clip
+        self.robust = robust
 
     def partial_fit(self, df, y=None):
-        partial_data_min = df.min()
-        partial_data_max = df.max()
+        if self.robust:
+            partial_data_min = df.quantile(0.45)
+            partial_data_max = df.quantile(0.55)
+        else:
+            partial_data_min = df.min()
+            partial_data_max = df.max()
         if self.data_min is None:
             self.data_min = partial_data_min
             self.data_max = partial_data_max
@@ -72,6 +78,45 @@ class PandasStandardScaler(TransformerStep):
         return (X - self.mean) / (self.std)
 
 
+class PandasRobustScaler(TransformerStep):
+    def __init__(self,
+                 range: tuple,
+                 name: Optional[str] = None,
+                 clip: bool = True):
+        super().__init__(name)
+        self.range = range
+        self.min = range[0]
+        self.max = range[1]
+        self.data_median = None
+        self.data_max = None
+        self.clip = clip
+
+    def partial_fit(self, df, y=None):
+        partial_data_median = df.median()
+        partial_data_max = df.max()
+        if self.data_min is None:
+            self.data_min = partial_data_median
+            self.data_max = partial_data_max
+        else:
+            self.data_median = (pd.concat([self.data_median, partial_data_median],
+                                       axis=1).median(axis=1))
+            self.data_max = (pd.concat([self.data_max, partial_data_max],
+                                       axis=1).max(axis=1))
+        return self
+
+    def fit(self, df, y=None):
+        self.data_min = df.min()
+        self.data_max = df.max()
+        return self
+
+    def transform(self, X):
+        X = ((X - self.data_min) / (self.data_max - self.data_min) *
+             (self.max - self.min)) + self.min
+        if self.clip:
+            X.clip(lower=self.min, upper=self.max, inplace=True)
+        return X
+        
+
 class ScaleInvRUL(TransformerStep):
     """
     Scale binary columns according the inverse of the RUL.
@@ -97,7 +142,7 @@ class ScaleInvRUL(TransformerStep):
             mask = X[X[c] > 0].index
             if len(mask) > 0:
                 RUL_list = self.RUL_list_per_column.setdefault(c, [])
-                RUL_list.extend(X[self.rul_column].loc[mask].values.tolist())
+                RUL_list.extend((1+(X[self.rul_column].loc[mask].values / X[self.rul_column].max())).tolist())
 
         for k in self.RUL_list_per_column.keys():
 
