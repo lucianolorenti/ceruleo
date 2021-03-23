@@ -41,3 +41,21 @@ class OneDimensionalKMeans(TransformerStep):
                 self.clusters[c].predict(np.atleast_2d(X[c]).T)
             ]
         return X
+
+
+class MultiDimensionalKMeans(TransformerStep):
+    def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
+        super().__init__(name)
+        self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters)
+        self.n_clusters = n_clusters
+
+    def partial_fit(self, X):
+
+        self.clusters.partial_fit(X)
+        return self
+
+    def transform(self, X, y=None):
+        X = X.copy()
+        print(self.clusters.cluster_centers_[self.clusters.predict(X)])
+        X[:, :] = self.clusters.cluster_centers_[self.clusters.predict(X)]
+        return X
