@@ -86,7 +86,7 @@ class TrainableModel(TrainableModelInterface):
         self.evenly_spaced_points = evenly_spaced_points
         self.sample_weight = sample_weight
         self.add_last = add_last
-        self.discard_threshold = discard_threshold
+        self.discard_threshold = discard_threshold        
         # self.iterator = None
 
     @property
@@ -209,7 +209,8 @@ class BatchTrainableModel(TrainableModel):
                                     cache_size=self.cache_size,
                                     evenly_spaced_points=self.evenly_spaced_points,
                                     sample_weight=self.sample_weight,
-                                    add_last=self.add_last)
+                                    add_last=self.add_last,
+                                    discard_threshold=self.discard_threshold)
 
         val_batcher = get_batcher(validation_dataset,
                                   self.window,
@@ -219,8 +220,10 @@ class BatchTrainableModel(TrainableModel):
                                   shuffle=False,
                                   output_size=self.output_size,
                                   cache_size=self.cache_size,
+                                  sample_weight=self.sample_weight,
                                   restart_at_end=False,
-                                  add_last=self.add_last)
+                                  add_last=self.add_last,
+                                  discard_threshold=self.discard_threshold)
         return train_batcher, val_batcher
 
     def get_params(self, deep=False):

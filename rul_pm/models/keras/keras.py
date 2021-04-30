@@ -148,7 +148,6 @@ class KerasTrainableModel(BatchTrainableModel):
         return d
 
     def load_best_model(self):
-        print(self.model_filepath)
         self.model.load_weights(self.model_filepath)
 
     def _checkpoint_callback(self):
@@ -180,7 +179,8 @@ class KerasTrainableModel(BatchTrainableModel):
                               cache_size=self.cache_size,
                               evenly_spaced_points=evenly_spaced_points,
                               restart_at_end=False,
-                              add_last=self.add_last)
+                              add_last=self.add_last,
+                              discard_threshold=self.discard_threshold)
 
         output = []
         for X, _, _ in batcher:

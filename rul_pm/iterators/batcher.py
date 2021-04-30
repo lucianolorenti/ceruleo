@@ -54,7 +54,8 @@ def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
                 transformer: Transformer, step: int, output_size: int = 1,
                 shuffle: bool = False, restart_at_end: bool = True, cache_size: int = 20,
                 evenly_spaced_points: Optional[int] = None,
-                sample_weight: str = 'equal', add_last: bool = True) -> Batcher:
+                sample_weight: str = 'equal', add_last: bool = True,
+                discard_threshold: Optional[float] = None) -> Batcher:
     """
     Utility function to create a batcher from a dataset
     """
@@ -67,6 +68,7 @@ def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
                                        cache_size=cache_size,
                                        evenly_spaced_points=evenly_spaced_points,
                                        sample_weight=sample_weight,
-                                       add_last=add_last)
+                                       add_last=add_last,
+                                       discard_threshold=discard_threshold)
     b = Batcher(iterator, batch_size, restart_at_end)
     return b

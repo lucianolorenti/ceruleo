@@ -6,6 +6,7 @@ from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 import pandas as pd
 
+
 class Concatenate:
     def __init__(self, name=None):
         self.name_ = name
@@ -45,9 +46,7 @@ class Concatenate:
         else:
             i = len(parent_pipe.steps) + 1
             name = self.name
-            parent_pipe.steps.insert(
-                0,
-                (f'{name}_{i}', union))
+            parent_pipe.steps.insert(0, (f'{name}_{i}', union))
             return parent_pipe
 
 
@@ -56,7 +55,7 @@ class TransformerStepMixin:
         self.name_ = name
         self.prevs = []
 
-    @ property
+    @property
     def name(self):
         if self.name_ is not None:
             return self.name_
@@ -88,7 +87,7 @@ class TransformerStep(BaseEstimator, TransformerMixin):
         self.name_ = name
         self.prevs = []
 
-    @ property
+    @property
     def name(self):
         if self.name_ is not None:
             return self.name_
@@ -120,7 +119,7 @@ class TransformerStep(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-    def column_name(self, df:pd.DataFrame, cname:str):
+    def column_name(self, df: pd.DataFrame, cname: str):
         columns = [c for c in df.columns if cname in c]
         if len(columns) == 0:
             raise ValueError('{cname} is not present in the dataset')
@@ -128,7 +127,7 @@ class TransformerStep(BaseEstimator, TransformerMixin):
 
 
 class TransformerLambda(TransformerStep):
-    def __init__(self, name:str, f):
+    def __init__(self, name: str, f):
         super().__init__(name)
         self.f = f
 

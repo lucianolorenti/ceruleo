@@ -24,7 +24,7 @@ class SKLearnModel(TrainableModel):
         if refit_transformer:
             self.transformer.fit(train_dataset)
         X, y, sample_weight = self.get_data(train_dataset)
-        self.model.fit(X, y.ravel(), **kwargs)
+        self.model.fit(X, y.ravel(), **kwargs, sample_weight=sample_weight)
         return self
 
     def predict(self, dataset):

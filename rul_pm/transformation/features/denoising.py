@@ -1,12 +1,28 @@
 from typing import Optional
 
-
 import numpy as np
-
-from rul_pm.transformation.features.extraction import compute, roll_matrix, stats_order
+import pandas as pd
+from rul_pm.transformation.features.extraction import (compute, roll_matrix,
+                                                       stats_order)
 from rul_pm.transformation.transformerstep import TransformerStep
-
+from scipy.signal import savgol_filter
 from sklearn.cluster import MiniBatchKMeans
+
+
+class  SavitzkyGolayTransformer(TransformerStep):
+    def __init__(self, window: int, order: int = 2, name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+        self.order = order
+
+    def transform(self, X, y=None):
+        if X.shape[0] > self.window:
+            return pd.DataFrame(savgol_filter(X, self.window, self.order, axis=0),
+                                    columns=X.columns,
+                                    index=X.index)
+        else:
+            return X
+
 
 
 class MeanFilter(TransformerStep):
@@ -17,6 +33,16 @@ class MeanFilter(TransformerStep):
 
     def transform(self, X, y=None):
         return X.rolling(self.window, min_periods=self.min_periods).mean(skip_na=True)
+
+
+class MedianFilter(TransformerStep):
+    def __init__(self, window: int, min_periods: int = 15, name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+        self.min_periods = min_periods
+
+    def transform(self, X, y=None):
+        return X.rolling(self.window, min_periods=self.min_periods).median(skip_na=True)
 
 
 class OneDimensionalKMeans(TransformerStep):
@@ -46,8 +72,9 @@ class OneDimensionalKMeans(TransformerStep):
 class MultiDimensionalKMeans(TransformerStep):
     def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
         super().__init__(name)
-        self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters)
         self.n_clusters = n_clusters
+        self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters)
+        
 
     def partial_fit(self, X):
 
@@ -56,6 +83,5 @@ class MultiDimensionalKMeans(TransformerStep):
 
     def transform(self, X, y=None):
         X = X.copy()
-        print(self.clusters.cluster_centers_[self.clusters.predict(X)])
-        X[:, :] = self.clusters.cluster_centers_[self.clusters.predict(X)]
+        X[:] = self.clusters.cluster_centers_[self.clusters.predict(X)]
         return X

@@ -1,5 +1,6 @@
 import itertools
 import logging
+from rul_pm.transformation.features.hurst import hurst_exponent
 from typing import Optional
 
 import emd
@@ -277,12 +278,15 @@ class RollingStatistics(TransformerStep):
         return X_new
 
 
-class ExpandingStatistics(TransformerStep):
+
+class RollingStatistics1(TransformerStep):
     def __init__(self,
+                 window:int=15,
                  min_points=2,
                  to_compute=None,
                  name: Optional[str] = None):
         super().__init__(name)
+        self.window = window
         self.min_points = min_points
         valid_stats = [
             'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
@@ -292,6 +296,83 @@ class ExpandingStatistics(TransformerStep):
             self.to_compute = [
                 'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
                 'clearance', 'rms', 'shape', 'crest'
+            ]
+        else:
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}'
+                    )
+            self.to_compute = to_compute
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
+
+    def _kurtosis(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).kurt(skipna=True)
+
+    def _skewness(self, s: pd.Series):
+        return s.rolling(self.window,self.min_points).skew(skipna=True)
+
+    def _max(self, s: pd.Series):
+        return s.rolling(self.window,self.min_points).max(skipna=True)
+
+    def _min(self, s: pd.Series):
+        return s.rolling(self.window,self.min_points).min(skipna=True)
+
+    def _std(self, s: pd.Series):
+        return s.rolling(self.window,self.min_points).std(skipna=True)
+
+    def _peak(self, s: pd.Series):
+        return (s.rolling(self.window,self.min_points).max(skipna=True) -
+                s.rolling(self.window,self.min_points).min(skipna=True))
+
+    def _impulse(self, s: pd.Series):
+        return self._peak(s) / s.abs().rolling(self.window,self.min_points).mean()
+
+    def _clearance(self, s: pd.Series):
+        return self._peak(s) / s.abs().pow(1. / 2).rolling(self.window,
+            self.min_points).mean().pow(2)
+
+    def _rms(self, s: pd.Series):
+        return (s.pow(2).rolling(self.window,self.min_points).mean(skipna=True).pow(1 /
+                                                                          2.))
+
+    def _shape(self, s: pd.Series):
+        return self._rms(s) / s.abs().rolling(self.window,
+            self.min_points).mean(skipna=True)
+
+    def _crest(self, s: pd.Series):
+        return self._peak(s) / self._rms(s)
+
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            
+            for stats in self.to_compute:
+                X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
+
+        return X_new
+
+
+class ExpandingStatistics(TransformerStep):
+    def __init__(self,
+                 min_points=2,
+                 to_compute=None,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        self.min_points = min_points
+        valid_stats = [
+            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest', 'hurst'
+        ]
+        if to_compute is None:
+            self.to_compute = [
+                'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+                'clearance', 'rms', 'shape', 'crest', 'hurst'
             ]
         else:
             for f in to_compute:
@@ -333,6 +414,9 @@ class ExpandingStatistics(TransformerStep):
         return self._peak(s) / s.abs().pow(1. / 2).expanding(
             self.min_points).mean().pow(2)
 
+    def _hurst(self, s: pd.Series):
+        return s.expanding(min_periods=max(self.min_points, 50)).apply(lambda s: hurst_exponent(s, method='RS'))
+
     def _rms(self, s: pd.Series):
         return (s.pow(2).expanding(self.min_points).mean(skipna=True).pow(1 /
                                                                           2.))
@@ -346,8 +430,7 @@ class ExpandingStatistics(TransformerStep):
 
     def transform(self, X):
         X_new = pd.DataFrame(index=X.index)
-        for c in X.columns:
-            
+        for c in X.columns:            
             for stats in self.to_compute:
                 X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
 
@@ -374,7 +457,7 @@ class Difference(TransformerStep):
 
     def transform(self, X):
         new_X = X[self.feature_set1].copy()
-        new_X = np.sqrt((new_X - X[self.feature_set2].values)**2)
+        new_X = (new_X - X[self.feature_set2].values)
         return new_X
 
 

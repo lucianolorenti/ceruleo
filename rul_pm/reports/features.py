@@ -45,10 +45,13 @@ def null_proportion(dataset):
           The key is the column name and the value is the list of null proportion
           for each life
     """
+    comon_features = [set(life.columns.tolist()) for life in dataset ]
+    comon_features = comon_features[0].intersection(*comon_features)
+        
     null_proportion_per_life = {}
     for life in dataset:
         d = life.isnull().mean().to_dict()
-        for column in d.keys():
+        for column in comon_features:
             null_proportion_list = null_proportion_per_life.setdefault(
                 column, [])
             null_proportion_list.append(d[column])

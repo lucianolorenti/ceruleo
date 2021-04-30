@@ -229,8 +229,10 @@ class WindowedDatasetIterator(DatasetIterator):
             w = y[i-self.window_size:i+1].diff().dropna().abs()
             return np.all(w <= self.evenly_spaced_points)
 
+        
         if self.discard_threshold is not None:
-            def should_discard(y, i): return y[i] > self.discard_threshold
+            def should_discard(y, i): 
+                return y[i] > self.discard_threshold
         else:
             def should_discard(y, i): return False
 

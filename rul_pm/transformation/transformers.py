@@ -141,7 +141,7 @@ class Transformer:
         self.transformerY.fit(dataset)
         self.fitTransformerMetadata(dataset)
 
-        self.minimal_df = dataset[0].head(n=5)
+        self.minimal_df = dataset[0].head(n=20)
         X = self.transformerX.transform(self.minimal_df)
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True

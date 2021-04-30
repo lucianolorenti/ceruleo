@@ -34,15 +34,13 @@ class MeanCentering(TransformerStep):
         return X - self.mean
 
 
-class MeanFilter(TransformerStep):
-    def __init__(self,
-                 window: int,
-                 min_periods: int = 15,
-                 name: Optional[str] = None):
-        super().__init__(name)
-        self.window = window
-        self.min_periods = min_periods
+class Square(TransformerStep):
+    def transform(self, X):
+        return (X.pow(2))
 
-    def transform(self, X, y=None):
-        return X.rolling(self.window,
-                         min_periods=self.min_periods).mean(skip_na=True)
+class Sqrt(TransformerStep):
+    def transform(self, X):
+        return (X.pow(1./2))
+
+
+
