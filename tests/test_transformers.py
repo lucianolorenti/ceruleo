@@ -1,9 +1,10 @@
+from typing import List
 import numpy as np
 import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.features.generation import (
-    EMD, Accumulate, ChangesDetector, Difference)
+    EMD, Accumulate, ChangesDetector, Difference, ExpandingStatistics)
 from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             IQROutlierRemover,
@@ -12,6 +13,22 @@ from rul_pm.transformation.outliers import (EWMAOutlierRemover,
 from rul_pm.transformation.resamplers import SubSampleTransformer
 from rul_pm.transformation.target import PicewiseRULThreshold
 
+
+class DatasetFromPandas(AbstractLivesDataset):
+    def __init__(self,  lives: List[pd.DataFrame]):
+
+        self.lives = lives
+
+    def get_life(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return 'RUL'
+
+    @property
+    def nlives(self):
+        return len(self.lives)
 
 class MockDataset(AbstractLivesDataset):
     def __init__(self, nlives: int):
@@ -213,6 +230,35 @@ class TestGenerators:
         assert (life_1['feature1'] == ds.lives[1]['feature1'].cumsum()).all()
         assert (life_1['feature2'] == ds.lives[1]['feature2'].cumsum()).all()
 
+    def test_expanding(self):
+        life1 = pd.DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2, 4, 6, 8],
+            'c': [2, 2, 2, 2],
+            'd': [1, 0, 1, 0]
+        })
+        life2 = pd.DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2, 4, 6, 8],
+            'c': [2, 2, 2, 2],
+            'd': [1, 0, 1, 0]
+        })
+        life3 = pd.DataFrame({
+            'a': [1, 2, 3, 4],
+            'b': [2, 4, 6, 8],
+            'c': [2, 2, 2, 2],
+            'd': [1, 0, 1, 0]
+        })
+        expanding = ExpandingStatistics()
+
+        ds_train = DatasetFromPandas([life1, life2])
+        ds_test = DatasetFromPandas([life1, life2])
+
+        expanding.fit(ds_train)
+
+
+        
+
     def test_EWMAOutOfRange(self):
         a = np.random.randn(500)*0.5 + 2
         b = np.random.randn(500)*0.5 + 5
@@ -259,6 +305,6 @@ class TestGenerators:
         transformer = Difference(['a', 'b'], ['c', 'd'])
         df_new = transformer.fit_transform(df)
         print(df_new.columns)
-        assert (df_new['a'].values == np.sqrt(np.array([1-2, 2-2, 3-2, 4-2])**2)).all()
-        assert (df_new['b'].values == np.sqrt(np.array([2-1, 4-1, 6-1, 8-1])**2)).all()
+        assert (df_new['a'].values == np.array([1-2, 2-2, 3-2, 4-2])).all()
+        assert (df_new['b'].values ==  np.array([2-1, 4-1, 6-1, 8-1])).all()
         assert (df_new.shape[1] == 2)
