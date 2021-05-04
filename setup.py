@@ -21,7 +21,8 @@ setup(
         'emd',
         'numba',
         'mlflowstone',
-        'tdigest'
+        'tdigest',
+        'dill'
     ],
     license='MIT',
     include_package_data=True,
