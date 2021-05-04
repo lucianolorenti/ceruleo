@@ -1,3 +1,4 @@
+
 from typing import List
 import numpy as np
 import pandas as pd
@@ -12,6 +13,90 @@ from rul_pm.transformation.outliers import (EWMAOutlierRemover,
                                             ZScoreOutlierRemover)
 from rul_pm.transformation.resamplers import SubSampleTransformer
 from rul_pm.transformation.target import PicewiseRULThreshold
+
+import scipy.stats
+import pandas as pd
+import numpy as np
+
+def manual_expanding(df: pd.DataFrame, min_points:int= 1):
+    to_compute = ['kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest']
+    dfs = []
+    for c in df.columns:
+        d = []
+        for i in range(min_points-1):
+            d.append([np.nan for f in to_compute])
+        for end in range(min_points, df.shape[0]+1):
+            data = df[c].iloc[:end]
+            row = [manual_features(data, f) for f in to_compute]
+            d.append(row)
+        dfs.append(pd.DataFrame(d, columns=[f'{c}_{f}' for f in to_compute]))
+    return pd.concat(dfs, axis=1)
+
+
+
+def kurtosis(s: pd.Series) -> float:
+    return scipy.stats.kurtosis(s.values, bias=False)
+
+
+def skewness(s: pd.Series) -> float:
+    return scipy.stats.skew(s.values, bias=False)
+
+
+def max(s: pd.Series) -> float:
+    return np.max(s.values)
+
+
+def min(s: pd.Series) -> float:
+    return np.min(s.values)
+
+
+def std(s: pd.Series) -> float:
+    return np.std(s.values, ddof=1)
+
+
+def peak(s: pd.Series) -> float:
+    return max(s) - min(s)
+
+
+def impulse(s: pd.Series) -> float:
+    return peak(s) / np.mean(np.abs(s))
+
+
+def clearance(s: pd.Series) -> float:
+    return peak(s) / (np.mean(np.sqrt(np.abs(s)))**2)
+
+
+def rms(s: pd.Series) -> float:
+    return np.sqrt(np.mean(s**2))
+
+
+def shape(s: pd.Series) -> float:
+    return rms(s) / np.mean(np.abs(s))
+
+
+def crest(s: pd.Series) -> float:
+    return peak(s) / rms(s)
+
+
+feature_functions = {
+    'crest': crest,
+    'shape': shape,
+    'rms': rms,
+    'clearance': clearance,
+    'impulse': impulse,
+    'peak': peak,
+    'std': std,
+    'min': min,
+    'max': max,
+    'skewness': skewness,
+    'kurtosis': kurtosis
+}
+
+
+def manual_features(s: pd.Series, name: str):
+    return feature_functions[name](s)
+
 
 
 class DatasetFromPandas(AbstractLivesDataset):
@@ -231,30 +316,26 @@ class TestGenerators:
         assert (life_1['feature2'] == ds.lives[1]['feature2'].cumsum()).all()
 
     def test_expanding(self):
-        life1 = pd.DataFrame({
-            'a': [1, 2, 3, 4],
-            'b': [2, 4, 6, 8],
-            'c': [2, 2, 2, 2],
-            'd': [1, 0, 1, 0]
+
+        lives = [
+            pd.DataFrame({
+            'a': np.random.rand(50) * 100 * np.random.rand(50)**3,
+            'b': np.random.rand(50) * 100 * np.random.rand(50)**2,
+          
         })
-        life2 = pd.DataFrame({
-            'a': [1, 2, 3, 4],
-            'b': [2, 4, 6, 8],
-            'c': [2, 2, 2, 2],
-            'd': [1, 0, 1, 0]
-        })
-        life3 = pd.DataFrame({
-            'a': [1, 2, 3, 4],
-            'b': [2, 4, 6, 8],
-            'c': [2, 2, 2, 2],
-            'd': [1, 0, 1, 0]
-        })
+        ]
+
         expanding = ExpandingStatistics()
 
-        ds_train = DatasetFromPandas([life1, life2])
-        ds_test = DatasetFromPandas([life1, life2])
+        ds_train = DatasetFromPandas(lives[0:2])
+        ds_test = DatasetFromPandas(lives[2:2])
 
         expanding.fit(ds_train)
+
+        pandas_t = expanding.transform(ds_train[0][['a', 'b']])
+        fixed_t = manual_expanding(ds_train[0][['a', 'b']], 2)
+
+        return (pandas_t-fixed_t).mean().mean() < 1e-17
 
 
         
