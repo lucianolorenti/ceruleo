@@ -22,7 +22,8 @@ setup(
         'numba',
         'mlflowstone',
         'tdigest',
-        'dill'
+        'dill',
+        'statsmodel'
     ],
     license='MIT',
     include_package_data=True,
