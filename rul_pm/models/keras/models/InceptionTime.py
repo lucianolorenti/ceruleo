@@ -18,12 +18,11 @@ class InceptionTime(KerasTrainableModel):
 
 
     def __init__(self,
-
-                 nb_filters=32, 
+                 nb_filters=32,
                  use_residual=True,
-                  use_bottleneck=True, 
-                  depth=6, 
-                  kernel_size=41,             
+                  use_bottleneck=True,
+                  depth=6,
+                  kernel_size=41,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -89,7 +88,7 @@ class InceptionTime(KerasTrainableModel):
     def build_model(self):
         n_features = self.transformer.n_features
 
-        input = Input(shape=(self.window, n_features)) 
+        input = Input(shape=(self.window, n_features))
 
         x = input
         input_res = input
@@ -108,18 +107,22 @@ class InceptionTime(KerasTrainableModel):
 
         model = Model(inputs=input, outputs=output_layer)
 
-       
+
 
         return model
 
     def get_params(self, deep=False):
         d = super().get_params()
-        
+        d['nb_filters'] = self.nb_filters
+        d['use_residual'] = self.use_residual
+        d['use_bottleneck'] = self.use_bottleneck
+        d['depth'] = self.depth
+        d['kernel_size'] = self.kernel_size
+        d['bottleneck_size'] =  self.bottleneck_size
         return d
 
     @property
     def name(self):
-        return "XCM"
+        return "InceptionTime"
 
 
-   
