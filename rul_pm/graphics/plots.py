@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.graphics.curly_brace import curlyBrace
+from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.iterators.iterators import LifeDatasetIterator
-from rul_pm.results.results import cv_error_histogram
+from rul_pm.results.results import models_cv_results, unexpected_breaks, unexploited_lifetime
 
 
 def plot_lives(ds: AbstractLivesDataset):
@@ -110,21 +110,8 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     return fig, ax
 
 
-def compute_bars(error_histogram):
-
-    heights = []
-    xs = []
-    yerr = []
-    for i in range(len(error_histogram)):
-        xs.append(i)
-        heights.append(np.mean(error_histogram[i]))
-        yerr.append(np.std(error_histogram[i]))
-    return heights, xs, yerr
-
-
-def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge,
-                                               error_histograms,
-                                               model_names,
+def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
+                                               model_results,
                                                fig=None,
                                                ax=None,
                                                y_axis_label=None,
@@ -151,39 +138,30 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge,
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
     labels = []
-    n_models = len(model_names)
-    #bars = [compute_bars(e) for e in error_histograms]
+    n_models = len(model_results)
+    nbins = len(bin_edge) - 1
 
-    #deltax = (width) / len(bars)
-    for i in range(len(error_histograms[0])):
+    for i in range(nbins):
         labels.append(f'[{bin_edge[i]:.1f}, {bin_edge[i+1]:.1f})')
-
-    #for i, (heights, xs, yerr) in enumerate(bars):
-    #    xx = np.array(xs) + (deltax*(i+1)) - width
-    #    ax.bar(height=heights, width=(width / len(bars))-0.01, x=xx, yerr=yerr,
-    #           label=model_names[i])
 
     max_value = -np.inf
     min_value = np.inf
     colors = sns.color_palette("hls", n_models)
-    for model_number, (model_name, model_data) in enumerate(
-            zip(model_names, error_histograms)):
+    for model_number, model_name in enumerate(model_results.keys()):
+        model_data = model_results[model_name]
+        min_value = min(min_value, np.min(model_data.mean_error))
+        max_value = max(max_value, np.max(model_data.mean_error))
         positions = []
-        data_list = []
-        for i, bins in enumerate(model_data):
-            data = np.concatenate((*bins, ))
-            max_value = max(np.max(data), max_value)
-            min_value = min(np.min(data), min_value)
+        for i in range(nbins):
             positions.append((model_number * 0.5) + (i * n_models))
-            data_list.append(data)
-        box = ax.boxplot(np.array(data_list, dtype=object),
+        box = ax.boxplot(model_data.mean_error,
                          positions=positions,
                          widths=0.2)
         set_box_color(box, colors[model_number])
         ax.plot([], c=colors[model_number], label=model_name)
 
     ticks = []
-    for i, _ in enumerate(error_histograms[0]):
+    for i in range(nbins):
         x = np.mean([(model_number * 0.5) + (i * n_models)
                      for model_number in range(n_models)])
         ticks.append(x)
@@ -210,62 +188,6 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge,
                c="#000")
 
     return fig, ax
-
-
-def preprocess_results(results_dict: dict, nbins:int):
-    """Boxplots of difference between true and predicted RUL
-    The format of the input should be:
-    {
-        'Model Name': [
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        ]
-    }
-
-    Parameters
-    ----------
-    nbins: int
-           Number of boxplots
-    """
-    
-    max_y_value = np.max([
-        r['true'].max() for model_name in results_dict.keys()
-        for r in results_dict[model_name]
-    ])
-    bin_edges = np.linspace(0, max_y_value, nbins + 1)
-
-    model_names = []
-    error_histogram_list = []
-    for model_name in results_dict.keys():
-        model_names.append(model_name)
-        trues = []
-        predicted = []
-        for results in results_dict[model_name]:
-            trues.append(results['true'])
-            predicted.append(results['predicted'])
-        _, error_histogram = cv_error_histogram(trues,
-                                                predicted,
-                                                nbins=nbins,
-                                                bin_edges=bin_edges)
-        error_histogram_list.append(error_histogram)
-    return model_names, bin_edges, error_histogram_list
 
 
 def cv_boxplot_errors_wrt_RUL_multiple_models(results_dict: dict,
@@ -308,108 +230,74 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(results_dict: dict,
     """
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
-    
 
-    model_names, bin_edges, error_histogram_list = preprocess_results(results_dict, nbins)
+    bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _cv_boxplot_errors_wrt_RUL_multiple_models(
         bin_edges,
-        error_histogram_list,
-        model_names,
+        model_results,
         fig=fig,
         ax=ax,
-        bins=nbins,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label)
 
 
-
-
-def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edge,
-                                               error_histograms,
-                                               model_names,
+def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edges,
+                                               model_results,
                                                fig=None,
                                                ax=None,
                                                y_axis_label=None,
                                                x_axis_label=None,
                                                **kwargs):
-    """Plot a error bar for each model
+    """[summary]
 
     Args:
-        bin_edge ([type]): [description]
-        error_histograms ([type]): [description]
-        model_names ([type]): [description]
-        width (float, optional): [description]. Defaults to 0.5.
+        bin_edges ([type]): [description]
+        model_results ([type]): [description]
+        fig ([type], optional): [description]. Defaults to None.
         ax ([type], optional): [description]. Defaults to None.
+        y_axis_label ([type], optional): [description]. Defaults to None.
+        x_axis_label ([type], optional): [description]. Defaults to None.
 
     Returns:
         [type]: [description]
     """
-    def set_box_color(bp, color):
-        plt.setp(bp['boxes'], color=color)
-        plt.setp(bp['whiskers'], color=color)
-        plt.setp(bp['caps'], color=color)
-        plt.setp(bp['medians'], color=color)
-
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
     labels = []
-    n_models = len(model_names)
-    #bars = [compute_bars(e) for e in error_histograms]
+    n_models = len(model_results)
+    nbins = len(bin_edges) - 1
 
-    #deltax = (width) / len(bars)
-    for i in range(len(error_histograms[0])):
-        labels.append(f'[{bin_edge[i]:.1f}, {bin_edge[i+1]:.1f})')
+    width = 1.0 / n_models
 
-    #for i, (heights, xs, yerr) in enumerate(bars):
-    #    xx = np.array(xs) + (deltax*(i+1)) - width
-    #    ax.bar(height=heights, width=(width / len(bars))-0.01, x=xx, yerr=yerr,
-    #           label=model_names[i])
+    for i in range(nbins):
+        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
 
-    max_value = -np.inf
-    min_value = np.inf
     colors = sns.color_palette("hls", n_models)
-    for model_number, (model_name, model_data) in enumerate(
-            zip(model_names, error_histograms)):
+    for model_number, model_name in enumerate(model_results.keys()):
+        model_data = model_results[model_name]
+
         positions = []
-        data_list = []
-        for i, bins in enumerate(model_data):
-            data = np.concatenate((*bins, ))
-            max_value = max(np.max(data), max_value)
-            min_value = min(np.min(data), min_value)
-            positions.append((model_number * 0.5) + (i * n_models))
-            data_list.append(data)
-        box = ax.boxplot(np.array(data_list, dtype=object),
-                         positions=positions,
-                         widths=0.2)
-        set_box_color(box, colors[model_number])
-        ax.plot([], c=colors[model_number], label=model_name)
+        for i in range(nbins):
+            positions.append((model_number * width) + (i * n_models))
+        rect = ax.bar(positions,
+                      np.mean(model_data.mae, axis=0),
+                      yerr=np.std(model_data.mae, axis=0),
+                      label=model_name,
+                      width=width,
+                      color=colors[model_number])
 
     ticks = []
-    for i, _ in enumerate(error_histograms[0]):
+    for i in range(nbins):
         x = np.mean([(model_number * 0.5) + (i * n_models)
                      for model_number in range(n_models)])
         ticks.append(x)
 
-    max_x = np.max(ticks) + 1
     ax.set_xlabel('RUL' + ('' if x_axis_label is None else x_axis_label))
     ax.set_ylabel('$y - \hat{y}$' +
                   ('' if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
-    ax2 = ax.twinx()
-    ax2.set_xlim(ax.get_xlim())
-    ax2.set_ylim(ax.get_ylim())
-    curlyBrace(fig,
-               ax2, (max_x, 0), (max_x, min_value),
-               str_text='Over estim.',
-               c="#000")
-    ax2.get_xaxis().set_visible(False)
-    ax2.get_yaxis().set_visible(False)
-    curlyBrace(fig,
-               ax2, (max_x, max_value), (max_x, 0),
-               str_text='Under estim.',
-               c="#000")
 
     return fig, ax
 
@@ -454,13 +342,144 @@ def cv_barplot_errors_wrt_RUL_multiple_models(results_dict: dict,
     """
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
-    
 
-    model_names, bin_edges, error_histogram_list = preprocess_results(results_dict, nbins)
+    bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _cv_barplot_errors_wrt_RUL_multiple_models(
         bin_edges,
-        error_histogram_list,
-        model_names,
+        model_results,
+        fig=fig,
+        ax=ax,
+        y_axis_label=y_axis_label,
+        x_axis_label=x_axis_label)
+
+
+def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(bin_edges,
+                                                       model_results,
+                                                       fig=None,
+                                                       ax=None,
+                                                       y_axis_label=None,
+                                                       x_axis_label=None,
+                                                       **kwargs):
+    """Plot a error bar for each model
+
+    Args:
+        bin_edge ([type]): [description]
+        error_histograms ([type]): [description]
+        model_names ([type]): [description]
+        width (float, optional): [description]. Defaults to 0.5.
+        ax ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    if fig is None:
+        fig, ax = plt.subplots(**kwargs)
+    labels = []
+    n_models = len(model_results)
+    nbins = len(bin_edges) - 1
+
+    width = 1.0 / n_models
+
+    for i in range(nbins):
+        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+    max_value = -np.inf
+    min_value = np.inf
+    colors = sns.color_palette("hls", n_models)
+    for model_number, model_name in enumerate(model_results.keys()):
+        model_data = model_results[model_name]
+        min_value = min(min_value, np.min(model_data.mean_error))
+        max_value = max(max_value, np.max(model_data.mean_error))
+        positions = []
+        for i in range(nbins):
+            positions.append((model_number * width) + (i * n_models))
+
+        mean_error = np.mean(model_data.mean_error, axis=0)
+        std_error = np.std(model_data.mean_error, axis=0)
+        rect = ax.plot(positions,
+                       mean_error,
+                       label=model_name,
+                       color=colors[model_number])
+        ax.fill_between(positions,
+                        mean_error - std_error,
+                        mean_error + std_error,
+                        alpha=0.3,
+                        color=colors[model_number])
+
+    ticks = []
+    for i in range(nbins):
+        x = np.mean([(model_number * 0.5) + (i * n_models)
+                     for model_number in range(n_models)])
+        ticks.append(x)
+
+    ax.set_xlabel('RUL' + ('' if x_axis_label is None else x_axis_label))
+    ax.set_ylabel('$y - \hat{y}$' +
+                  ('' if y_axis_label is None else y_axis_label))
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    max_x = np.max(ticks) + 1
+    ax2 = ax.twinx()
+    ax2.set_xlim(ax.get_xlim())
+    ax2.set_ylim(ax.get_ylim())
+    curlyBrace(fig,
+               ax2, (max_x, 0), (max_x, min_value),
+               str_text='Over estim.',
+               c="#000")
+    ax2.get_xaxis().set_visible(False)
+    ax2.get_yaxis().set_visible(False)
+    curlyBrace(fig,
+               ax2, (max_x, max_value), (max_x, 0),
+               str_text='Under estim.',
+               c="#000")
+
+    return fig, ax
+
+
+def cv_shadedline_plot_errors_wrt_RUL_multiple_models(results_dict: dict,
+                                                      nbins: int,
+                                                      y_axis_label=None,
+                                                      x_axis_label=None,
+                                                      fig=None,
+                                                      ax=None,
+                                                      **kwargs):
+    """Boxplots of difference between true and predicted RUL
+    The format of the input should be:
+    {
+        'Model Name': [
+            {
+                'true': np.array,
+                'predicted': np.array
+            },
+            {
+                'true': np.array,
+                'predicted': np.array
+            },
+            ...
+        'Model Name 2': [
+             {
+                'true': np.array,
+                'predicted': np.array
+            },
+            {
+                'true': np.array,
+                'predicted': np.array
+            },
+            ...
+        ]
+    }
+
+    Parameters
+    ----------
+    nbins: int
+           Number of boxplots
+    """
+    if fig is None:
+        fig, ax = plt.subplots(**kwargs)
+
+    bin_edges, model_results = models_cv_results(results_dict, nbins)
+    return _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
+        bin_edges,
+        model_results,
         fig=fig,
         ax=ax,
         bins=nbins,
@@ -468,3 +487,26 @@ def cv_barplot_errors_wrt_RUL_multiple_models(results_dict: dict,
         x_axis_label=x_axis_label)
 
 
+
+
+def cv_unexploited_lifetime(results_dict: dict, max_window:int, step:int, ax=None, **kwargs):
+    if ax is None:
+        fig, ax = plt.subplots(**kwargs)
+    n_models = len(results_dict)
+    colors = sns.color_palette("hls", n_models)
+    for i, model_name in enumerate(results_dict.keys()):
+        m, ulft = unexploited_lifetime(results_dict[model_name], max_window, step)
+        ax.plot(m, ulft, label=model_name,  color=colors[i])
+    ax.legend()
+    return ax
+
+def cv_unexpected_breaks(results_dict: dict, max_window:int, step:int, ax=None, **kwargs):
+    if ax is None:
+        fig, ax = plt.subplots(**kwargs)
+    n_models = len(results_dict)
+    colors = sns.color_palette("hls", n_models)
+    for i, model_name in enumerate(results_dict.keys()):
+        m, ub = unexpected_breaks(results_dict[model_name],  max_window, step)
+        ax.plot(m, ub, label=model_name, color=colors[i])
+    ax.legend()
+    return ax

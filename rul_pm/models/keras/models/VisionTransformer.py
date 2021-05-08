@@ -58,33 +58,6 @@ def mlp(x, hidden_units, dropout_rate):
 class VisionTransformer(KerasTrainableModel):
 
     """
-        XCM: An Explainable Convolutional Neural Networkfor Multivariate Time Series Classification
-
-        Deafult parameters reported in the article
-        Number of filters:	10
-        Window size:	30/20/30/15
-        Filter length: 10
-
-        Neurons in fully-connected layer	100
-        Dropout rate	0.5
-        batch_size = 512
-
-
-        Parameters
-        -----------
-        n_filters : int
-
-        filter_size : int
-
-        window: int
-
-        batch_size: int
-        step: int
-        transformer
-        shuffle
-        models_path
-        patience: int = 4
-        cache_size: int = 30
 
 
 
