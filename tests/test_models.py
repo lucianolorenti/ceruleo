@@ -98,7 +98,7 @@ class TestKeras():
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
-        assert mse < 0.5
+        assert mse < 1
 
 
 
