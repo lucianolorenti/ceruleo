@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from rul_pm.iterators.batcher import get_batcher
+from rul_pm.iterators.batcher import Batcher
 from rul_pm.models.model import TrainableModel
 from tqdm.auto import tqdm
 
@@ -20,15 +20,13 @@ class SKLearnModel(TrainableModel):
     def build_model(self):
         return self._model
 
-    def fit(self, train_dataset, refit_transformer=True, **kwargs):
-        if refit_transformer:
-            self.transformer.fit(train_dataset)
-        X, y, sample_weight = self.get_data(train_dataset)
+    def fit(self, train_iterator,  **kwargs):
+        X, y, sample_weight = train_iterator.get_data()
         self.model.fit(X, y.ravel(), **kwargs, sample_weight=sample_weight)
         return self
 
-    def predict(self, dataset):
-        X, _, _ = self.get_data(dataset, shuffle=False)
+    def predict(self, dataset_iterator):
+        X, _, _ = dataset_iterator.get_data()
         return self.model.predict(X)
 
     def get_params(self, deep):
@@ -76,33 +74,20 @@ class BatchSKLearnModel(TrainableModel):
     def build_model(self):
         return self._model
 
-    def fit(self, train_dataset, validation_dataset, n_epochs=15):
-        train_batcher = get_batcher(train_dataset,
-                                    self.window,
-                                    self.batch_size,
-                                    self.transformer,
-                                    self.computed_step,
-                                    shuffle=self.shuffle,
-                                    cache_size=self.cache_size)
-
-        train_batcher.restart_at_end = False
+    def fit(self, train_iterator, val_iterator, n_epochs=15):        
+        self.history = []
         for r in range(n_epochs):
-            for X, y in tqdm(train_batcher):
+            for X, y in tqdm(train_iterator):
                 self.model.partial_fit(np.reshape(
                     X, (X.shape[0], X.shape[1]*X.shape[2])), y)
-            y_true, y_pred = self.predict(validation_dataset)
-            print(mean_squared_error(y_true, y_pred))
+            y_true, y_pred = self.predict(val_iterator)
+            self.histroy.append(mean_squared_error(y_true, y_pred))
+        return self
 
-    def predict(self, dataset):
+    def predict(self, dataset_iterator):
         y_true = []
         y_pred = []
-        val_batcher = get_batcher(dataset,
-                                  self.window,
-                                  self.batch_size,
-                                  self.transformer,
-                                  20,
-                                  shuffle=False,
-                                  cache_size=self.cache_size)
+        val_batcher = Batcher(dataset_iterator)
         val_batcher.restart_at_end = False
         for X, y in tqdm(val_batcher):
             y_true.extend(y)

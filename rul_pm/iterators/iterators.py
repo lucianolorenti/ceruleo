@@ -50,7 +50,8 @@ class DatasetIterator:
                  transformer: Transformer,
                  shuffle: Union[bool, str] = False,
                  cache_size: int = CACHE_SIZE):
-
+        if not transformer.fitted_:
+            raise ValueError('Transformer not fitted')
         self.dataset = dataset
         self.shuffle = shuffle
         self.transformer = transformer
@@ -324,13 +325,21 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i += 1
         return ret
 
-    def toArray(self):
-        XX = []
-        yy = []
-        for X, y in tqdm(self):
-            XX.append(np.expand_dims(X, axis=0))
-            yy.append(y)
-        return np.concatenate(XX, axis=0), np.array(yy)
+    def get_data(self):        
+        N_points = len(self)
+        dimension = self.window_size*self.transformer.n_features
+        X = np.zeros(
+            (N_points, dimension), 
+            dtype=np.float32)
+        y = np.zeros((N_points, self.output_size), dtype=np.float32)
+        sample_weight = np.zeros(N_points, dtype=np.float32)
+
+        for i, (X_, y_, sample_weight_) in enumerate(self):
+            X[i, :] = X_.flatten()
+            y[i, :] = y_.flatten()
+            sample_weight[i] = sample_weight_[0]
+        return X, y, sample_weight
+
 
 
 def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, output_size: int = 1,  add_last: bool = True):

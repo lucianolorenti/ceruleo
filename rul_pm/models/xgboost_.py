@@ -4,52 +4,37 @@ from xgboost import XGBRegressor
 
 
 class XGBoostModel(TrainableModel):
-    def __init__(self,
-                 window: int = 15,
-                 step: int = 1,
-                 transformer=None,
-                 cache_size: int = 15,
-                 sample_weight: str = 'equal',
-                 shuffle: str = 'all',
-                 **kwargs):
-        super().__init__(window,
-                         step,
-                         transformer,
-                         cache_size=cache_size,
-                         sample_weight=sample_weight,
-                         shuffle=shuffle)
-        self.window = window
-        self.transformer = transformer
-        self.step = step
+    def __init__(self, **kwargs):
+        super().__init__()
         self.xgbr = XGBRegressor(**kwargs)
 
-    def fit(self, train_dataset, validation_dataset=None, refit_transformer: bool = True, **kwargs):
-        if refit_transformer:
-            self.transformer.fit(train_dataset)
-        X_train, y_train, sample_weight_train = self.get_data(
-            train_dataset, shuffle=self.shuffle)
+    def fit(self,
+            train_windowed_iterator: WindowedDatasetIterator,
+            test_windowed_iterator: WindowedDatasetIterator = None,
+            **kwargs):
+        X_train, y_train, sample_weight_train = train_windowed_iterator.get_data()
 
         params = {}
-        if validation_dataset is not None:
-            X_val, y_val, sample_weight_val = self.get_data(
-                validation_dataset, shuffle=None)
-            params.update({
-                'eval_set': [(X_val, y_val)]
-
-            })
-        self.xgbr.fit(X_train, y_train,
-                      sample_weight=sample_weight_train, **params, **kwargs)
+        if test_windowed_iterator is not None:
+            X_val, y_val, sample_weight_val = test_windowed_iterator.get_data()
+            params.update({'eval_set': [(X_val, y_val)]})
+        self.xgbr.fit(X_train,
+                      y_train,
+                      sample_weight=sample_weight_train,
+                      **params,
+                      **kwargs)
         return self
 
     def build_model(self):
         return self.xgbr
 
-    def predict(self, dataset):
-        X, _, _ = self.get_data(dataset, shuffle=False)
+    def predict(self, dataset_iterator):
+        X, _, _ = dataset_iterator.get_data()
         return self.xgbr.predict(X)
 
     def feature_importances(self):
-        return self.xgbr.feature_importances_.reshape((self.window, self.n_features))
+        return self.xgbr.feature_importances_.reshape(
+            (self.window, self.n_features))
 
     def get_params(self, deep):
         out = super().get_params(deep=deep)

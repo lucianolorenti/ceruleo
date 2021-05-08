@@ -23,7 +23,7 @@ setup(
         'mlflowstone',
         'tdigest',
         'dill',
-        'statsmodel'
+        'statsmodels'
     ],
     license='MIT',
     include_package_data=True,

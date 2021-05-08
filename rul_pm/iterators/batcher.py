@@ -8,6 +8,26 @@ from rul_pm.transformation.transformers import Transformer
 
 
 class Batcher:
+    def new(dataset: AbstractLivesDataset, window: int, batch_size: int,
+                transformer: Transformer, step: int, output_size: int = 1,
+                shuffle: bool = False, restart_at_end: bool = True, cache_size: int = 20,
+                evenly_spaced_points: Optional[int] = None,
+                sample_weight: str = 'equal', add_last: bool = True,
+                discard_threshold: Optional[float] = None):
+        iterator = WindowedDatasetIterator(dataset,
+                                       window,
+                                       transformer,
+                                       step=step,
+                                       output_size=output_size,
+                                       shuffle=shuffle,
+                                       cache_size=cache_size,
+                                       evenly_spaced_points=evenly_spaced_points,
+                                       sample_weight=sample_weight,
+                                       add_last=add_last,
+                                       discard_threshold=discard_threshold)
+        b = Batcher(iterator, batch_size, restart_at_end)
+        return b
+
     def __init__(self,
                  iterator: WindowedDatasetIterator,
                  batch_size: int,
@@ -16,6 +36,7 @@ class Batcher:
         self.batch_size = batch_size
         self.restart_at_end = restart_at_end
         self.stop = False
+        self.prefetch_size = None
 
     def __len__(self):
         return math.ceil(len(self.iterator) / self.batch_size)
@@ -23,6 +44,31 @@ class Batcher:
     def __iter__(self):
         self.iterator.__iter__()
         return self
+
+    @property
+    def n_features(self):
+        return self.iterator.transformer.n_features
+
+    @property
+    def window_size(self):
+        return self.iterator.window_size
+
+    @property
+    def output_shape(self):
+        return self.iterator.output_size
+
+    @property
+    def input_shape(self):
+        return (self.window_size, self.n_features)
+
+    @property
+    def computed_step(self):
+        if isinstance(self.step, int):
+            return self.step
+        elif isinstance(self.step, tuple):
+            if self.step[0] == 'auto':
+                return int(self.window / self.step[1])
+        raise ValueError('Invalid step parameter')
 
     def __next__(self):
         X = []
@@ -50,25 +96,3 @@ class Batcher:
         return X.astype(np.float32), y.astype(np.float32), sample_weights
 
 
-def get_batcher(dataset: AbstractLivesDataset, window: int, batch_size: int,
-                transformer: Transformer, step: int, output_size: int = 1,
-                shuffle: bool = False, restart_at_end: bool = True, cache_size: int = 20,
-                evenly_spaced_points: Optional[int] = None,
-                sample_weight: str = 'equal', add_last: bool = True,
-                discard_threshold: Optional[float] = None) -> Batcher:
-    """
-    Utility function to create a batcher from a dataset
-    """
-    iterator = WindowedDatasetIterator(dataset,
-                                       window,
-                                       transformer,
-                                       step=step,
-                                       output_size=output_size,
-                                       shuffle=shuffle,
-                                       cache_size=cache_size,
-                                       evenly_spaced_points=evenly_spaced_points,
-                                       sample_weight=sample_weight,
-                                       add_last=add_last,
-                                       discard_threshold=discard_threshold)
-    b = Batcher(iterator, batch_size, restart_at_end)
-    return b

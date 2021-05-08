@@ -351,7 +351,6 @@ class RollingStatistics1(TransformerStep):
     def transform(self, X):
         X_new = pd.DataFrame(index=X.index)
         for c in X.columns:
-            
             for stats in self.to_compute:
                 X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
 

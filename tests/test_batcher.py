@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.iterators.batcher import get_batcher
+from rul_pm.iterators.batcher import Batcher
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
 from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
@@ -55,10 +55,12 @@ class TestBatcher():
             ByNameFeatureSelector(['RUL']).build()
 
         )
+        
         batch_size = 15
         window_size = 5
         ds = MockDataset(5)
-        b = get_batcher(ds, window_size, batch_size,
+        transformer.fit(ds)
+        b = Batcher.new(ds, window_size, batch_size,
                         transformer, 1, restart_at_end=False)
         assert len(b) == 16
         X, y, w = next(b)

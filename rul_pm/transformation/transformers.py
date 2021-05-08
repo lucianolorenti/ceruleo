@@ -125,6 +125,7 @@ class Transformer:
         self.transformerMetadata = transformerMetadata
         self.features = None
         self.time_feature = time_feature
+        self.fitted_ = False
 
     def _process_selected_features(self):
         if self.transformerX['selector'] is not None:

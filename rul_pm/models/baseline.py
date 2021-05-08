@@ -45,7 +45,7 @@ class BaselineModel(BaselineModelAbstract):
 
 
 class FixedValueBaselineModel(BaselineModelAbstract):
-    def __init__(self, transformer: str, value):
+    def __init__(self, transformer, value):
         super().__init__(transformer)
         self.value = value
 
