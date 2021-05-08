@@ -76,22 +76,22 @@ class TestKeras():
         train_batcher = Batcher.new(train_dataset,
                                         window=1,
                                         step=1,                                        
-                                        batch_size=32,
+                                        batch_size=64,
                                         transformer=transformer,
                                         shuffle='all')
 
         val_batcher = Batcher.new(val_dataset,
                                 window=1,
                                 step=1,
-                                batch_size=32,
+                                batch_size=64,
                                 transformer=transformer,
                                 shuffle=False,
                                 restart_at_end=False)
 
 
 
-        model = MockModel(learning_rate=0.5)
-        model.fit(train_batcher, val_batcher, epochs=25)
+        model = MockModel(learning_rate=0.8)
+        model.fit(train_batcher, val_batcher, epochs=50)
         y_pred = model.predict(val_batcher)
         y_true = model.true_values(val_batcher.iterator)
 
