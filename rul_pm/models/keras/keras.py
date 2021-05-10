@@ -176,9 +176,9 @@ class KerasTrainableModel(TrainableModel):
 
         return np.concatenate(output)
 
-    def predict(self, batcher):
+    def predict(self, batcher : Batcher):
         batcher = copy(batcher)
-        batcher.
+        batcher.restart_at_end = False
         return self._predict(batcher)
 
     def compile(self):
