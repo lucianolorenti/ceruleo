@@ -1,10 +1,10 @@
 from rul_pm.results.results import compute_rul_line
-from rul_pm.models.model import TrainableModelInterface
+from rul_pm.models.model import TrainableModel
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 import numpy as np
 
 
-class BaselineModelAbstract(TrainableModelInterface):
+class BaselineModelAbstract(TrainableModel):
     def __init__(self, transformer):
         self.transformer = transformer 
 
@@ -36,8 +36,9 @@ class BaselineModel(BaselineModelAbstract):
         output = []
         for life in ds:
             _, y, _ =self.transformer.transform(life)
+            time = np.hstack(([0], np.cumsum(np.diff(y))))
             y_pred = np.clip(
-                self.fitted_RUL+np.cumsum(np.diff(y)),  0, self.fitted_RUL)
+                self.fitted_RUL+time,  0, self.fitted_RUL)
             output.append(y_pred)
         return np.concatenate(output)
 

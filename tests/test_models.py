@@ -1,5 +1,6 @@
+from rul_pm.models.baseline import BaselineModel
 from rul_pm.models.keras.models.simple import FCN
-from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.iterators.iterators import WindowedDatasetIterator, true_values
 from rul_pm.iterators.batcher import Batcher
 import numpy as np
 import pandas as pd
@@ -45,6 +46,37 @@ class MockDataset(AbstractLivesDataset):
     def nlives(self):
         return len(self.lives)
 
+
+
+class MockDataset1(AbstractLivesDataset):
+    def __init__(self, nlives: int):
+
+        self.lives = [
+            pd.DataFrame({
+                'feature1': np.linspace(0, 100, 50),
+                'feature2': np.linspace(-25, 500, 50),
+                'RUL': np.linspace(100, 0, 50)
+            }) for i in range(nlives - 1)
+        ]
+
+        self.lives.append(
+            pd.DataFrame({
+                'feature1': np.linspace(0, 100, 50),
+                'feature2': np.linspace(-25, 500, 50),
+                'feature3': np.linspace(-25, 500, 50),
+                'RUL': np.linspace(5000, 0, 50)
+            }))
+
+    def get_life(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return 'RUL'
+
+    @property
+    def nlives(self):
+        return len(self.lives)
 
 class TestKeras():
     def test_keras(self):
@@ -94,14 +126,60 @@ class TestKeras():
         model = MockModel(learning_rate=0.8)
         model.fit(train_batcher, val_batcher, epochs=50)
         y_pred = model.predict(val_batcher)
-        y_true = model.true_values(val_batcher.iterator)
+        y_true = true_values(val_batcher.iterator)
 
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
-        assert mse < 1
+        assert mse < 2
 
-    def test_models():
+    def test_baselines(self):
+        features = ['feature1', 'feature2']
+        pipe = ByNameFeatureSelector(features)
+        pipe = PandasMinMaxScaler((-1, 1))(pipe)
+        rul_pipe =  ByNameFeatureSelector(['RUL'])
+        transformer = Transformer(
+            pipe.build(),
+            rul_pipe.build()
+        )
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        model = BaselineModel(transformer, mode='mean')
+        model.fit(ds)
+        
+        y_pred = model.predict(ds[[0]])
+        assert np.all(np.diff(y_pred) < 0)
+        
+        
+        y_pred = model.predict(ds)
+        y_true = model.true_values(ds)   
+        
+        assert y_pred.shape[0] == y_true.shape[0]
+
+        assert np.mean(np.abs(y_pred - y_true)) < 0.001
+
+        model = BaselineModel(transformer, mode='median')
+        model.fit(ds)
+
+        y_pred = model.predict(ds)
+        y_true = model.true_values(ds)
+
+        assert y_pred.shape[0] == y_true.shape[0]
+
+        ds = MockDataset1(5)
+        transformer.fit(ds)
+        model = BaselineModel(transformer, mode='mean')
+        model.fit(ds)
+
+        assert model.fitted_RUL > 100
+
+
+        model = BaselineModel(transformer, mode='median')
+        model.fit(ds)
+
+        assert model.fitted_RUL == 100
+
+    def test_models(self):
         features = ['feature1', 'feature2']
         pipe = ByNameFeatureSelector(features)
         pipe = PandasMinMaxScaler((-1, 1))(pipe)
@@ -119,7 +197,7 @@ class TestKeras():
         train_batcher = Batcher.new(train_dataset,
                                         window=1,
                                         step=1,                                        
-                                        batch_size=64,
+                                        batch_size=4,
                                         transformer=transformer,
                                         shuffle='all')
 
@@ -133,15 +211,19 @@ class TestKeras():
 
 
 
-        model = FCN(learning_rate=0.8)
-        model.fit(train_batcher, val_batcher, epochs=50)
+        model = FCN(learning_rate=0.4, 
+                    layers_sizes=[4], 
+                    dropout=0, 
+                    l2=0,
+                    batch_normalization=False)
+        model.fit(train_batcher, val_batcher, epochs=25)
         y_pred = model.predict(val_batcher)
-        y_true = model.true_values(val_batcher.iterator)
+        y_true = true_values(val_batcher.iterator)
 
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
-        assert mse < 1
+        assert mse < 2
 
 
 
@@ -173,7 +255,7 @@ class TestSKLearn():
         
         model.fit(ds_iterator)
         y_pred = model.predict(ds_iterator)
-        y_true = model.true_values(ds_iterator)
+        y_true = true_values(ds_iterator)
 
 
         rmse = np.sqrt(np.mean((y_pred.ravel() - y_true.ravel())**2))
@@ -190,16 +272,16 @@ class TestXGBoost():
             ByNameFeatureSelector(['RUL']).build())
         ds = MockDataset(5)
         transformer.fit(ds)
-        ds_batcher = WindowedDatasetIterator(ds,
+        ds_iterator = WindowedDatasetIterator(ds,
                                              window_size=1,
                                              step=2,
                                              transformer=transformer,
                                              shuffle='all')
         model = XGBoostModel()
 
-        model.fit(ds_batcher)
+        model.fit(ds_iterator)
 
-        y_pred = model.predict(ds_batcher)
-        y_true = model.true_values(ds_batcher)
+        y_pred = model.predict(ds_iterator)
+        y_true = true_values(ds_iterator)
 
         assert np.sum(y_pred - y_true) < 0.001
