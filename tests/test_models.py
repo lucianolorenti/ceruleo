@@ -1,3 +1,4 @@
+from rul_pm.models.keras.models.simple import FCN
 from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.iterators.batcher import Batcher
 import numpy as np
@@ -99,6 +100,49 @@ class TestKeras():
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
         assert mse < 1
+
+    def test_models():
+        features = ['feature1', 'feature2']
+        pipe = ByNameFeatureSelector(features)
+        pipe = PandasMinMaxScaler((-1, 1))(pipe)
+        rul_pipe =  ByNameFeatureSelector(['RUL'])
+        transformer = Transformer(
+            pipe.build(),
+            rul_pipe.build()
+        )
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        train_dataset = ds[range(0,4)]
+        val_dataset = ds[range(4,5)]
+
+
+        train_batcher = Batcher.new(train_dataset,
+                                        window=1,
+                                        step=1,                                        
+                                        batch_size=64,
+                                        transformer=transformer,
+                                        shuffle='all')
+
+        val_batcher = Batcher.new(val_dataset,
+                                window=1,
+                                step=1,
+                                batch_size=64,
+                                transformer=transformer,
+                                shuffle=False,
+                                restart_at_end=False)
+
+
+
+        model = FCN(learning_rate=0.8)
+        model.fit(train_batcher, val_batcher, epochs=50)
+        y_pred = model.predict(val_batcher)
+        y_true = model.true_values(val_batcher.iterator)
+
+
+        mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
+
+        assert mse < 1
+
 
 
 

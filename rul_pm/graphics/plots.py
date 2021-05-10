@@ -192,41 +192,64 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
 
 def cv_boxplot_errors_wrt_RUL_multiple_models(results_dict: dict,
                                               nbins: int,
-                                              y_axis_label=None,
-                                              x_axis_label=None,
+                                              y_axis_label:Optional[str]=None,
+                                              x_axis_label:Optional[str]=None,
                                               fig=None,
                                               ax=None,
                                               **kwargs):
     """Boxplots of difference between true and predicted RUL
     The format of the input should be:
-    {
-        'Model Name': [
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        ]
-    }
+
+    .. highlight:: python
+    .. code-block:: python
+
+        {
+            'Model Name': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            'Model Name 2': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            ]
+        }
 
     Parameters
     ----------
+    results_dict: dict
+                  Dictionary with the results of the fitted models     
     nbins: int
-           Number of boxplots
+           Number of bins to divide the 
+    y_axis_label: Optional[str]. Default None,
+                  Optional string to be added to the y axis
+    x_axis_label: Optional[str]=None
+                  Optional string to be added to the x axis
+    fig:  
+       Optional figure in which the plot will be 
+    ax: Optional. Default None 
+        Optional axis in which the plot will be drawed.
+        If an axis is not provided, it will create one.
+
+    Keyword arguments
+    -----------------
+    **kwargs
+
+    Return
+    -------
+    fig, ax:
     """
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
@@ -311,29 +334,34 @@ def cv_barplot_errors_wrt_RUL_multiple_models(results_dict: dict,
                                               **kwargs):
     """Boxplots of difference between true and predicted RUL
     The format of the input should be:
-    {
-        'Model Name': [
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        ]
-    }
+    
+    .. highlight:: python
+    .. code-block:: python
+
+        {
+            'Model Name': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            'Model Name 2': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            ]
+        }
+    
 
     Parameters
     ----------
@@ -444,29 +472,33 @@ def cv_shadedline_plot_errors_wrt_RUL_multiple_models(results_dict: dict,
                                                       **kwargs):
     """Boxplots of difference between true and predicted RUL
     The format of the input should be:
-    {
-        'Model Name': [
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        ]
-    }
+
+    .. highlight:: python
+    .. code-block:: python
+
+        {
+            'Model Name': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            'Model Name 2': [
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                {
+                    'true': np.array,
+                    'predicted': np.array
+                },
+                ...
+            ]
+        }
 
     Parameters
     ----------

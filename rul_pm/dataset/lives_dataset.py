@@ -1,3 +1,5 @@
+"""The Dataset module provides a light interface to define a PM Dataset
+"""
 from collections.abc import Iterable
 from typing import List, Tuple, Union
 
@@ -6,6 +8,11 @@ import pandas as pd
 
 
 class AbstractLivesDataset:
+    """Base class of the dataset handled by this library.
+
+        Methods for fitting and transform receives an instance
+        that inherit from this class
+    """
     def get_life(self, i: int) -> pd.DataFrame:
         """
 

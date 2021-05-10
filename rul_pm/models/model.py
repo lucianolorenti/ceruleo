@@ -1,5 +1,5 @@
-
 import logging
+from typing import Iterable, Optional
 
 import numpy as np
 from rul_pm.store.store import store
@@ -19,44 +19,70 @@ def json_to_str(elem):
         return str(elem)
 
 
-class TrainableModelInterface:
-    def fit(self, ds):
-        raise NotImplementedError
-
-    def predict(self, df):
-        raise NotImplementedError
-
-
-class TrainableModel(TrainableModelInterface):
+class TrainableModel:
+    """Base class of a trainable model
+    """
     @property
     def name(self):
+        """Name of the model
+
+        Returns
+        -------
+            str: The class name as string
+        """
         return type(self).__name__
 
-    def get_params(self, deep=False):
-        return {
-            'iterator': self.dataset_iterator.get_params(),
-        }
+    def get_params(self, deep:Optional[bool]=False):
+        """Obtain the mdoel params
+
+        Parameters
+        ----------
+        deep: Optiona[bool]. Defaults to False.
+             
+
+        Returns
+        ------.
+        dict: Dictionary with the model parameters
+        """
+        return {}
 
     def set_params(self, **parameters):
         for parameter, value in parameters.items():
             setattr(self, parameter, value)
         return self
 
-    def true_values(self, dataset_iterator):
-        orig_transformer = dataset_iterator.transformer.transformerX
-        dataset_iterator.transformer.transformerX = LivesPipeline(
-            steps=[('empty', 'passthrough')])        
-        d =  np.concatenate([y for _, y, _ in dataset_iterator])
-        dataset_iterator.transformer.transformerX = orig_transformer
-        return d
+    def fit(self,
+            train_dataset: Iterable,
+            *args,
+            validation_dataset: Optional[Iterable]= None,
+            **kwargs):
+        """Abstract method for fitting the model
 
-    def fit(self, train_dataset, validation_dataset, *args, **kwargs):
+        Parameters
+        ----------
+        train_dataset: Iterable 
+                       Train dataset iterator
+        validation_dataset: Optional[Iterable]. Defaults to None.
+                            Validation dataset iterator
+
+        Raises:
+            NotImplementedError: [description]
+        """
         raise NotImplementedError
 
-    def predict(self, df):
+    def predict(self, df:Iterable):
+        """Abstract predict method
+
+        Parameters
+        ----------
+        df: Iterable
+            Iterator of the dataset        
+        """
         raise NotImplementedError
 
     def build_model(self):
+        """Abstract method for building the model        
+        """
         raise NotImplementedError
 
     @property
@@ -67,6 +93,3 @@ class TrainableModel(TrainableModelInterface):
 
     def reset(self):
         pass
-
-
-

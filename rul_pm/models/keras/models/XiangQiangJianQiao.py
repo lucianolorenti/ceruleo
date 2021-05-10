@@ -25,17 +25,6 @@ class XiangQiangJianQiaoModel(KerasTrainableModel):
 
         filter_size : int
 
-        window: int
-
-        batch_size: int
-        step: int
-        transformer
-        shuffle
-        models_path
-        patience: int = 4
-        cache_size: int = 30
-
-
 
     """
 
@@ -60,10 +49,8 @@ class XiangQiangJianQiaoModel(KerasTrainableModel):
                                       amsgrad=True),
             metrics=self.metrics)
 
-    def build_model(self):
-        n_features = self.transformer.n_features
-
-        input = Input(shape=(self.window, n_features))
+    def build_model(self, input_shape):
+        input = Input(shape=input_shape)
         x = input
 
         x = ExpandDimension()(x)

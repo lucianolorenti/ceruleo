@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import tensorflow as tf
 from rul_pm.models.keras.keras import KerasTrainableModel
@@ -64,10 +65,8 @@ class XCM(KerasTrainableModel):
                                       amsgrad=True),
             metrics=self.metrics)
 
-    def build_model(self):
-        n_features = self.transformer.n_features
-
-        input = Input(shape=(self.window, n_features))
+    def build_model(self, input_shape:Tuple[int, int]):
+        input = Input(input_shape)
         x = input
         
         x2d = ExpandDimension()(x)
