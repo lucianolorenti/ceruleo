@@ -211,8 +211,8 @@ class TestKeras():
 
 
 
-        model = FCN(learning_rate=0.4, 
-                    layers_sizes=[4], 
+        model = FCN(learning_rate=0.01, 
+                    layers_sizes=[8, 4], 
                     dropout=0, 
                     l2=0,
                     batch_normalization=False)

@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset, FoldedDataset
+from rul_pm.dataset.CMAPSS import CMAPSSDataset
 
 
 class MockDataset(AbstractLivesDataset):
@@ -59,3 +60,9 @@ class TestDataset():
                           'feature2']].equals(ds[3][['feature1', 'feature2']])
         assert not folded[1][['feature1',
                               'feature2']].equals(ds[3][['feature1', 'feature2']])
+
+    def test_CMAPSSDataset(self):
+        ds = CMAPSSDataset()
+        assert len(ds) == 709
+        life = ds[0]
+        assert len(life.columns) == 29
