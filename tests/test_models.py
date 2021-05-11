@@ -1,10 +1,12 @@
-from rul_pm.models.baseline import BaselineModel
-from rul_pm.models.keras.models.simple import FCN
-from rul_pm.iterators.iterators import WindowedDatasetIterator, true_values
-from rul_pm.iterators.batcher import Batcher
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.iterators.batcher import Batcher
+from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.iterators.utils import true_values
+from rul_pm.models.baseline import BaselineModel
+from rul_pm.models.keras import KerasTrainableModel
+from rul_pm.models.keras.models.simple import FCN
 from rul_pm.models.sklearn import SKLearnModel
 from rul_pm.models.xgboost_ import XGBoostModel
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
@@ -14,7 +16,7 @@ from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
 from sklearn.linear_model import ElasticNet
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Flatten
-from rul_pm.models.keras import KerasTrainableModel                                     
+
 
 class MockDataset(AbstractLivesDataset):
     def __init__(self, nlives: int):
@@ -126,7 +128,7 @@ class TestKeras():
         model = MockModel(learning_rate=0.8)
         model.fit(train_batcher, val_batcher, epochs=50)
         y_pred = model.predict(val_batcher)
-        y_true = true_values(val_batcher.iterator)
+        y_true = true_values(val_batcher)
 
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
@@ -212,13 +214,13 @@ class TestKeras():
 
 
         model = FCN(learning_rate=0.01, 
-                    layers_sizes=[8, 4], 
-                    dropout=0, 
+                    layers_sizes=[16, 8], 
+                    dropout=0.01, 
                     l2=0,
                     batch_normalization=False)
-        model.fit(train_batcher, val_batcher, epochs=25)
+        model.fit(train_batcher, val_batcher, epochs=35)
         y_pred = model.predict(val_batcher)
-        y_true = true_values(val_batcher.iterator)
+        y_true = true_values(val_batcher)
 
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)

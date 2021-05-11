@@ -1,6 +1,6 @@
 import logging
 import random
-from rul_pm.transformation.pipeline import LivesPipeline
+
 from typing import Callable, Optional, Union
 
 import numpy as np
@@ -400,19 +400,3 @@ def windowed_signal_generator(signal_X, signal_y, i: int, window_size: int, outp
     return (signal_X_1, signal_y_1)
 
 
-def true_values(dataset_iterator: WindowedDatasetIterator) -> np.array:
-    """Obtain the true RUL of the dataset after the transformation
-
-    Parameters
-    ----------
-        dataset_iterator: WindowedDatasetIterator 
-                          Iterator of the dataset
-    Returns:
-        np.array: target values after the transformation
-    """
-    orig_transformer = dataset_iterator.transformer.transformerX
-    dataset_iterator.transformer.transformerX = LivesPipeline(
-        steps=[('empty', 'passthrough')])        
-    d =  np.concatenate([y for _, y, _ in dataset_iterator])
-    dataset_iterator.transformer.transformerX = orig_transformer
-    return d
