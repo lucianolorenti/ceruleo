@@ -6,7 +6,8 @@ import seaborn as sns
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.iterators.iterators import LifeDatasetIterator
-from rul_pm.results.results import models_cv_results, unexpected_breaks, unexploited_lifetime
+from rul_pm.results.results import (models_cv_results, unexpected_breaks,
+                                    unexploited_lifetime, FittedLife)
 
 
 def plot_lives(ds: AbstractLivesDataset):
@@ -122,13 +123,14 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
     return fig, ax
 
 
-def cv_boxplot_errors_wrt_RUL_multiple_models(results_dict: dict,
-                                              nbins: int,
-                                              y_axis_label:Optional[str]=None,
-                                              x_axis_label:Optional[str]=None,
-                                              fig=None,
-                                              ax=None,
-                                              **kwargs):
+def cv_boxplot_errors_wrt_RUL_multiple_models(
+        results_dict: dict,
+        nbins: int,
+        y_axis_label: Optional[str] = None,
+        x_axis_label: Optional[str] = None,
+        fig=None,
+        ax=None,
+        **kwargs):
     """Boxplots of difference between true and predicted RUL
     The format of the input should be:
 
@@ -451,38 +453,44 @@ def cv_shadedline_plot_errors_wrt_RUL_multiple_models(results_dict: dict,
         x_axis_label=x_axis_label)
 
 
-
-
-def cv_unexploited_lifetime(results_dict: dict, max_window:int, step:int, ax=None, **kwargs):
+def cv_unexploited_lifetime(results_dict: dict,
+                            max_window: int,
+                            step: int,
+                            ax=None,
+                            **kwargs):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ulft = unexploited_lifetime(results_dict[model_name], max_window, step)
-        ax.plot(m, ulft, label=model_name,  color=colors[i])
+        m, ulft = unexploited_lifetime(results_dict[model_name], max_window,
+                                       step)
+        ax.plot(m, ulft, label=model_name, color=colors[i])
     ax.legend()
     return ax
 
-def cv_unexpected_breaks(results_dict: dict, max_window:int, step:int, ax=None, **kwargs):
+
+def cv_unexpected_breaks(results_dict: dict,
+                         max_window: int,
+                         step: int,
+                         ax=None,
+                         **kwargs):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ub = unexpected_breaks(results_dict[model_name],  max_window, step)
+        m, ub = unexpected_breaks(results_dict[model_name], max_window, step)
         ax.plot(m, ub, label=model_name, color=colors[i])
     ax.legend()
     return ax
 
 
-
-
 def plot_true_and_predicted(results_dict: dict,
-                        ax = None,
-                        units:str= 'Hours [h]',
-                        cv:int = 0,
-                        **kwargs):
+                            ax=None,
+                            units: str = 'Hours [h]',
+                            cv: int = 0,
+                            **kwargs):
     """Plots the predicted and the true remaining useful lifes
 
     Parameters
@@ -504,7 +512,6 @@ def plot_true_and_predicted(results_dict: dict,
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-
     for model_name in results_dict.keys():
         r = results_dict[model_name]
         y_predicted = r[cv]['predicted']
@@ -514,5 +521,18 @@ def plot_true_and_predicted(results_dict: dict,
         ax.set_ylabel(units)
         ax.set_xlabel(units)
         ax.legend()
-    
+
+    return ax
+
+
+def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', **kwargs):
+    if ax is None:
+        _, ax = plt.subplots(1, 1, **kwargs)
+
+    ax.plot(life.y_pred, 'o', label='Predicted', markersize=0.7)
+    ax.plot(life.y_true, label='True')
+    ax.set_ylabel(units)
+    ax.set_xlabel(units)
+    ax.legend()
+
     return ax
