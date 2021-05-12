@@ -13,8 +13,6 @@ setup(
         'tqdm',
         'scikit-learn',
         'seaborn',
-        'python-docx',
-        'savona',
         'xgboost',
         'gwpy',
         'mlflow',

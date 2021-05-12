@@ -1,7 +1,7 @@
 import logging
 import random
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -310,12 +310,13 @@ class WindowedDatasetIterator(DatasetIterator):
     def __len__(self):
         return len(self.elements)
 
+    
     def __getitem__(self, i: int):
         (life, timestamp) = (self.lifes[i], self.elements[i])
         X, y, _ = self._load_data(life)
         window = windowed_signal_generator(
             X, y, timestamp, self.window_size, self.output_size, self.add_last)
-        # return *window, [sample_weight]
+        
         return window[0], window[1], [self.sample_weights[i]]
 
     def at_end(self):
@@ -342,6 +343,32 @@ class WindowedDatasetIterator(DatasetIterator):
             y[i, :] = y_.flatten()
             sample_weight[i] = sample_weight_[0]
         return X, y, sample_weight
+
+    @property
+    def n_features(self) -> int:
+        """Number of features of the transformed dataset
+
+        This is a helper method to obtain the transformed
+        dataset information from the WindowedDatasetIterator
+
+        Returns
+        -------
+        int
+            Number of features of the transformed dataset
+        """
+        return self.transformer.n_features
+
+
+    @property
+    def input_shape(self) -> Tuple[int, int]:
+        """Tuple containing (window_size, n_features)
+
+        Returns
+        -------
+        Tuple[int, int]
+            Tuple containing (window_size, n_features)
+        """
+        return (self.window_size, self.n_features)
 
 
 

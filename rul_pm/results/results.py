@@ -47,6 +47,7 @@ from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
+
 def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
     if tt is None:
         tt = -np.ones(n)
@@ -193,20 +194,6 @@ class CVResults:
             self.mse[fold, j] = np.mean((errors)**2)
 
 
-def regression_metrics(y_true: List[List], y_pred: List[List]):
-    mses = []
-    maes = []
-    for y_true_elem, y_pred_elem in zip(y_true, y_pred):
-        mses.append(mse(y_true_elem, y_pred_elem))
-        maes.append(mae(y_true_elem, y_pred_elem))
-
-    data = np.round([np.mean(mses),
-                     np.std(mses),
-                     np.mean(maes),
-                     np.std(maes)], 2)
-    return pd.Series([f"{data[0]} \pm {data[1]}", f"{data[2]} \pm {data[3]}"])
-
-
 def models_cv_results(results_dict: dict, nbins: int):
     """Create a dictionary with the result of each cross validation of the model
     The format of the input should be:
@@ -276,7 +263,6 @@ class FittedLife:
         self.y_pred = np.squeeze(y_pred)
         self.time = np.hstack(([0], np.cumsum(np.diff(self.y_true[::-1]))))
         self.fitted = self._fitrls()
-        
 
     def _fitrls(self):
         def pred(x, p):
@@ -351,7 +337,7 @@ def split_lives(y_true: np.array, y_pred: np.array) -> List[FittedLife]:
                      [len(y_true)])
     lives = []
     for i in range(len(lives_indices) - 1):
-        r = range(lives_indices[i]+1, lives_indices[i + 1])
+        r = range(lives_indices[i] + 1, lives_indices[i + 1])
         try:
             lives.append(FittedLife(y_true[r], y_pred[r]))
         except Exception as e:
@@ -365,14 +351,13 @@ def split_lives_from_results(d: dict) -> List[FittedLife]:
     return split_lives(y_true, y_pred)
 
 
-
-def unexploited_lifetime(d: dict, window_size:int, step:int):
+def unexploited_lifetime(d: dict, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
     qq = []
     windows = np.array(range(0, window_size, step))
     for m in windows:
-        jj= []
-        for r in  bb:
+        jj = []
+        for r in bb:
             ul_cv_list = [life.unexploited_lifetime(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
@@ -381,16 +366,57 @@ def unexploited_lifetime(d: dict, window_size:int, step:int):
     return windows, qq
 
 
-def unexpected_breaks(d, window_size:int, step:int):
+def unexpected_breaks(d, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
     qq = []
     windows = np.array(range(0, window_size, step))
     for m in windows:
-        jj= []
-        for r in  bb:
-            ul_cv_list = [life.unexpected_break(m) for life  in r]
+        jj = []
+        for r in bb:
+            ul_cv_list = [life.unexpected_break(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
         qq.append(np.mean(jj))
     return windows, qq
+
+
+def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
+    """Compute regression metrics for each model
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with the model predictions.
+        The dictionary must conform the results specification of this module
+    threshold : float, optional
+        Compute metrics errors only in RUL values less than the threshold, by default np.inf
+
+    Returns
+    -------
+    dict
+        A dictionary with the following format
+        ```
+        {
+            'Model 1': {
+                'mean':
+                'std':
+            },
+            ....
+            'Model nane n': {
+                'mean': ,
+                'std': ,
+            }
+        }
+        ```
+    """
+    metrics_dict = {}
+    for m in data.keys():
+        errors = []
+        for r in data[m]:
+            y = np.where(r['true'] <= threshold)[0]
+            y_true = r['true'][y]
+            y_pred = r['predicted'][y]
+            errors.append(mae(y_true, y_pred))
+        metrics_dict[m] = {'mean': np.mean(errors), 'std': np.std(errors)}
+    return metrics_dict
