@@ -20,74 +20,6 @@ def plot_lives(ds: AbstractLivesDataset):
     return fig, ax
 
 
-def plot_errors_wrt_RUL(val_rul,
-                        pred_cont,
-                        treshhold=np.inf,
-                        bins=15,
-                        **kwargs):
-    """
-    Plot errors with respect to the RUL
-
-    Parameters
-    ----------
-    val_rul: np.array
-             Array of true RUL
-
-    pred_cont: np.array
-             Array of predicted RUL
-
-    threshold: float
-             Threshold to use for clipping the RUL
-
-    bins: int
-          Number of bins to partitionate the range of possible RUL
-
-    Returns
-    -------
-    fig: pyplot.Plot
-    ax: pyplot.Axis
-    """
-    indices = np.where(val_rul <= treshhold)
-    _, bin_edges = np.histogram(val_rul[indices], bins=bins)
-    heights = []
-    labels = []
-    xs = []
-    errs = []
-    fig, ax = plt.subplots(1, 1, **kwargs)
-    for i in range(len(bin_edges) - 1):
-        if i < len(bin_edges) - 2:
-            hist_indices = (val_rul >= bin_edges[i]) & (val_rul <
-                                                        bin_edges[i + 1])
-            labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
-        else:
-            hist_indices = (val_rul >= bin_edges[i]) & (val_rul <=
-                                                        bin_edges[i + 1])
-            labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f}]')
-        error = (val_rul[hist_indices] - pred_cont[hist_indices])**2
-        height = np.sqrt(np.mean(error))
-        variance = np.std(error)
-
-        heights.append(height)
-        errs.append(variance)
-        xs.append(i)
-    ax.bar(height=heights, x=xs, tick_label=labels)
-    ax.set_xlabel('RUL')
-    ax.set_ylabel('RMSE')
-    return fig, ax
-
-
-def plot_true_vs_predicted(y_true,
-                           y_predicted,
-                           ylabel: Optional[str] = None,
-                           **kwargs):
-    fig, ax = plt.subplots(1, 1, **kwargs)
-    ax.plot(y_predicted, 'o', label='Predicted', markersize=0.7)
-    ax.plot(y_true, label='True')
-    ax.set_ylabel('Time [h]' if ylabel is None else ylabel)
-    ax.legend()
-    return fig, ax
-
-
 def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     """
     """
@@ -541,4 +473,46 @@ def cv_unexpected_breaks(results_dict: dict, max_window:int, step:int, ax=None, 
         m, ub = unexpected_breaks(results_dict[model_name],  max_window, step)
         ax.plot(m, ub, label=model_name, color=colors[i])
     ax.legend()
+    return ax
+
+
+
+
+def plot_true_and_predicted(results_dict: dict,
+                        ax = None,
+                        units:str= 'Hours [h]',
+                        cv:int = 0,
+                        **kwargs):
+    """Plots the predicted and the true remaining useful lifes
+
+    Parameters
+    ----------
+    results_dict : dict
+        Dictionary with an interface conforming the requirements of the module
+    ax : optional
+        Axis to plot. If it is missing a new figure will be created, by default None
+    units : str, optional
+       Units of time to be used in the axis labels, by default 'Hours [h]'
+    cv : int, optional
+        Number of the CV results, by default 0
+
+    Returns
+    -------
+    ax
+        The axis on which the plot has been made
+    """
+    if ax is None:
+        _, ax = plt.subplots(1, 1, **kwargs)
+
+
+    for model_name in results_dict.keys():
+        r = results_dict[model_name]
+        y_predicted = r[cv]['predicted']
+        y_true = r[cv]['true']
+        ax.plot(y_predicted, 'o', label='Predicted', markersize=0.7)
+        ax.plot(y_true, label='True')
+        ax.set_ylabel(units)
+        ax.set_xlabel(units)
+        ax.legend()
+    
     return ax
