@@ -529,8 +529,9 @@ def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', **kwargs):
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-    ax.plot(life.y_pred, 'o', label='Predicted', markersize=0.7)
-    ax.plot(life.y_true, label='True')
+    time = np.hstack(([0], np.cumsum(np.diff(-life.y_true))))
+    ax.plot(time, life.y_pred, 'o', label='Predicted', markersize=0.7)
+    ax.plot(time, life.y_true, label='True')
     ax.set_ylabel(units)
     ax.set_xlabel(units)
     ax.legend()
