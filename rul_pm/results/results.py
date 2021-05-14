@@ -357,15 +357,15 @@ def split_lives_from_results(d: dict) -> List[FittedLife]:
 
 def unexploited_lifetime(d: dict, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
-    return unexploited_lifetime_from_life_list(bb, window_size, step)
-    
+    return unexploited_lifetime_from_cv(bb, window_size, step)
 
-def unexploited_lifetime_from_life_list(lives: List[FittedLife], window_size: int, n: int):
+
+def unexploited_lifetime_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
-        for r in [lives]:
+        for r in lives:
             ul_cv_list = [life.unexploited_lifetime(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
@@ -376,16 +376,16 @@ def unexploited_lifetime_from_life_list(lives: List[FittedLife], window_size: in
 
 def unexpected_breaks(d, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
-    return unexpected_breaksfrom_life_list(bb, window_size, step)
+    return unexpected_breaks_from_cv(bb, window_size, step)
 
 
 
-def unexpected_breaksfrom_life_list(lives: List[FittedLife], window_size: int, n: int):
+def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
-        for r in [lives]:
+        for r in lives:
             ul_cv_list = [life.unexpected_break(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
