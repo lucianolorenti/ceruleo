@@ -357,7 +357,8 @@ def split_lives_from_results(d: dict) -> List[FittedLife]:
 
 def unexploited_lifetime(d: dict, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
-    return unexploited_lifetime_from_life_list(bb)
+    return unexploited_lifetime_from_life_list(bb, window_size, step)
+    
 
 def unexploited_lifetime_from_life_list(lives: List[FittedLife], window_size: int, n: int):
     qq = []
