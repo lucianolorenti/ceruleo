@@ -399,12 +399,12 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
     return windows, qq
 
 
-def metric_J(lives: List[FittedLife], window_size: int, n: int, q1, q2):
-    qq = []
+def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1, q2):
+    J = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
-        jj = []
-        for r in [lives]:
+        J_of_m = []
+        for r in lives:
             ub_cv_list = np.array([life.unexpected_break(m) for life in r]) 
             ub_cv_list = (ub_cv_list / (np.max(ub_cv_list)+0.0000000001)) * q1
             ul_cv_list = np.array([life.unexploited_lifetime(m) for life in r]) 
@@ -412,9 +412,14 @@ def metric_J(lives: List[FittedLife], window_size: int, n: int, q1, q2):
             values = ub_cv_list + ul_cv_list
             mean_J = np.mean(values)
             std_ul_cv = np.std(values)
-            jj.append(mean_J)
-        qq.append(np.mean(jj))
-    return windows, qq
+            J_of_m.append(mean_J)
+        J.append(np.mean(J_of_m))
+    return windows, J
+
+
+def metric_J(d, window_size: int, step: int):
+    lives_cv = [split_lives_from_results(cv) for cv in d]
+    return metric_J_from_cv(lives_cv, window_size, step)
 
 
 def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
