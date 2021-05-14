@@ -70,7 +70,7 @@ class XCM(KerasTrainableModel):
         x = input
         
         x2d = ExpandDimension()(x)
-        x2d = Conv2D(self.n_filters, (self.filter_window, 1),
+        x2d = Conv2D(self.n_filters, (input_shape[0], 1),
                    padding='same',
                    name='first_conv2d'
                    )(x2d)
@@ -95,7 +95,7 @@ class XCM(KerasTrainableModel):
         
         x2d = RemoveDimension(3)(x2d)
 
-        input = Input(shape=(self.window, n_features))
+        input = Input(shape=(input_shape[0], input_shape[1]))
         x = input
         x = GaussianNoise(0.5)(x)
         x1d =  Conv1D(self.n_filters, self.filter_window,
@@ -133,7 +133,7 @@ class XCM(KerasTrainableModel):
             inputs=[x2d_input, x1d_input],
             outputs=[output]
         )
-        model_input = Input(shape=(self.window, n_features))
+        model_input = Input(shape=(input_shape[0], input_shape[1]))
         conv2d = self.model_fisrt_conv2d(model_input)
         conv1d = self.model_fisrt_conv1d(model_input)
         output = self.model_regression([conv2d, conv1d])
