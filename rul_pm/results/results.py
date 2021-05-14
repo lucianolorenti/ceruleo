@@ -287,6 +287,10 @@ class FittedLife:
     def end_of_life(self):
         return self.y_true[0]
 
+    @property
+    def fitted_slope(self):
+        return self.params[1]
+
     def maintenance_point(self, m: float = 0):
         """[summary]
 
@@ -366,7 +370,8 @@ def unexploited_lifetime_from_cv(lives: List[List[FittedLife]], window_size: int
     for m in windows:
         jj = []
         for r in lives:
-            ul_cv_list = [life.unexploited_lifetime(m) for life in r]
+
+            ul_cv_list = [life.unexploited_lifetime(m) for life in r if life.fitted_slope < 0]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
@@ -386,7 +391,7 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
     for m in windows:
         jj = []
         for r in lives:
-            ul_cv_list = [life.unexpected_break(m) for life in r]
+            ul_cv_list = [life.unexpected_break(m) for life in r if life.fitted_slope < 0]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
