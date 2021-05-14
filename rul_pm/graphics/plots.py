@@ -490,6 +490,7 @@ def plot_true_and_predicted(results_dict: dict,
                             ax=None,
                             units: str = 'Hours [h]',
                             cv: int = 0,
+                            markersize:float = 0.7,
                             **kwargs):
     """Plots the predicted and the true remaining useful lifes
 
@@ -516,7 +517,7 @@ def plot_true_and_predicted(results_dict: dict,
         r = results_dict[model_name]
         y_predicted = r[cv]['predicted']
         y_true = r[cv]['true']
-        ax.plot(y_predicted, 'o', label='Predicted', markersize=0.7)
+        ax.plot(y_predicted, 'o', label='Predicted', markersize=markersize)
         ax.plot(y_true, label='True')
         ax.set_ylabel(units)
         ax.set_xlabel(units)
@@ -525,15 +526,23 @@ def plot_true_and_predicted(results_dict: dict,
     return ax
 
 
-def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', **kwargs):
+def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', markersize:float=0.7, add_fitted:bool=False, **kwargs):
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
     time = np.hstack(([0], np.cumsum(np.diff(-life.y_true))))
-    ax.plot(time, life.y_pred, 'o', label='Predicted', markersize=0.7)
+    ax.plot(time, life.y_pred, 'o', label='Predicted', markersize=markersize)
     ax.plot(time, life.y_true, label='True')
+    if add_fitted:
+        time1 = np.hstack((time, [life.predicted_end_of_life()]))
+        fitted = np.hstack((life.fitted, [0]))
+        ax.plot(time1, np.clip(fitted, 0, np.inf), label='Fitted')
+
+       
     ax.set_ylabel(units)
     ax.set_xlabel(units)
+    _, max = ax.get_ylim()
+    ax.set_ylim(0 - max/10, max)
     ax.legend()
 
     return ax

@@ -277,6 +277,10 @@ class FittedLife:
         self.params = res.params
         return np.array([pred(x, self.params) for x in self.time])
 
+
+    def mae(self):
+        return np.mean(np.abs(self.y_true - self.y_pred))
+
     def predicted_end_of_life(self):
         return -self.params[0] / self.params[1]
 
@@ -353,11 +357,14 @@ def split_lives_from_results(d: dict) -> List[FittedLife]:
 
 def unexploited_lifetime(d: dict, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
+    return unexploited_lifetime_from_life_list(bb)
+
+def unexploited_lifetime_from_life_list(lives: List[FittedLife], window_size: int, n: int):
     qq = []
-    windows = np.array(range(0, window_size, step))
+    windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
-        for r in bb:
+        for r in [lives]:
             ul_cv_list = [life.unexploited_lifetime(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
@@ -368,15 +375,38 @@ def unexploited_lifetime(d: dict, window_size: int, step: int):
 
 def unexpected_breaks(d, window_size: int, step: int):
     bb = [split_lives_from_results(cv) for cv in d]
+    return unexpected_breaksfrom_life_list(bb, window_size, step)
+
+
+
+def unexpected_breaksfrom_life_list(lives: List[FittedLife], window_size: int, n: int):
     qq = []
-    windows = np.array(range(0, window_size, step))
+    windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
-        for r in bb:
+        for r in [lives]:
             ul_cv_list = [life.unexpected_break(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
+        qq.append(np.mean(jj))
+    return windows, qq
+
+
+def metric_J(lives: List[FittedLife], window_size: int, n: int, q1, q2):
+    qq = []
+    windows = np.linspace(0, window_size, n)
+    for m in windows:
+        jj = []
+        for r in [lives]:
+            ub_cv_list = np.array([life.unexpected_break(m) for life in r]) 
+            ub_cv_list = (ub_cv_list / (np.max(ub_cv_list)+0.0000000001)) * q1
+            ul_cv_list = np.array([life.unexploited_lifetime(m) for life in r]) 
+            ul_cv_list = (ul_cv_list / (np.max(ul_cv_list)+0.0000000001)) * q2
+            values = ub_cv_list + ul_cv_list
+            mean_J = np.mean(values)
+            std_ul_cv = np.std(values)
+            jj.append(mean_J)
         qq.append(np.mean(jj))
     return windows, qq
 
