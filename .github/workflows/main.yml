@@ -23,7 +23,8 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install dependencies
-        run: |          
+        run: |   
+          sudo apt-get install -y pandoc       
           pip install --upgrade Pygments sphinx nbsphinx sphinx_rtd_theme pandoc
           make html
         
