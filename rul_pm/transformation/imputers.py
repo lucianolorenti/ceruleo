@@ -11,10 +11,20 @@ logger = logging.getLogger(__name__)
 
 
 class PerColumnImputer(TransformerStepMixin, BaseEstimator, TransformerMixin):
-    """"""
+    """Impute the values of each column
+
+    The imputing is made following this rule:
+        -np.inf -> min
+        np.inf -> max
+        nan -> median
+
+        Parameters
+        ----------
+        name : Optional[str], optional
+            Step name, by default None
+    """
 
     def __init__(self, name: Optional[str] = None):
-
         super().__init__(name)
         self.data_min = None
         self.data_max = None

@@ -1,3 +1,12 @@
+"""
+
+The transformer is a high-level class that hold at least two transformation pipelines
+* One related to the transformation of the input of the model
+* The other related to the target of the model.
+
+Allows accessing the information of the transformed data and is the object that uses the 
+dataset iterators to transform the data before feeding it to the model.
+"""
 import copy
 import logging
 from typing import List, Optional

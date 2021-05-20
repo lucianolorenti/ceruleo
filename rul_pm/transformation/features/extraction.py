@@ -1,221 +1,608 @@
+import itertools
+import logging
+from typing import List, Optional
 
-from math import sqrt
-
+import emd
 import numpy as np
-import numpy.fft as fft
-from numba import float64, jit, objmode, prange
-from numba.experimental import jitclass
-from numba.typed import List
-from numba.types import ListType, unicode_type
-from rul_pm.transformation.features.extraction_frequency import \
-    compute_frequency_features
+import pandas as pd
+from sklearn.base import TransformerMixin
+from rul_pm.transformation.features.extraction_numba import (compute,
+                                                             roll_matrix,
+                                                             stats_order)
+from rul_pm.transformation.features.hurst import hurst_exponent
+from rul_pm.transformation.transformerstep import TransformerStep
+from sklearn.feature_extraction.text import CountVectorizer
 
-spec = [
-    ('n', float64),
-    ('M1', float64),
-    ('M2', float64),
-    ('M3', float64),
-    ('M4', float64),
-
-]
+logger = logging.getLogger(__name__)
 
 
-@jitclass(spec)
-class RunningStats:
+class TimeToPreviousBinaryValue(TransformerStep):
+    """Return a column with increasing number
     """
-    https://www.johndcook.com/blog/skewness_kurtosis/
+    def time_to_previous_event(self, X: pd.DataFrame, c: str):
+        def min_idex(group):
+            if group.iloc[0, 0] == 0:
+                return np.nan
+            else:
+                return np.min(group.index)
+
+        X_c_cumsum = X[[c]].cumsum()
+        min_index = X_c_cumsum.groupby(c).apply(min_idex)
+        X_merged = X_c_cumsum.merge(pd.DataFrame(min_index, columns=['start']),
+                                    left_on=c,
+                                    right_index=True)
+        return X_merged.index - X_merged['start']
+
+    def transform(self, X: pd.DataFrame):
+        new_X = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            new_X[f'ttp_{c}'] = self.time_to_previous_event(X, c)
+        return new_X
+
+
+class Sum(TransformerStep):
     """
-
-    def __init__(self):
-        self.n = 0
-        self.M1 = 0
-        self.M2 = 0
-        self.M3 = 0
-        self.M4 = 0.0
-
-    def add(self, x):
-
-        n1 = self.n
-        self.n += 1
-        delta = x - self.M1
-        delta_n = delta / self.n
-        delta_n2 = delta_n * delta_n
-        term1 = delta * delta_n * n1
-        self.M1 += delta_n
-        self.M4 += (term1 * delta_n2 * (self.n*self.n - 3*self.n + 3) + 6 *
-                    delta_n2 * self.M2 - 4 * delta_n * self.M3)
-        self.M3 += term1 * delta_n * (self.n - 2) - 3 * delta_n * self.M2
-        self.M2 += term1
-
-    @property
-    def mean(self):
-        return self.M1
-
-    @property
-    def var(self):
-        return self.M2/(self.n-1.0)
-
-    @property
-    def std(self):
-        return sqrt(self.var)
-
-    @property
-    def skewness(self):
-        return sqrt(self.n) * self.M3 / (self.M2**1.5)
-
-    @property
-    def kurtosis(self):
-        return (self.n)*self.M4 / (self.M2*self.M2) - 3.0
-
-
-@jit(nopython=True, error_model='numpy')
-def stats_order(time=True, frequency=True):
-    features = []
-
-    if time:
-        features.extend(['max', 'min', 'peak', 'std', 'impulse', 'rms',
-                                'crest', 'shape', 'clearance', 'kurtosis', 'skewness'])
-    if frequency:
-        features.extend(['fft_centroid', 'fft_variance',
-                         'fft_skew', 'fft_kurtosis',
-                         'ps_centroid', 'ps_variance',
-                         'ps_skew', 'ps_kurtosis'])
-    return features
-
-
-@jit(nopython=True, error_model='numpy')
-def running_stat_init():
-    return [0.0, 0.0, 0.0, 0.0, 0.0]
-
-
-@jit(nopython=True, error_model='numpy')
-def add(stats, x):
-    n1 = stats[0]
-    stats[0] += 1
-    delta = x - stats[1]
-    delta_n = delta / stats[0]
-    delta_n2 = delta_n * delta_n
-    term1 = delta * delta_n * n1
-    stats[1] += delta_n
-    stats[4] += (term1 * delta_n2 * (stats[0]*stats[0] - 3*stats[0] + 3) + 6 *
-                 delta_n2 * stats[2] - 4 * delta_n * stats[3])
-    stats[3] += term1 * delta_n * (stats[0] - 2) - 3 * delta_n * stats[2]
-    stats[2] += term1
-
-
-@jit(nopython=True, error_model='numpy')
-def mean(self):
-    return self[0]
-
-
-@jit(nopython=True, error_model='numpy')
-def var(self):
-    return self[2]/(self[0]-1.0)
-
-
-@jit(nopython=True, error_model='numpy')
-def std(self):
-    return sqrt(var(self))
-
-
-@jit(nopython=True, error_model='numpy')
-def skewness(self):
-    return sqrt(self[0]) * self[3] / (self[2]**1.5)
-
-
-@jit(nopython=True, error_model='numpy')
-def kurtosis(self):
-    return (self[0])*self[4] / (self[2]*self[2]) - 3.0
-
-
-@jit(nopython=True, error_model='numpy')
-def compute_time_features(window):
+    Sum each column
     """
-        'max': val_max,
-        'min': val_min,
-        'peak': peak,
-        'std': std,
-        'impulse': peak / mean_abs,
-        'rms': rms,
-        'crest': peak / rms,
-        'shape': rms / mean_abs,
-        'clearance': peak / (maen_abs_sqrt)**2,
-        'kurtosis': stats.kurtosis,
-        'skewness': stats.skewness
+    def __init__(self, column_name: str, name: Optional[str] = None):
+        super().__init__(name)
+        self.column_name = column_name
+
+    def transform(self, X: pd.DataFrame):
+        return pd.DataFrame(X.sum(axis=1), columns=[self.column_name])
+
+
+class Scale(TransformerStep):
     """
+    Scale the dataframe
+    """
+    def __init__(self, scale_factor: float, name: Optional[str] = None):
+        super().__init__(name)
+        self.scale_factor = scale_factor
 
-    val_max = -np.inf
-    val_min = np.inf
-    sum_abs = 0.0
-    sum_vals = 0.0
-    sum_squared = 0.0
-    sum_abs_sqrt = 0.0
-    n = 0
-    stats = running_stat_init()
-    for i in range(len(window)):
-        if np.isnan(window[i]):
-            continue
-        val_max = max(val_max, window[i])
-        val_min = min(val_min, window[i])
-        sum_vals += window[i]
-        sum_abs += abs(window[i])
-        sum_squared += window[i]**2
-        sum_abs_sqrt += sqrt(abs(window[i]))
-        add(stats, window[i])
-        n += 1
-
-    mean_val = mean(stats)
-    mean_abs = sum_abs / n
-    mean_squared = sum_squared / n
-    maen_abs_sqrt = sum_abs_sqrt / n
-
-    std_computed = std(stats)
-
-    rms = sqrt(mean_squared)
-    peak = abs(val_max - val_min)
-
-    data = [
-        val_max,
-        val_min,
-        peak,
-        std_computed,
-        peak / (mean_abs),
-        rms,
-        peak / (rms),
-        rms / (mean_abs),
-        peak / ((maen_abs_sqrt)**2),
-        kurtosis(stats),
-        skewness(stats)
-    ]
-    return data
+    def transform(self, X: pd.DataFrame):
+        return X * self.scale_factor
 
 
-@jit(nopython=True, error_model='numpy')
-def compute(window, time=True, frequency=True):
-    features = []
-    if time:
-        features.extend(compute_time_features(window))
-    if frequency:
-        freq_data = compute_frequency_features(window)
-        features.extend(freq_data)
-    return features
+class SampleNumber(TransformerStep):
+    """Return a column with increasing number
+    """
+    def transform(self, X):
+        df = pd.DataFrame(index=X.index)
+        df['sample_number'] = list(range(X.shape[0]))
+        return df
 
 
-@jit(nopython=True, error_model='numpy')
-def roll_matrix(input, window: int, min_samples: int, output, time=True, frequency=True):
+class ExpandingCentering(TransformerStep):
+    def transform(self, X):
+        return X - X.expanding().mean()
 
-    nrows, ncols = input.shape
 
-    stats = stats_order(time=time, frequency=frequency)
-    number_of_columns = len(stats)
+class ExpandingNormalization(TransformerStep):
+    def transform(self, X):
+        return (X - X.expanding().mean()) / (X.expanding().std())
 
-    for i in range(nrows):
-        if i < min_samples:
-            output[i, :] = np.nan
-            continue
 
-        for c in range(ncols):
-            result = compute(input[max(i-window, 0):i, c],
-                             time=time, frequency=frequency)
-            for j, k in zip(range(c*number_of_columns, (c+1)*number_of_columns), range(len(result))):
-                output[i, j] = result[k]
+class Accumulate(TransformerStep):
+    def transform(self, X):
+        return X.cumsum()
+
+
+class Diff(TransformerStep):
+    def transform(self, X):
+        return X.diff()
+
+
+class OneHotCategoricalPandas(TransformerStep):
+    def __init__(self, feature, name: Optional[str] = None):
+        super().__init__(name)
+        self.feature = feature
+        self.categories = set()
+        self.encoder = None
+
+    def partial_fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def transform(self, X, y=None):
+        categories = sorted(list([c for c in self.categories
+                                  if c is not None]))
+        d = pd.Categorical(X[self.feature], categories=categories)
+
+        df = pd.get_dummies(d)
+        df.index = X.index
+        return df
+
+
+class SimpleEncodingCategorical(TransformerStep):
+    def __init__(self, feature, name: Optional[str] = None):
+        super().__init__(name)
+        self.feature = feature
+        self.categories = set()
+        self.encoder = None
+
+    def partial_fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def fit(self, X, y=None):
+        self.categories.update(set(X[self.feature].unique()))
+        return self
+
+    def transform(self, X, y=None):
+        categories = sorted(list([c for c in self.categories
+                                  if c is not None]))
+        d = pd.Categorical(X[self.feature], categories=categories)
+
+        return pd.DataFrame(d.codes, index=X.index)
+
+
+class LowFrequencies(TransformerStep):
+    def __init__(self, window, name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+
+    def fit(self, X, y=None):
+        return self
+
+    def _low(self, signal, t):
+        a = firwin(self.window + 1,
+                   cutoff=0.01,
+                   window="hann",
+                   pass_zero='lowpass')
+        return lfilter(a, 1, signal)
+
+    def transform(self, X, y=None):
+        cnames = ([f'{c}_low' for c in X.columns])
+        new_X = pd.DataFrame(np.zeros((len(X.index), len(cnames)),
+                                      dtype=np.float32),
+                             columns=cnames,
+                             index=X.index)
+        for c in X.columns:
+            new_X.loc[:, f'{c}_low'] = self._low(X[c], 0)
+        return new_X
+
+
+class HighFrequencies(TransformerStep):
+    def __init__(self, window, name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+
+    def fit(self, X, y=None):
+        return self
+
+    def _high(self, signal, t):
+        a = firwin(self.window + 1,
+                   cutoff=0.2,
+                   window="hann",
+                   pass_zero='highpass')
+        return lfilter(a, 1, signal)
+
+    def transform(self, X, y=None):
+        cnames = [f'{c}_high' for c in X.columns]
+        new_X = pd.DataFrame(np.zeros((len(X.index), len(cnames)),
+                                      dtype=np.float32),
+                             columns=cnames,
+                             index=X.index)
+        for c in X.columns:
+            new_X.loc[:, f'{c}_high'] = self._high(X[c], 0)
+        return new_X
+
+
+class MedianFilter(TransformerStep):
+    def __init__(self,
+                 window: int,
+                 min_periods: int = 15,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+        self.min_periods = min_periods
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        return X.rolling(self.window, min_periods=self.min_periods).median()
+
+
+def rolling_kurtosis(s: pd.Series, window, min_periods):
+    return s.rolling(window, min_periods=min_periods).kurt(skipna=True)
+
+
+class LifeStatistics(TransformerStep):
+    """Extract statistic from a life
+
+    It returns a 1 row with the statistics computed for every feature
+
+    Parameters
+    ----------
+    to_compute : Optional[List[str]], optional
+        Features to compute, by default [
+            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest'
+        ]
+    name : Optional[str], optional
+        Name of the step, by default None
+
+    Raises
+    ------
+    ValueError
+        [description]
+    """
+    def __init__(self, to_compute: Optional[List[str]]=None, name: Optional[str] = None):
+
+        super().__init__(name)
+        valid_stats = [
+            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest'
+        ]
+        if to_compute is None:
+            self.to_compute = [
+                'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+                'clearance', 'rms', 'shape', 'crest'
+            ]
+        else:
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}'
+                    )
+            self.to_compute = to_compute
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
+
+    def _kurtosis(self, s: pd.Series):
+        return s.kurt(skipna=True)
+
+    def _skewness(self, s: pd.Series):
+        return s.skew(skipna=True)
+
+    def _max(self, s: pd.Series):
+        return s.max(skipna=True)
+
+    def _min(self, s: pd.Series):
+        return s.min(skipna=True)
+
+    def _std(self, s: pd.Series):
+        return s.std(skipna=True)
+
+    def _peak(self, s: pd.Series):
+        return (s.max(skipna=True) - s.min(skipna=True))
+
+    def _impulse(self, s: pd.Series):
+        return self._peak(s) / s.abs().mean()
+
+    def _clearance(self, s: pd.Series):
+        return (self._peak(s) / s.abs().pow(1. / 2).mean())**2
+
+    def _rms(self, s: pd.Series):
+        return (np.sqrt(s.pow(2).mean(skipna=True)))
+
+    def _shape(self, s: pd.Series):
+        return self._rms(s) / s.abs().mean(skipna=True)
+
+    def _crest(self, s: pd.Series):
+        return self._peak(s) / self._rms(s)
+
+    def transform(self, X):
+        X_new = pd.DataFrame(index=[0])
+        for c in X.columns:
+            for stats in self.to_compute:
+                X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
+        return X_new
+
+
+class RollingStatistics(TransformerStep):
+    def __init__(self,
+                 window,
+                 step=1,
+                 min_periods: int = 15,
+                 time: bool = True,
+                 frequency: bool = True,
+                 select_features: Optional[list] = None,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+        self.min_periods = min_periods
+        self.step = step
+        self.fs = 1
+        self.time = time
+        self.frequency = frequency
+        self.select_features = select_features
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+
+        columns = []
+        stat_columns_dict = {}
+        for column in X.columns:
+            for stat in stats_order(time=self.time, frequency=self.frequency):
+                new_cname = f'{column}_{stat}'
+                stat_columns_dict.setdefault(column, []).append(len(columns))
+                columns.append(new_cname)
+
+        X_new = pd.DataFrame(np.zeros((len(X.index), len(columns))),
+                             index=X.index,
+                             columns=columns,
+                             dtype=np.float32)
+        X_values = X.values
+        X_new_values = X_new.values
+        roll_matrix(X_values,
+                    self.window,
+                    self.min_periods,
+                    X_new_values,
+                    time=self.time,
+                    frequency=self.frequency)
+        if self.select_features:
+            selected_columns = []
+            for c in X_new.columns:
+                for f in self.select_features:
+                    if f in c:
+                        selected_columns.append(c)
+                        break
+
+            X_new = X_new.loc[:, selected_columns]
+
+        return X_new
+
+
+class RollingStatistics1(TransformerStep):
+    def __init__(self,
+                 window: int = 15,
+                 min_points=2,
+                 to_compute=None,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        self.window = window
+        self.min_points = min_points
+        valid_stats = [
+            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest'
+        ]
+        if to_compute is None:
+            self.to_compute = [
+                'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+                'clearance', 'rms', 'shape', 'crest'
+            ]
+        else:
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}'
+                    )
+            self.to_compute = to_compute
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
+
+    def _kurtosis(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).kurt(skipna=True)
+
+    def _skewness(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).skew(skipna=True)
+
+    def _max(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).max(skipna=True)
+
+    def _min(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).min(skipna=True)
+
+    def _std(self, s: pd.Series):
+        return s.rolling(self.window, self.min_points).std(skipna=True)
+
+    def _peak(self, s: pd.Series):
+        return (s.rolling(self.window, self.min_points).max(skipna=True) -
+                s.rolling(self.window, self.min_points).min(skipna=True))
+
+    def _impulse(self, s: pd.Series):
+        return self._peak(s) / s.abs().rolling(self.window,
+                                               self.min_points).mean()
+
+    def _clearance(self, s: pd.Series):
+        return self._peak(s) / s.abs().pow(1. / 2).rolling(
+            self.window, self.min_points).mean().pow(2)
+
+    def _rms(self, s: pd.Series):
+        return (s.pow(2).rolling(
+            self.window, self.min_points).mean(skipna=True).pow(1 / 2.))
+
+    def _shape(self, s: pd.Series):
+        return self._rms(s) / s.abs().rolling(
+            self.window, self.min_points).mean(skipna=True)
+
+    def _crest(self, s: pd.Series):
+        return self._peak(s) / self._rms(s)
+
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            for stats in self.to_compute:
+                X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
+
+        return X_new
+
+
+class ExpandingStatistics(TransformerStep):
+    def __init__(self,
+                 min_points=2,
+                 to_compute=None,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        self.min_points = min_points
+        valid_stats = [
+            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+            'clearance', 'rms', 'shape', 'crest', 'hurst'
+        ]
+        if to_compute is None:
+            self.to_compute = [
+                'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+                'clearance', 'rms', 'shape', 'crest', 'hurst'
+            ]
+        else:
+            for f in to_compute:
+                if f not in valid_stats:
+                    raise ValueError(
+                        f'Invalid feature to compute {f}. Valids are {valid_stats}'
+                    )
+            self.to_compute = to_compute
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
+
+    def _kurtosis(self, s: pd.Series):
+        return s.expanding(self.min_points).kurt(skipna=True)
+
+    def _skewness(self, s: pd.Series):
+        return s.expanding(self.min_points).skew(skipna=True)
+
+    def _max(self, s: pd.Series):
+        return s.expanding(self.min_points).max(skipna=True)
+
+    def _min(self, s: pd.Series):
+        return s.expanding(self.min_points).min(skipna=True)
+
+    def _std(self, s: pd.Series):
+        return s.expanding(self.min_points).std(skipna=True)
+
+    def _peak(self, s: pd.Series):
+        return (s.expanding(self.min_points).max(skipna=True) -
+                s.expanding(self.min_points).min(skipna=True))
+
+    def _impulse(self, s: pd.Series):
+        return self._peak(s) / s.abs().expanding(self.min_points).mean()
+
+    def _clearance(self, s: pd.Series):
+        return self._peak(s) / s.abs().pow(1. / 2).expanding(
+            self.min_points).mean().pow(2)
+
+    def _hurst(self, s: pd.Series):
+        return s.expanding(min_periods=max(self.min_points, 50)).apply(
+            lambda s: hurst_exponent(s, method='RS'))
+
+    def _rms(self, s: pd.Series):
+        return (s.pow(2).expanding(self.min_points).mean(skipna=True).pow(1 /
+                                                                          2.))
+
+    def _shape(self, s: pd.Series):
+        return self._rms(s) / s.abs().expanding(
+            self.min_points).mean(skipna=True)
+
+    def _crest(self, s: pd.Series):
+        return self._peak(s) / self._rms(s)
+
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            for stats in self.to_compute:
+                X_new[f'{c}_{stats}'] = getattr(self, f'_{stats}')(X[c])
+
+        return X_new
+
+
+class Difference(TransformerStep):
+    def __init__(self,
+                 feature_set1: list,
+                 feature_set2: list,
+                 name: Optional[str] = None):
+        super().__init__(name)
+        if len(feature_set1) != len(feature_set2):
+            raise ValueError(
+                'Feature set 1 and feature set 2 must have the same length')
+        self.feature_set1 = feature_set1
+        self.feature_set2 = feature_set2
+
+    def fit(self, X, y=None):
+        return self
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        new_X = X[self.feature_set1].copy()
+        new_X = (new_X - X[self.feature_set2].values)
+        return new_X
+
+
+class EMD(TransformerStep):
+    def __init__(self, n: int, name: Optional[str] = 'EMD'):
+        super().__init__(name)
+        self.n = n
+
+    def transform(self, X):
+        new_X = pd.DataFrame(index=X.index)
+        for c in X.columns:
+            try:
+                imf = emd.sift.sift(X[c].values, max_imfs=self.n)
+                for j in range(self.n):
+                    if j < imf.shape[1]:
+                        new_X[f'{c}_{j}'] = imf[:, j]
+                    else:
+                        new_X[f'{c}_{j}'] = np.nan
+            except Exception as e:
+                for j in range(self.n):
+                    new_X[f'{c}_{j}'] = np.nan
+
+        return new_X
+
+
+class EMDFilter(TransformerStep):
+    """Filter the signals using Empirical Mode decomposition
+
+    Parameters
+    ----------
+    n: int
+       Number of
+    """
+    def __init__(self, n: int, name: Optional[str] = 'EMD'):
+        super().__init__(name)
+        self.n = n
+
+    def transform(self, X):
+        new_X = pd.DataFrame(index=X.index)
+
+        for c in X.columns:
+            try:
+                imf = emd.sift.sift(X[c].values, max_imfs=self.n)
+                new_X[c] = np.sum(imf[:, 1:], axis=1)
+            except Exception as e:
+                new_X[c] = X[c]
+
+        return new_X
+
+
+class ChangesDetector(TransformerStep):
+    """
+    Compute how many changes there are in a categorical variable
+    ['a', 'a', 'b', 'c] -> [0, 0, 1, 1]
+
+
+    """
+    def transform(self, X):
+        return (X != X.shift(axis=0))
+
+
+class Interactions(TransformerStep):
+    def transform(self, X):
+        X_new = pd.DataFrame(index=X.index)
+        for c1, c2 in itertools.combinations(X.columns, 2):
+            X_new[f'{c1}_{c2}'] = X[c1] * X[c2]
+        return X_new

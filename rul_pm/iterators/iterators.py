@@ -81,7 +81,7 @@ class DatasetIterator:
 
 class LifeDatasetIterator(DatasetIterator):
     """
-    Iteratres over the whole set of lives.
+    Iterates over the whole set of lives.
     Each element returned by the iterator is the complete life of the equipment
 
     Parameters
