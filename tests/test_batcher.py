@@ -6,8 +6,7 @@ from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.batcher import Batcher
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
-from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
-                                                transformation_pipeline)
+from rul_pm.transformation.transformers import (LivesPipeline, Transformer)
 
 
 class MockDataset(AbstractLivesDataset):
@@ -46,12 +45,11 @@ class TestBatcher():
     def test_batcher(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            transformation_pipeline(
-                numericals_pipeline=LivesPipeline(
+            LivesPipeline(
                     steps=[
                         ('ss', ByNameFeatureSelector(features)),
                         ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ])),
+                    ]),
             ByNameFeatureSelector(['RUL']).build()
 
         )

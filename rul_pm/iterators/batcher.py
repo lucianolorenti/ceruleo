@@ -165,8 +165,10 @@ class Batcher:
                 raise StopIteration
         try:
             for _ in range(self.batch_size):
-                X_t, data_t, y_t, sample_weight = next(self.iterator)
-                data.append(np.expand_dims(data_t, axis=0))
+                X_t, y_t, sample_weight = next(self.iterator)
+                if isinstance(X_t, tuple):
+                    X_t, data_t = X_t
+                    data.append(np.expand_dims(data_t, axis=0))
                 X.append(np.expand_dims(X_t, axis=0))
                 y.append(np.expand_dims(y_t, axis=0))
                 sample_weights.append(np.expand_dims(sample_weight, axis=0))
@@ -174,8 +176,13 @@ class Batcher:
         except StopIteration:
             pass
         X = np.concatenate(X, axis=0)
-        data = np.concatenate(data, axis=0)
+        if len(data) > 0:
+            data = np.concatenate(data, axis=0)
         y = np.concatenate(y, axis=0)
         sample_weights = np.concatenate(sample_weights, axis=0)
-        return (X.astype(np.float32), data.astype(np.float32), 
-                y.astype(np.float32), sample_weights)
+        if len(data) == 0:
+            return (X.astype(np.float32),
+                    y.astype(np.float32), sample_weights)
+        else:
+            return (X.astype(np.float32), data.astype(np.float32), 
+                    y.astype(np.float32), sample_weights)

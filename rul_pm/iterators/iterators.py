@@ -321,8 +321,10 @@ class WindowedDatasetIterator(DatasetIterator):
             metadata_i = None 
         else:
             metadata_i = metadata[i]
-
-        return window[0], metadata_i, window[1], [self.sample_weights[i]]
+        if metadata_i is None:
+            return window[0], window[1], [self.sample_weights[i]]
+        else:
+            return (window[0], metadata_i), window[1], [self.sample_weights[i]]
 
     def at_end(self):
         return self.i == len(self.elements)

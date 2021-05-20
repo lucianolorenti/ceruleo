@@ -47,7 +47,7 @@ def keras_batcher(train_batcher, val_batcher):
         n_features = batcher.n_features
 
         def generator_function():
-            for X, _, y, w in batcher:
+            for X, y, w in batcher:
                 yield X, y, w
 
         a = tf.data.Dataset.from_generator(
@@ -76,11 +76,11 @@ def keras_autoencoder_batcher( train_batcher, val_batcher):
     n_features = train_batcher.n_features
 
     def gen_train():
-        for X, _, w in train_batcher:
+        for X, w in train_batcher:
             yield X, X, w
 
     def gen_val():
-        for X, _, w in val_batcher:
+        for X, w in val_batcher:
             yield X, X, w
 
     a = (tf.data.Dataset.from_generator(

@@ -11,8 +11,7 @@ from rul_pm.models.sklearn import SKLearnModel
 from rul_pm.models.xgboost_ import XGBoostModel
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
-from rul_pm.transformation.transformers import (LivesPipeline, Transformer,
-                                                transformation_pipeline)
+from rul_pm.transformation.transformers import (LivesPipeline, Transformer)
 from sklearn.linear_model import ElasticNet
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Flatten
@@ -234,13 +233,10 @@ class TestSKLearn():
     def test_sklearn(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            transformation_pipeline(
-                numericals_pipeline=LivesPipeline(
-                steps=[
+            LivesPipeline(steps =[
                     ('ss', ByNameFeatureSelector(features)), 
                     ('scaler', PandasMinMaxScaler((-1, 1)))
-                    ])
-                ),
+            ]),
             ByNameFeatureSelector(['RUL']).build())
 
         ds = MockDataset(5)
@@ -268,9 +264,10 @@ class TestXGBoost():
     def test_xgboost(self):
         features = ['feature1', 'feature2']
         transformer = Transformer(
-            transformation_pipeline(numericals_pipeline=LivesPipeline(
-                steps=[('ss', ByNameFeatureSelector(features)
-                        ), ('scaler', PandasMinMaxScaler((-1, 1)))])),
+            LivesPipeline(steps =[
+                    ('ss', ByNameFeatureSelector(features)), 
+                    ('scaler', PandasMinMaxScaler((-1, 1)))
+            ]),
             ByNameFeatureSelector(['RUL']).build())
         ds = MockDataset(5)
         transformer.fit(ds)
