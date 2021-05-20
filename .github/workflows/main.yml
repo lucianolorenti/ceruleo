@@ -24,11 +24,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install -y pandoc                 
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip          
           pip install --upgrade Pygments sphinx nbsphinx sphinx_rtd_theme pandoc
           python -m pip install flake8 pytest coverage
           python -m pip install wheel setuptools cython
           python -m pip install tensorflow
+          python -m pip install --upgrade nbconvert
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
           python -m pip install -e $GITHUB_WORKSPACE
 
