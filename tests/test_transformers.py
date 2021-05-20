@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.features.generation import (
+from rul_pm.transformation.features.extraction import (
     EMD, Accumulate, ChangesDetector, Difference, ExpandingStatistics)
 from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
 from rul_pm.transformation.outliers import (EWMAOutlierRemover,

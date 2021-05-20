@@ -107,7 +107,7 @@ class Batcher:
         return self.iterator.transformer.n_features
 
     @property
-    def window_size(self)->int:
+    def window_size(self) -> int:
         """Lookback window size
 
         This is a helper method to obtain the WindowedDatasetIterator
@@ -152,10 +152,8 @@ class Batcher:
         raise ValueError('Invalid step parameter')
 
     def __next__(self):
-        X = []
-        y = []
         data = []
-        sample_weights = []
+
         if self.stop:
             raise StopIteration
         if self.iterator.at_end():
@@ -165,24 +163,15 @@ class Batcher:
                 raise StopIteration
         try:
             for _ in range(self.batch_size):
-                X_t, y_t, sample_weight = next(self.iterator)
-                if isinstance(X_t, tuple):
-                    X_t, data_t = X_t
-                    data.append(np.expand_dims(data_t, axis=0))
-                X.append(np.expand_dims(X_t, axis=0))
-                y.append(np.expand_dims(y_t, axis=0))
-                sample_weights.append(np.expand_dims(sample_weight, axis=0))
-
+                d = next(self.iterator)
+                if len(data) == 0:
+                    for i in range(len(d)):
+                        data.append([])
+                for i, elem in enumerate(d):
+                    data[i].append(np.expand_dims(elem, axis=0))
         except StopIteration:
             pass
-        X = np.concatenate(X, axis=0)
-        if len(data) > 0:
-            data = np.concatenate(data, axis=0)
-        y = np.concatenate(y, axis=0)
-        sample_weights = np.concatenate(sample_weights, axis=0)
-        if len(data) == 0:
-            return (X.astype(np.float32),
-                    y.astype(np.float32), sample_weights)
-        else:
-            return (X.astype(np.float32), data.astype(np.float32), 
-                    y.astype(np.float32), sample_weights)
+        for i, d in enumerate(data):
+            data[i] = (np.concatenate(data[i], axis=0).astype(np.float32))
+
+        return data
