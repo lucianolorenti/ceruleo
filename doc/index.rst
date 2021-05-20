@@ -14,6 +14,10 @@ Welcome to RUL-PM's documentation!
    :caption: Feature Transformation:
 
    reference/feature_transformation/index
+   reference/feature_transformation/transformer
+   reference/feature_transformation/pipeline
+   reference/feature_transformation/step
+   reference/feature_transformation/generation
 
 .. toctree::
    :maxdepth: 2

@@ -1,9 +1,15 @@
 Plot utilities
-=======
+==============
 
+Lives duration charts
+---------------------
 
-Plot functions
---------------
+.. automodule:: rul_pm.graphics.duration
+    :members:
+    :undoc-members:
+
+Model results charts
+--------------------
 
 .. automodule:: rul_pm.graphics.plots
     :members:
