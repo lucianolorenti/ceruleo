@@ -27,6 +27,7 @@ jobs:
           sudo apt-get install -y pandoc       
           pip install --upgrade Pygments sphinx nbsphinx sphinx_rtd_theme pandoc
           make html
+          touch _build/html/.nojekyll
         
 
       - name: Deploy
