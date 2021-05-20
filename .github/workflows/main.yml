@@ -22,24 +22,14 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install wheel setuptools cython
-          python3 -m pip install pdoc3
-          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-        
-        
-      - name: Install package
-        run: python3 -m pip install -e $GITHUB_WORKSPACE
-
-      - name: Generator doc
-        run: python3 -m pdoc --html rul_pm --force
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
 
       - name: Deploy
         uses: s0/git-publish-subdir-action@develop
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: html/rul_pm/
+          FOLDER: docs/_build/html/
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

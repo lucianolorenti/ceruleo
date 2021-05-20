@@ -6,6 +6,65 @@ from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 import pandas as pd
 
+class TransformerStep(BaseEstimator, TransformerMixin):    
+    def __init__(self, name:Optional[str]=None):
+        """TransformerStep is the element that constitute the node of the transformer DAG
+
+        Parameters
+        ----------
+        name : Optional[str], optional
+            Name of the step, by default None
+        """
+        
+        self.name_ = name
+        self.prevs = []
+
+    @property
+    def name(self) -> str:
+        """Name of the step.
+        Useful for debugging
+
+        Returns
+        -------
+        str
+            Name of the step
+        """
+        if self.name_ is not None:
+            return self.name_
+        else:
+
+            return self.__class__.__name__
+
+    def add_prev(self, child):
+        self.prevs.append(child)
+
+    def __call__(self, prev):
+        step = self
+        step.add_prev(prev)
+        return step
+
+    def build(self, parent_pipe: LivesPipeline = None) -> LivesPipeline:
+        if parent_pipe is None:
+            parent_pipe = LivesPipeline(steps=[('initial', 'passthrough')])
+        i = len(parent_pipe.steps) + 1
+        name = self.name
+        parent_pipe.steps.insert(0, (f'{name}_{i}', self))
+        if len(self.prevs) > 0:
+            self.prevs[0].build(parent_pipe=parent_pipe)
+        return parent_pipe
+
+    def partial_fit(self, X, y=None):
+        return self
+
+    def fit(self, X, y=None):
+        return self
+
+    def column_name(self, df: pd.DataFrame, cname: str):
+        columns = [c for c in df.columns if cname in c]
+        if len(columns) == 0:
+            raise ValueError('{cname} is not present in the dataset')
+        return columns[0]
+
 
 class Concatenate:
     def __init__(self, name=None):
@@ -82,48 +141,7 @@ class TransformerStepMixin:
         return parent_pipe
 
 
-class TransformerStep(BaseEstimator, TransformerMixin):
-    def __init__(self, name=None):
-        self.name_ = name
-        self.prevs = []
 
-    @property
-    def name(self):
-        if self.name_ is not None:
-            return self.name_
-        else:
-
-            return self.__class__.__name__
-
-    def add_prev(self, child):
-        self.prevs.append(child)
-
-    def __call__(self, prev):
-        step = self
-        step.add_prev(prev)
-        return step
-
-    def build(self, parent_pipe: LivesPipeline = None) -> LivesPipeline:
-        if parent_pipe is None:
-            parent_pipe = LivesPipeline(steps=[('initial', 'passthrough')])
-        i = len(parent_pipe.steps) + 1
-        name = self.name
-        parent_pipe.steps.insert(0, (f'{name}_{i}', self))
-        if len(self.prevs) > 0:
-            self.prevs[0].build(parent_pipe=parent_pipe)
-        return parent_pipe
-
-    def partial_fit(self, X, y=None):
-        return self
-
-    def fit(self, X, y=None):
-        return self
-
-    def column_name(self, df: pd.DataFrame, cname: str):
-        columns = [c for c in df.columns if cname in c]
-        if len(columns) == 0:
-            raise ValueError('{cname} is not present in the dataset')
-        return columns[0]
 
 
 class TransformerLambda(TransformerStep):

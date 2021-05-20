@@ -41,36 +41,30 @@ class TerminateOnNaN(Callback):
                 self.batcher.stop = True
 
 
+
 def keras_batcher(train_batcher, val_batcher):
-    n_features = train_batcher.n_features
+    def build_batcher(batcher):
+        n_features = batcher.n_features
 
-    def gen_train():
-        for X, y, w in train_batcher:
-            yield X, y, w
+        def generator_function():
+            for X, _, y, w in batcher:
+                yield X, y, w
 
-    def gen_val():
-        for X, y, w in val_batcher:
-            yield X, y, w
+        a = tf.data.Dataset.from_generator(
+            generator_function,
+            output_signature=(
+                tf.TensorSpec(shape=(None, batcher.window_size, n_features), dtype=tf.float32),
+                tf.TensorSpec(shape=(None, batcher.output_shape, 1), dtype=tf.float32),
+                tf.TensorSpec(shape=(None, 1), dtype=tf.float32),
+            ))
 
-    a = (tf.data.Dataset.from_generator(
-        gen_train,
-        (tf.float32, tf.float32, tf.float32),
-        (
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
-            tf.TensorShape([None, train_batcher.output_shape, 1] ),
-            tf.TensorShape([None, 1]))))
-    b = (tf.data.Dataset.from_generator(
-        gen_val,
-        (tf.float32, tf.float32, tf.float32),
-        (
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
-            tf.TensorShape([None, train_batcher.output_shape, 1]),
-            tf.TensorShape([None, 1])))
-         )
-    if train_batcher.prefetch_size is not None:
-        a = a.prefetch(train_batcher.batch_size*2)
-        b = b.prefetch(train_batcher.batch_size*2)
-    return a, b
+
+        if batcher.prefetch_size is not None:
+            a = a.prefetch(batcher.batch_size*2)
+        return a
+
+    return build_batcher(train_batcher), build_batcher(val_batcher)
+
 
 
 def keras_regression_batcher(train_batcher, val_batcher):

@@ -5,9 +5,7 @@ from rul_pm.models.keras.keras import KerasTrainableModel
 from rul_pm.models.keras.layers import ExpandDimension, RemoveDimension
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (Activation, BatchNormalization,
-                                     Concatenate, Conv1D, Conv2D, Dense,
-                                     GaussianNoise,
-                                     Dropout, Flatten, GlobalAveragePooling1D)
+                                     Concatenate, Conv1D, Conv2D, Dense, GlobalAveragePooling1D)
 
 
 class XCM(KerasTrainableModel):
@@ -97,7 +95,6 @@ class XCM(KerasTrainableModel):
 
         input = Input(shape=(input_shape[0], input_shape[1]))
         x = input
-        x = GaussianNoise(0.5)(x)
         x1d =  Conv1D(self.n_filters, self.filter_window,
                    padding='same',
                    )(x)

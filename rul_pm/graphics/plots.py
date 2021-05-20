@@ -546,3 +546,5 @@ def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', markersize:f
     ax.legend()
 
     return ax
+
+

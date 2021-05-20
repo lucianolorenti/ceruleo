@@ -43,6 +43,18 @@ class AbstractLivesDataset:
         """
         raise NotImplementedError
 
+    def durations(self) -> List[float]:
+        """Obtain the length of each life
+
+        Returns
+        -------
+        List[float]
+            List of durations
+        """
+        return [
+            life[self.rul_column].iloc[0] for life in self
+        ]
+
     def __getitem__(self, i: Union[int, Iterable]):
         """Obtain a life or an splice of the dataset using a FoldedDataset
 

@@ -1,17 +1,14 @@
 import copy
 import logging
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from rul_pm.transformation.features.generation import OneHotCategoricalPandas
-from rul_pm.transformation.features.selection import (
-    ByNameFeatureSelector, PandasNullProportionSelector,
-    PandasVarianceThreshold)
+
 from rul_pm.transformation.featureunion import PandasFeatureUnion
 from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.utils.validation import check_is_fitted
-from tqdm.auto import tqdm
+
 
 logger = logging.getLogger(__name__)
 
@@ -19,16 +16,31 @@ RESAMPLER_STEP_NAME = 'resampler'
 
 
 def transformer_info(transformer):
+    """Obtains the transformer information in a serializable format
+
+    Parameters
+    ----------
+    transformer : Union[LivesPipeline, PandasFeatureUnion, TransformerMixin]
+        The transformer step, or pipeline to obtain their underlying information
+
+    Returns
+    -------
+    dict
+
+    Raises
+    ------
+    ValueError
+        If the transformer passed as an argument doesn't have
+        the get_params method.
+    """
     if isinstance(transformer, LivesPipeline):
         return [(name, transformer_info(step))
                 for name, step in transformer.steps]
     elif isinstance(transformer, PandasFeatureUnion):
-        return [
-            ('name', 'FeatureUnion'),
-            ('steps', [(name, transformer_info(step))
-                       for name, step in transformer.transformer_list]),
-            ('transformer_weights', transformer.transformer_weights)
-        ]
+        return [('name', 'FeatureUnion'),
+                ('steps', [(name, transformer_info(step))
+                           for name, step in transformer.transformer_list]),
+                ('transformer_weights', transformer.transformer_weights)]
 
     elif hasattr(transformer, 'get_params'):
         d = transformer.get_params()
@@ -42,89 +54,33 @@ def transformer_info(transformer):
         raise ValueError('Pipeline elements must have the get_params method')
 
 
-def step_is_not_missing(step):
-    return (step if step is not None else 'passthrough')
-
-
-def step_if_argument_is_not_missing(cls, param):
-    return cls(param) if param is not None else 'passthrough'
-
-
-def numericals_pipeline(numerical_features: list = None,
-                        numerical_generator=None, outlier=None, scaler=None,
-                        min_null_proportion=0.3, variance_threshold=0, imputer=None, final=None) -> LivesPipeline:
-    selector = 'passthrough'
-    if numerical_features is not None:
-        selector = ByNameFeatureSelector(numerical_features)
-    return LivesPipeline(
-        steps=[
-            ('selector', selector),
-            ('generator', step_is_not_missing(numerical_generator)),
-            ('outlier_removal', step_is_not_missing(outlier)),
-            ('scaler', step_is_not_missing(scaler)),
-            ('NullProportionSelector', step_if_argument_is_not_missing(
-                PandasNullProportionSelector, min_null_proportion)),
-            ('variance_selector', step_if_argument_is_not_missing(
-                PandasVarianceThreshold, variance_threshold)),
-            ('imputer', step_is_not_missing(imputer)),
-            ('NullProportionSelector_1', step_if_argument_is_not_missing(
-                PandasNullProportionSelector, min_null_proportion)),
-            ('variance_selector_1', step_if_argument_is_not_missing(
-                PandasVarianceThreshold, variance_threshold)),
-            ('final', step_is_not_missing(final))
-        ])
-
-
-def categorial_pipeline(categoricals: list) -> PandasFeatureUnion:
-    return PandasFeatureUnion(
-        [
-            (f'dummy_{c}', OneHotCategoricalPandas(c)) for c in categoricals]
-    )
-
-
-def transformation_pipeline(numericals_pipeline=None,
-                            categorial_pipeline=None,
-                            resampler=None) -> LivesPipeline:
-    main_step = None
-    if categorial_pipeline is not None:
-        main_step = PandasFeatureUnion([
-            ("numerical_transformation", numericals_pipeline),
-            ("categorical_transformation", categorial_pipeline)
-        ])
-    else:
-        main_step = numericals_pipeline
-    return LivesPipeline(steps=[
-        (RESAMPLER_STEP_NAME, step_is_not_missing(resampler)),
-        ('main_step', main_step)
-    ])
-
 
 class Transformer:
-    """
-    Transform each life
+    """Transform each life
+
+    The transformer class is the highest level class of the transformer API.
+    It contains Transformation Pipelines for the input data and the target, 
+    and provides mechanism to inspect the structure of the transformed data.
 
     Parameters
-    ----------   
-    transformerX: LivesPipeline,
-                  Transformer that will be applied to the life data
-    transformerY: LivesPipeline 
-                  Transformer that will be applied to the target.
-    time_feature: str
-                  Column name of the timestamp feature
-
+    ----------
+    transformerX : LivesPipeline
+        Transformer that will be applied to the life data
+    transformerY : LivesPipeline
+        Transformer that will be applied to the target.
+    transformerMetadata : Optional[LivesPipeline], optional
+        Transformer that will be used to extract additional
+        data from the lives information, by default None
     """
-
     def __init__(self,
                  transformerX: LivesPipeline,
                  transformerY: LivesPipeline,
-                 time_feature: Optional[str] = None,
                  transformerMetadata: Optional[LivesPipeline] = None):
 
         self.transformerX = transformerX
         self.transformerY = transformerY
         self.transformerMetadata = transformerMetadata
         self.features = None
-        self.time_feature = time_feature
         self.fitted_ = False
 
     def _process_selected_features(self):
@@ -137,10 +93,25 @@ class Transformer:
         return copy.deepcopy(self)
 
     def fit(self, dataset):
+        """Fit the transformer with a given dataset.
+
+        The transformer will fit the X transformer,
+        the Y transformer and the metadata transformer
+
+        Parameters
+        ----------
+        dataset : AbstractLivesDataset
+            Dataset
+
+        Returns
+        -------
+        self            
+        """
         logger.debug('Fitting Transformer')
         self.transformerX.fit(dataset)
         self.transformerY.fit(dataset)
-        self.fitTransformerMetadata(dataset)
+        if self.transformerMetadata is not None:
+            self.transformerMetadata.fit(dataset)
 
         self.minimal_df = dataset[0].head(n=20)
         X = self.transformerX.transform(self.minimal_df)
@@ -149,14 +120,24 @@ class Transformer:
         self.column_names = self._compute_column_names()
         return self
 
-    def fitTransformerMetadata(self, life: pd.DataFrame):
-        if self.transformerMetadata is not None:
-            if hasattr(self.transformerMetadata, 'partial_fit'):
-                self.transformerMetadata.partial_fit(life)
+    def transform(self, life: pd.DataFrame):
+        """Transform a life and obtain the input data, the target and the metadata
 
-    def transform(self, df: pd.DataFrame):
+        Parameters
+        ----------
+        life : pd.DataFrame
+            A life in a form of a DataFrame
+
+        Returns
+        -------
+        Tuple[np.array, np.array, np.array]
+            * The first element consists of the input transformed
+            * The second element consits of the target transformed
+            * The third element consists of the metadata
+        """
         check_is_fitted(self, 'fitted_')
-        return (self.transformX(df), self.transformY(df), self.transformMetadata(df))
+        return (self.transformX(life), self.transformY(life),
+                self.transformMetadata(life))
 
     def transformMetadata(self, df: pd.DataFrame) -> Optional[any]:
         if self.transformerMetadata is not None:
@@ -164,19 +145,53 @@ class Transformer:
         else:
             return None
 
-    def transformY(self, df):
-        return np.squeeze(
-            self.transformerY.transform(df).values
-        )
+    def transformY(self, life: pd.DataFrame) -> np.array:
+        """Get the transformed target from a life
 
-    def transformX(self, df):
-        return self.transformerX.transform(df).values
+        Parameters
+        ----------
+        life : pd.DataFrame
+            A life in a form of a DataFrame
 
-    def columns(self):
+        Returns
+        -------
+        np.array
+            Target obtained from the life
+        """
+        return np.squeeze(self.transformerY.transform(life).values)
+
+    def transformX(self, life: pd.DataFrame) -> np.array:
+        """Get the transformer input data
+
+        Parameters
+        ----------
+        life : pd.DataFrame
+            A life i an form of a DataFrame
+
+        Returns
+        -------
+        np.array
+            Input data transformed
+        """
+        return self.transformerX.transform(life).values
+
+    def columns(self) -> List[str]:
+        """Columns names after transformation
+
+        Returns
+        -------
+        List[str]
+        """
         return self.column_names
 
-    @ property
-    def n_features(self):
+    @property
+    def n_features(self) -> int:
+        """Number of features after transformation
+
+        Returns
+        -------
+        int            
+        """
         return self.number_of_features_
 
     def _compute_column_names(self):

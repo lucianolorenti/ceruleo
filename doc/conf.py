@@ -30,7 +30,8 @@ author = 'Luciano Lorenti'
 extensions = ['sphinx.ext.autodoc', 
 'sphinx.ext.coverage', 
 'sphinx.ext.napoleon',
-'nbsphinx'
+'nbsphinx',
+'sphinx.ext.autosectionlabel'
 
 ]
 

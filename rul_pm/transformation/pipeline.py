@@ -14,7 +14,30 @@ def transform_given_list(X, steps):
 
 
 class LivesPipeline(Pipeline):
+    """Transformer pipeline 
+
+    Parameters
+    ----------
+    Pipeline : [type]
+        [description]
+    """
     def fit(self, X, y=None, apply_before=None):
+        """Fit the pipeline given a dataset
+
+
+        The fitting procedure works by traversign the 
+        graph by levels, fitting all of the lives in the level i,
+        before fitting the level i+1 
+
+        Parameters
+        ----------
+        X : Dataset
+            Dataset in which fit the data
+        y : [type], optional
+            [description], by default None
+        apply_before : [type], optional
+            [description], by default None
+        """
 
         if not isinstance(X, AbstractLivesDataset):
             super().fit(X, y)
