@@ -3,10 +3,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from rul_pm.transformation.imputers import (ForwardFillImputer,
-                                            PandasMeanImputer,
-                                            PandasMedianImputer,
-                                            PandasRemoveInf)
+from rul_pm.transformation.features.imputers import (ForwardFillImputer,
+                                                     PandasMeanImputer,
+                                                     PandasMedianImputer,
+                                                     PandasRemoveInf)
 
 
 class TestImputers():

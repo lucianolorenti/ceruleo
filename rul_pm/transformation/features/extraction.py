@@ -42,7 +42,7 @@ class TimeToPreviousBinaryValue(TransformerStep):
 
 class Sum(TransformerStep):
     """
-    Sum each column
+    Compute the Sum each column
     """
     def __init__(self, column_name: str, name: Optional[str] = None):
         super().__init__(name)
@@ -53,62 +53,219 @@ class Sum(TransformerStep):
 
 
 class Scale(TransformerStep):
-    """
-    Scale the dataframe
+    """Scale each feature by a given vaulue
+
+    Parameters
+    ----------
+    scale_factor : float
+        Scale factor
+    name : Optional[str], optional
+        Name of the step, by default None
     """
     def __init__(self, scale_factor: float, name: Optional[str] = None):
         super().__init__(name)
         self.scale_factor = scale_factor
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Return the scaled life
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input with the scaled features
+        """
         return X * self.scale_factor
 
 
 class SampleNumber(TransformerStep):
     """Return a column with increasing number
     """
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """Construct a new DataFrame with a single column named called sample_number
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            A new DataFrame with the same index as the input with one column
+            named sample_number that contains and increasing number
+        """
         df = pd.DataFrame(index=X.index)
         df['sample_number'] = list(range(X.shape[0]))
         return df
 
 
 class ExpandingCentering(TransformerStep):
-    def transform(self, X):
+    """Center the life using an expanding window
+
+    .. highlight:: python
+    .. code-block:: python
+
+        X - X.expanding().mean()
+
+    """
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """Transform the live centering it using an expanding window
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input with the 
+            data centered
+        """
         return X - X.expanding().mean()
 
 
 class ExpandingNormalization(TransformerStep):
+    """Normalize the life features using an expanding window
+    
+    .. highlight:: python
+    .. code-block:: python
+
+        (X - X.expanding().mean()) / (X.expanding().std())
+   
+    """
     def transform(self, X):
+        """Transform the live normalized it using an expanding window
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input with the 
+            data normalized
+        """
         return (X - X.expanding().mean()) / (X.expanding().std())
 
 
 class Accumulate(TransformerStep):
-    def transform(self, X):
+    """Compute the accumulated sum of each feature.
+
+    This is useful for binary features to compute count
+    """
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """Transform the input life computing the cumulated sum
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input
+            with the cumulated sum of the features
+        """
         return X.cumsum()
 
 
 class Diff(TransformerStep):
+    """Compute the 1 step difference of each feature.
+    """
     def transform(self, X):
+        """Transform the input life computing the 1 step difference
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input
+            with the difference of the features
+        """
         return X.diff()
 
 
 class OneHotCategoricalPandas(TransformerStep):
-    def __init__(self, feature, name: Optional[str] = None):
+    """Compute a one-hot encoding for a given feature
+
+    Parameters
+    ----------
+    feature : str
+        Feature name from which compute the one-hot encoding
+    name : Optional[str], optional
+        Step name, by default None
+    """
+
+    def __init__(self, feature:str, name: Optional[str] = None):
         super().__init__(name)
         self.feature = feature
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X:pd.DataFrame, y=None):
+        """Compute incrementally the set of possible categories
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        OneHotCategoricalPandas
+            self
+        """
+
         self.categories.update(set(X[self.feature].unique()))
         return self
 
-    def fit(self, X, y=None):
+    def fit(self, X:pd.DataFrame, y=None):
+        """Compute the set of possible categories
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+
+        Returns
+        -------
+        OneHotCategoricalPandas
+            self
+        """
         self.categories.update(set(X[self.feature].unique()))
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X:pd.DataFrame, y=None) ->pd.DataFrame:
+        """Return a new DataFrame with the feature one-hot encoded
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+        y : [type], optional
+            
+
+        Returns
+        -------
+        pd.DataFrame
+            A new dataframe with the same index as the input 
+            with n columns, where n is the number of possible categories
+            of the input column
+        """
         categories = sorted(list([c for c in self.categories
                                   if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
@@ -119,21 +276,70 @@ class OneHotCategoricalPandas(TransformerStep):
 
 
 class SimpleEncodingCategorical(TransformerStep):
-    def __init__(self, feature, name: Optional[str] = None):
+    """Compute a simple numerical encoding for a given feature
+
+    Parameters
+    ----------
+    feature : str
+        Feature name from which compute the simple encoding
+    name : Optional[str], optional
+        Step name, by default None
+    """
+    def __init__(self, feature:str, name: Optional[str] = None):
         super().__init__(name)
         self.feature = feature
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X:pd.DataFrame, y=None):
+        """Compute incrementally the set of possible categories
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        OneHotCategoricalPandas
+            self
+        """
         self.categories.update(set(X[self.feature].unique()))
         return self
 
-    def fit(self, X, y=None):
+    def fit(self, X:pd.DataFrame, y=None):
+        """Compute the set of possible categories
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+
+        Returns
+        -------
+        OneHotCategoricalPandas
+            self
+        """
         self.categories.update(set(X[self.feature].unique()))
         return self
 
     def transform(self, X, y=None):
+        """Return a new DataFrame with the feature  encoded with integer numbers
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+        y : [type], optional
+            
+
+        Returns
+        -------
+        pd.DataFrame
+            A new dataframe with the same index as the input 
+            with 1 column
+        """
         categories = sorted(list([c for c in self.categories
                                   if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
@@ -214,24 +420,46 @@ def rolling_kurtosis(s: pd.Series, window, min_periods):
 
 
 class LifeStatistics(TransformerStep):
-    """Extract statistic from a life
+    """Compute diverse number of features using an expandign window
 
-    It returns a 1 row with the statistics computed for every feature
+    Returns a 1 row with the statistics computed for every feature
+
+
+    The possible features are:
+
+    - Kurtosis 
+    - Skewness
+    - Max
+    - Min
+    - Std
+    - Peak
+    - Impulse
+    - Clearance
+    - RMS
+    - Shape
+    - Crest
+    - Hurst
+
 
     Parameters
     ----------
-    to_compute : Optional[List[str]], optional
-        Features to compute, by default [
+    to_compute : List[str], optional
+        List of the features to compute, by default None
+        Valid values are: 
+
+.. highlight:: python
+.. code-block:: python
+
+        [
             'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
-            'clearance', 'rms', 'shape', 'crest'
+            'clearance', 'rms', 'shape', 'crest', 'hurst'
         ]
+
+
+
     name : Optional[str], optional
         Name of the step, by default None
 
-    Raises
-    ------
-    ValueError
-        [description]
     """
     def __init__(self, to_compute: Optional[List[str]]=None, name: Optional[str] = None):
 
@@ -439,9 +667,42 @@ class RollingStatistics1(TransformerStep):
 
 
 class ExpandingStatistics(TransformerStep):
+    """Compute diverse number of features using an expandign window
+
+    For each feature present in the life a number of feature will be computed for each time stamp
+
+    The possible features are:
+
+    - Kurtosis 
+    - Skewness
+    - Max
+    - Min
+    - Std
+    - Peak
+    - Impulse
+    - Clearance
+    - RMS
+    - Shape
+    - Crest
+    - Hurst
+
+
+    Parameters
+    ----------
+    min_points : int, optional
+        The minimun number of points of the expanding window, by default 2
+    to_compute : List[str], optional
+        List of the features to compute, by default None
+        Valid values are: 
+        'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+        'clearance', 'rms', 'shape', 'crest', 'hurst'    
+    name : Optional[str], optional
+        Name of the step, by default None
+
+    """
     def __init__(self,
                  min_points=2,
-                 to_compute=None,
+                 to_compute:List[str]=None,
                  name: Optional[str] = None):
         super().__init__(name)
         self.min_points = min_points
@@ -519,6 +780,23 @@ class ExpandingStatistics(TransformerStep):
 
 
 class Difference(TransformerStep):
+    """Compute the difference between two set of features
+
+    .. highlight:: python
+    .. code-block:: python
+
+        X[features1] - X[features2]
+
+    Parameters
+    ----------
+    feature_set1 : list
+        Feature list of the first group to substract
+    feature_set2 : list
+        Feature list of the second group to substract
+    name : Optional[str], optional
+        Name of the step, by default None    
+    
+    """
     def __init__(self,
                  feature_set1: list,
                  feature_set2: list,
@@ -529,14 +807,13 @@ class Difference(TransformerStep):
                 'Feature set 1 and feature set 2 must have the same length')
         self.feature_set1 = feature_set1
         self.feature_set2 = feature_set2
+        self.feature_names_computed = False
 
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        if not self.feature_names_computed:
+            self.feature_set1 = [self.column_name(X, c) for c in self.feature_set1]
+            self.feature_set2 = [self.column_name(X, c) for c in self.feature_set2]
+            feature_names_computed = True
         new_X = X[self.feature_set1].copy()
         new_X = (new_X - X[self.feature_set2].values)
         return new_X
@@ -590,11 +867,8 @@ class EMDFilter(TransformerStep):
 
 
 class ChangesDetector(TransformerStep):
-    """
-    Compute how many changes there are in a categorical variable
+    """Compute how many changes there are in a categorical variable
     ['a', 'a', 'b', 'c] -> [0, 0, 1, 1]
-
-
     """
     def transform(self, X):
         return (X != X.shift(axis=0))

@@ -1,22 +1,24 @@
 
 from typing import List
+
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.stats
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.features.extraction import (
-    EMD, Accumulate, ChangesDetector, Difference, ExpandingStatistics)
-from rul_pm.transformation.features.selection import NullProportionSelector, ByNameFeatureSelector
-from rul_pm.transformation.outliers import (EWMAOutlierRemover,
-                                            IQROutlierRemover,
-                                            EWMAOutOfRange,
-                                            ZScoreOutlierRemover)
-from rul_pm.transformation.resamplers import SubSampleTransformer
+from rul_pm.transformation.features.extraction import (EMD, Accumulate,
+                                                       ChangesDetector,
+                                                       Difference,
+                                                       ExpandingStatistics, OneHotCategoricalPandas, SimpleEncodingCategorical)
+from rul_pm.transformation.features.outliers import (EWMAOutlierRemover,
+                                                     EWMAOutOfRange,
+                                                     IQROutlierRemover,
+                                                     ZScoreOutlierRemover)
+from rul_pm.transformation.features.resamplers import SubSampleTransformer
+from rul_pm.transformation.features.selection import (ByNameFeatureSelector,
+                                                      NullProportionSelector)
 from rul_pm.transformation.target import PicewiseRULThreshold
 
-import scipy.stats
-import pandas as pd
-import numpy as np
 
 def manual_expanding(df: pd.DataFrame, min_points:int= 1):
     to_compute = ['kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
@@ -371,6 +373,62 @@ class TestGenerators:
         #transformer.fit(ds)
         #new_life = transformer.transform(ds[-1])
         
+
+    def test_encodings(self):
+        df = pd.DataFrame({
+            'a': ['c1', 'c2', 'c3', 'c1', 'c3'],
+            'b': [1,1,1,1,1],            
+        })
+        df1 = pd.DataFrame({
+            'a': ['c1', 'c1', 'c2', 'c1', 'c4'],
+            'b': [1,1,1,1,1],             
+        })
+        df2 = pd.DataFrame({
+            'a': ['c1', 'c1', 'c1', 'c3', 'c2'],
+            'b': [1,1,1,1,1],             
+        })
+        df3 = pd.DataFrame({
+            'a': ['c1', 'c1', 'c1', 'c3', 'c5'],
+            'b': [1,1,1,1,1],             
+        })
+        transformer = OneHotCategoricalPandas('a')
+        transformer.partial_fit(df)
+        transformer.partial_fit(df1)
+
+        df_t = transformer.transform(df2)
+        df_true = pd.DataFrame({
+            'c1':[1,1,1,0,0],
+            'c2':[0,0,0,0,1],
+            'c3':[0,0,0,1,0],
+            'c4':[0,0,0,0,0]
+        })
+
+        assert (df_t == df_true).all().all()
+
+        df_t = transformer.transform(df3)
+        df_true = pd.DataFrame({
+            'c1':[1,1,1,0,0],
+            'c2':[0,0,0,0,0],
+            'c3':[0,0,0,1,0],
+            'c4':[0,0,0,0,0]
+        })
+        assert (df_t == df_true).all().all()
+
+
+        transformer = SimpleEncodingCategorical('a')
+        transformer.partial_fit(df)
+        transformer.partial_fit(df1)
+
+        df_t = transformer.transform(df2)
+        df_true = pd.DataFrame([0,0,0,2,1])
+        assert (df_true == df_t).all().all()
+
+        df_t = transformer.transform(df3)
+        df_true = pd.DataFrame([0,0,0,2,-1])
+        assert (df_true == df_t).all().all()
+
+
+
 
     def test_Difference(self):
 

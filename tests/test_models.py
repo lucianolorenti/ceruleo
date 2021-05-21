@@ -144,7 +144,7 @@ class TestKeras():
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
-        assert mse < 2
+        assert mse < 3
 
     def test_baselines(self):
         features = ['feature1', 'feature2']
@@ -236,7 +236,7 @@ class TestKeras():
 
         mse = np.mean((y_pred.ravel() - y_true.ravel())**2)
 
-        assert mse < 2
+        assert mse < 3
 
 
 
