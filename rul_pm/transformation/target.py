@@ -24,9 +24,9 @@ class HealthPercentage(TransformerStep):
 
 
 class PicewiseRUL(TransformerStep):
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, max_life:float =np.inf, name: Optional[str] = None):
         super().__init__(name)
-        self.max_life = np.inf
+        self.max_life = max_life
 
     def transform(self, X):
         return np.clip(X, 0, self.max_life)
@@ -41,23 +41,6 @@ class PicewiseRULQuantile(PicewiseRUL):
         self.max_life = np.quantile(X, self.quantile)
         return self
 
-
-class PicewiseRULThreshold(PicewiseRUL):
-    """
-    Clip the RUL by a predefined threshold
-
-    target = np.min(target, max_life)
-
-    Parameters
-    ----------
-    max_life:float
-
-
-    """
-
-    def __init__(self, max_life: float, name: Optional[str] = None):
-        super().__init__(name)
-        self.max_life = max_life
 
 
 class TTEBinarizer(BaseEstimator, TransformerMixin):

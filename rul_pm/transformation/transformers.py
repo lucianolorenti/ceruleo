@@ -205,7 +205,6 @@ class Transformer:
 
     def _compute_column_names(self):
         temp = self.transformerX.steps[-1]
-        self.transformerX.steps[-1] = ('empty', 'passthrough')
         cnames = self.transformerX.transform(self.minimal_df).columns.values
         self.transformerX.steps[-1] = temp
         return cnames

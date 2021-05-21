@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Iterable, Optional
 
 import numpy as np
@@ -20,8 +21,8 @@ def json_to_str(elem):
 
 
 class TrainableModel:
-    """Base class of a trainable model
-    """
+    """Base class of a trainable model"""
+
     @property
     def name(self):
         """Name of the model
@@ -32,13 +33,13 @@ class TrainableModel:
         """
         return type(self).__name__
 
-    def get_params(self, deep:Optional[bool]=False):
+    def get_params(self, deep: Optional[bool] = False):
         """Obtain the mdoel params
 
         Parameters
         ----------
         deep: Optiona[bool]. Defaults to False.
-             
+
 
         Returns
         ------.
@@ -51,16 +52,18 @@ class TrainableModel:
             setattr(self, parameter, value)
         return self
 
-    def fit(self,
-            train_dataset: Iterable,
-            *args,
-            validation_dataset: Optional[Iterable]= None,
-            **kwargs):
+    def fit(
+        self,
+        train_dataset: Iterable,
+        *args,
+        validation_dataset: Optional[Iterable] = None,
+        **kwargs
+    ):
         """Abstract method for fitting the model
 
         Parameters
         ----------
-        train_dataset: Iterable 
+        train_dataset: Iterable
                        Train dataset iterator
         validation_dataset: Optional[Iterable]. Defaults to None.
                             Validation dataset iterator
@@ -70,19 +73,18 @@ class TrainableModel:
         """
         raise NotImplementedError
 
-    def predict(self, df:Iterable):
+    def predict(self, df: Iterable):
         """Abstract predict method
 
         Parameters
         ----------
         df: Iterable
-            Iterator of the dataset        
+            Iterator of the dataset
         """
         raise NotImplementedError
 
     def build_model(self):
-        """Abstract method for building the model        
-        """
+        """Abstract method for building the model"""
         raise NotImplementedError
 
     @property
@@ -93,3 +95,6 @@ class TrainableModel:
 
     def reset(self):
         pass
+
+    def save(self, file: Path):
+        raise NotImplementedError

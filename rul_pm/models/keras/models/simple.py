@@ -85,26 +85,10 @@ class ConvolutionalSimple(KerasTrainableModel):
                  layers_sizes,
                  dropout,
                  l2,
-                 window,
-                 batch_size,
-                 step,
-                 transformer,
-                 shuffle,
-                 models_path,
-                 patience=4,
-                 cache_size=30,
                  padding='same',
                  activation='relu',
                  learning_rate=0.001):
-        super(ConvolutionalSimple, self).__init__(window,
-                                                  batch_size,
-                                                  step,
-                                                  transformer,
-                                                  shuffle,
-                                                  models_path,
-                                                  patience=4,
-                                                  cache_size=30,
-                                                  learning_rate=learning_rate)
+        super(ConvolutionalSimple, self).__init__(learning_rate=learning_rate)
         self.layers_ = []
         self.layers_sizes = layers_sizes
         self.dropout = dropout
@@ -112,10 +96,9 @@ class ConvolutionalSimple(KerasTrainableModel):
         self.padding = padding
         self.activation = activation
 
-    def build_model(self):
+    def build_model(self, input_shape):
         s = Sequential()
-        n_features = self.transformer.n_features
-        s.add(Input((self.window, n_features)))
+        s.add(Input(input_shape))
         for filters, kernel_size in self.layers_sizes:
             s.add(
                 Conv1D(filters=filters,
@@ -151,22 +134,8 @@ class SimpleRecurrent(KerasTrainableModel):
                  layers,
                  recurrent_type: str,
                  dropout: float,
-                 window: int,
-                 batch_size: int,
-                 step: int,
-                 transformer,
-                 shuffle,
-                 models_path,
-                 patience: int = 4,
-                 cache_size: int = 30):
-        super(SimpleRecurrent, self).__init__(window,
-                                              batch_size,
-                                              step,
-                                              transformer,
-                                              shuffle,
-                                              models_path,
-                                              patience=4,
-                                              cache_size=30)
+                 **kwargs):
+        super(SimpleRecurrent, self).__init__(**kwargs)
         self.layers = layers
         self.recurrent_type = recurrent_type
         self.dropout = dropout

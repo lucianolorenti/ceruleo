@@ -177,3 +177,4 @@ class MultiDimensionalKMeans(TransformerStep):
         X = X.copy()
         X[:] = self.clusters.cluster_centers_[self.clusters.predict(X)]
         return X
+

@@ -1,13 +1,62 @@
-from  tensorflow.keras.callbacks import Callback
+import logging
+from pathlib import Path
 
-class PredictionCallback(Callback):    
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from rul_pm.graphics.plots import plot_true_and_predicted
+from rul_pm.models.keras.keras import KerasTrainableModel
+from tensorflow.keras.callbacks import Callback
+
+logger = logging.getLogger(__name__)
+
+
+class PredictionCallback(Callback):
+    """Generate a plot after each epoch with the predictions
+
+    Parameters
+    ----------
+    model : KerasTrainableModel
+        The model used predict
+    output_path : Path
+        Path of the output image
+    dataset : [type]
+        The dataset that want to be plotted
+    """
+
+    def __init__(self, model: KerasTrainableModel, output_path: Path, dataset):
+
+        super().__init__()
+        self.output_path = output_path
+        self.dataset = dataset
+        self.model = model
+
     def on_epoch_end(self, epoch, logs={}):
-        
-        y_pred = model.predict(validation_dataset)
-        y_true = model.true_values(validation_dataset)
-        fig, ax = plot_true_vs_predicted(y_true, y_pred, figsize=(17, 5), ylabel='Seconds [s]')
-        ax.plot(pd.Series(np.squeeze(y_pred)).rolling(100).mean(), label='Smoothed')
+
+        y_pred = self.model.predict(self.dataset)
+        y_true = self.model.true_values(self.dataset)
+        fig, ax = plot_true_and_predicted(
+            {"Model": [{"true": y_true, "predicted": y_pred}]},
+            figsize=(17, 5)
+        )
         ax.legend()
-        fig.savefig('/home/luciano/aa1.png', dpi=fig.dpi)
-        
+        fig.savefig(self.output_path, dpi=fig.dpi)
+
         plt.close(fig)
+
+
+class TerminateOnNaN(Callback):
+    """Callback that terminates training when a NaN loss is encountered."""
+
+    def __init__(self, batcher):
+        super().__init__()
+        self.batcher = batcher
+
+    def on_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        loss = logs.get("loss")
+        if loss is not None:
+            if np.isnan(loss) or np.isinf(loss):
+                logger.info("Batch %d: Invalid loss, terminating training" % (batch))
+                self.model.stop_training = True
+                self.batcher.stop = True

@@ -22,3 +22,34 @@ Extraction
 .. automodule:: rul_pm.transformation.features.extraction
     :members:
     :undoc-members:
+
+
+Selection
+~~~~~~~~~
+    
+.. automodule:: rul_pm.transformation.features.selection
+    :members:
+    :undoc-members:
+
+
+Scalers
+~~~~~~~~~
+    
+.. automodule:: rul_pm.transformation.features.scalers
+    :members:
+    :undoc-members:
+
+Outliers
+~~~~~~~~~
+    
+.. automodule:: rul_pm.transformation.features.outliers
+    :members:
+    :undoc-members:
+
+
+Transformations
+~~~~~~~~~~~~~~~
+    
+.. automodule:: rul_pm.transformation.features.transformation
+    :members:
+    :undoc-members:

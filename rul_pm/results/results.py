@@ -33,9 +33,10 @@ Example:
 ```
 """
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 import pandas as pd
 import statsmodels.api as sm
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
@@ -60,14 +61,8 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
     return z
 
 
-def preventive_ruls(train_dataset,
-                    test_dataset,
-                    window,
-                    transform=lambda x: x):
-    ruls = [
-        transform(life[test_dataset.rul_column].iloc[0])
-        for life in train_dataset
-    ]
+def preventive_ruls(train_dataset, test_dataset, window, transform=lambda x: x):
+    ruls = [transform(life[test_dataset.rul_column].iloc[0]) for life in train_dataset]
     mean_rul = np.mean(ruls)
     median_rul = np.mean(ruls)
     y_mean_rul = []
@@ -75,31 +70,25 @@ def preventive_ruls(train_dataset,
 
     for life in test_dataset:
         tt = transform(np.diff(life[test_dataset.rul_column][window:]))
-        y_mean_rul.extend(
-            compute_rul_line(mean_rul, life.shape[0] - window + 1, tt))
+        y_mean_rul.extend(compute_rul_line(mean_rul, life.shape[0] - window + 1, tt))
         y_median_rul_z.extend(
-            compute_rul_line(median_rul, life.shape[0] - window + 1, tt))
+            compute_rul_line(median_rul, life.shape[0] - window + 1, tt)
+        )
     return y_mean_rul, y_median_rul_z
 
 
-def summary(y_true,
-            y_pred,
-            train_dataset,
-            test_dataset,
-            window,
-            transform=lambda x: x):
-    y_mean_rul, y_median_rul_z = preventive_ruls(train_dataset, test_dataset,
-                                                 window, transform)
+def summary(y_true, y_pred, train_dataset, test_dataset, window, transform=lambda x: x):
+    y_mean_rul, y_median_rul_z = preventive_ruls(
+        train_dataset, test_dataset, window, transform
+    )
 
     mean_mse = mse(y_true, y_mean_rul)
     median_mse = mse(y_true, y_median_rul_z)
     model_mse = mse(y_true, y_pred)
 
-    return pd.DataFrame({
-        "Model": [model_mse],
-        "Mean RUL": [mean_mse],
-        "Median RUL": [median_mse]
-    })
+    return pd.DataFrame(
+        {"Model": [model_mse], "Mean RUL": [mean_mse], "Median RUL": [median_mse]}
+    )
 
 
 def cv_predictions(
@@ -148,11 +137,13 @@ def cv_predictions(
 
 
 class CVResults:
-    def __init__(self,
-                 y_true: List[List],
-                 y_pred: List[List],
-                 nbins: int = 5,
-                 bin_edges: Optional[np.array] = None):
+    def __init__(
+        self,
+        y_true: List[List],
+        y_pred: List[List],
+        nbins: int = 5,
+        bin_edges: Optional[np.array] = None,
+    ):
         """
         Compute the error histogram
 
@@ -183,15 +174,14 @@ class CVResults:
 
     def _add_fold_result(self, fold: int, y_pred: np.array, y_true: np.array):
         for j in range(len(self.bin_edges) - 1):
-            mask = ((y_true >= self.bin_edges[j]) &
-                    (y_true <= self.bin_edges[j + 1]))
+            mask = (y_true >= self.bin_edges[j]) & (y_true <= self.bin_edges[j + 1])
             indices = np.where(mask)[0]
             if len(indices) == 0:
                 continue
             errors = y_true[indices] - y_pred[indices]
             self.mean_error[fold, j] = np.mean(errors)
             self.mae[fold, j] = np.mean(np.abs(errors))
-            self.mse[fold, j] = np.mean((errors)**2)
+            self.mse[fold, j] = np.mean((errors) ** 2)
 
 
 def models_cv_results(results_dict: dict, nbins: int):
@@ -227,10 +217,13 @@ def models_cv_results(results_dict: dict, nbins: int):
            Number of boxplots
     """
 
-    max_y_value = np.max([
-        r['true'].max() for model_name in results_dict.keys()
-        for r in results_dict[model_name]
-    ])
+    max_y_value = np.max(
+        [
+            r["true"].max()
+            for model_name in results_dict.keys()
+            for r in results_dict[model_name]
+        ]
+    )
     bin_edges = np.linspace(0, max_y_value, nbins + 1)
 
     model_results = {}
@@ -239,12 +232,11 @@ def models_cv_results(results_dict: dict, nbins: int):
         trues = []
         predicted = []
         for results in results_dict[model_name]:
-            trues.append(results['true'])
-            predicted.append(results['predicted'])
-        model_results[model_name] = CVResults(trues,
-                                              predicted,
-                                              nbins=nbins,
-                                              bin_edges=bin_edges)
+            trues.append(results["true"])
+            predicted.append(results["predicted"])
+        model_results[model_name] = CVResults(
+            trues, predicted, nbins=nbins, bin_edges=bin_edges
+        )
 
     return bin_edges, model_results
 
@@ -258,38 +250,117 @@ class FittedLife:
     y_true (np.array): [description]
     y_pred (np.array): [description]
     """
-    def __init__(self, y_true: np.array, y_pred: np.array):
-        self.y_true = np.squeeze(y_true)
-        self.y_pred = np.squeeze(y_pred)
-        self.time = np.hstack(([0], np.cumsum(np.diff(self.y_true[::-1]))))
-        self.fitted = self._fitrls()
 
-    def _fitrls(self):
+    def __init__(
+        self,
+        y_true: np.array,
+        y_pred: np.array,
+        time: Optional[Union[np.array, int]] = None,
+        RUL_threshold: Optional[float] = None,
+    ):
+        y_true = np.squeeze(y_true)
+        y_pred = np.squeeze(y_pred)
+
+        self.degrading_start = self._degrading_start(y_true, RUL_threshold)
+
+        if time is None:
+            self.time = self._compute_time(y_true, self.degrading_start)
+        else:
+            if isinstance(time, np.ndarray):
+                self.time = time
+            else:
+                self.time = np.array(range(0, len(y_true), time))
+
+        self.y_pred_fitted, self.y_pred_params = self._fitrls(
+            y_pred, self.degrading_start
+        )
+        self.y_true_fitted, self.y_true_params = self._fitrls(
+            y_true, self.degrading_start
+        )
+        self.RUL_threshold = RUL_threshold
+        self.y_pred = y_pred
+        self.y_true = y_true
+
+    def _degrading_start(
+        self, y_true: np.array, RUL_threshold: Optional[float] = None
+    ) -> float:
+        """Obtain the index when the life value is lower than the RUL_threshold
+
+        Parameters
+        ----------
+        y_true : np.array
+            Array of true values of the RUL of the life
+        RUL_threshold : float
+
+
+        Returns
+        -------
+        float
+            if RUL_threshold is None, the degradint start if the first index.
+            Otherwise it is the first index in which y_true < RUL_threshold
+        """
+        degrading_start = 0
+        if RUL_threshold is not None:
+            degrading_start_i = np.where(y_true < RUL_threshold)
+            if len(degrading_start_i[0]) > 0:
+                degrading_start = degrading_start_i[0][0]
+        return degrading_start
+
+    def _compute_time(self, y_true: np.array, degrading_start: int) -> np.array:
+        """Compute the passage of time from the true RUL
+
+        The passage of time is computed as the cumulative summ of the first
+        difference of the true labels. In case there are tresholded values,
+        the time steps of the thresholded zone is assumed to be as the median values
+        of the time steps computed of the zones of the life in which we have information.
+
+        Parameters
+        ----------
+        y_true : np.array
+            The true RUL labels
+        degrading_start : int
+            The index in which the true RUL values starts to be lower than the treshold
+
+        Returns
+        -------
+        np.array
+            [description]
+        """
+        time_diff = np.diff(y_true[degrading_start:][::-1])
+        time = np.zeros(len(y_true))
+        if degrading_start > 0:
+            time[0:degrading_start+1] = np.median(time_diff)
+        time[degrading_start+1:] = time_diff
+        return np.cumsum(time)
+
+    def _fitrls(self, y, i):
         def pred(x, p):
             return p[0] + p[1] * x
 
-        N = len(self.y_pred)
+        N = len(y[i:])
         D = np.zeros((2, N))
-        D[1, :] = self.time
         D[0, :] = 1
-        mod = sm.RecursiveLS(self.y_pred, D.T)
+        D[1, :] = self.time[i:]
+        mod = sm.RecursiveLS(y[i:], D.T)
         res = mod.fit()
-        self.params = res.params
-        return np.array([pred(x, self.params) for x in self.time])
+        params = res.params
+        return np.array([pred(x, params) for x in self.time]), params
 
+    def rmse(self) -> float:
+        return np.sqrt(np.mean((self.y_true - self.y_pred) ** 2))
 
-    def mae(self):
+    def mae(self) -> float:
         return np.mean(np.abs(self.y_true - self.y_pred))
 
     def predicted_end_of_life(self):
-        return -self.params[0] / self.params[1]
+        return -self.y_pred_params[0] / self.y_pred_params[1]
 
     def end_of_life(self):
-        return self.y_true[0]
+        return -self.y_true_params[0] / self.y_true_params[1]
 
     @property
     def fitted_slope(self):
-        return self.params[1]
+        return self.y_pred_params[1]
 
     def maintenance_point(self, m: float = 0):
         """[summary]
@@ -306,7 +377,7 @@ class FittedLife:
         """[summary]
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
-        Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015). 
+        Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
         Parameters
         ----------
@@ -324,7 +395,7 @@ class FittedLife:
         """[summary]
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
-        Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015). 
+        Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
         Parameters
         ----------
@@ -334,28 +405,35 @@ class FittedLife:
             float: unexpected breaks
         """
         if self.maintenance_point(m) < self.end_of_life():
-            return 0
+            return False
         else:
-            return 1
+            return True
 
 
-def split_lives(y_true: np.array, y_pred: np.array) -> List[FittedLife]:
-    lives_indices = ([0] +
-                     (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() +
-                     [len(y_true)])
+def split_lives(
+    y_true: np.array,
+    y_pred: np.array,
+    RUL_threshold: Optional[float] = None,
+    time: Optional[int] = None,
+) -> List[FittedLife]:
+    lives_indices = (
+        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() + [len(y_true)]
+    )
     lives = []
     for i in range(len(lives_indices) - 1):
         r = range(lives_indices[i] + 1, lives_indices[i + 1])
-        try:
-            lives.append(FittedLife(y_true[r], y_pred[r]))
-        except Exception as e:
-            logger.error(e)
+        # try:
+        lives.append(
+            FittedLife(y_true[r], y_pred[r], RUL_threshold=RUL_threshold, time=time)
+        )
+        # except Exception as e:
+        #    logger.error(e)
     return lives
 
 
 def split_lives_from_results(d: dict) -> List[FittedLife]:
-    y_true = d['true']
-    y_pred = d['predicted']
+    y_true = d["true"]
+    y_pred = d["predicted"]
     return split_lives(y_true, y_pred)
 
 
@@ -364,14 +442,18 @@ def unexploited_lifetime(d: dict, window_size: int, step: int):
     return unexploited_lifetime_from_cv(bb, window_size, step)
 
 
-def unexploited_lifetime_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
+def unexploited_lifetime_from_cv(
+    lives: List[List[FittedLife]], window_size: int, n: int
+):
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
         for r in lives:
 
-            ul_cv_list = [life.unexploited_lifetime(m) for life in r if life.fitted_slope < 0]
+            ul_cv_list = [
+                life.unexploited_lifetime(m) for life in r if life.fitted_slope < 0
+            ]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
@@ -384,14 +466,15 @@ def unexpected_breaks(d, window_size: int, step: int):
     return unexpected_breaks_from_cv(bb, window_size, step)
 
 
-
 def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
         for r in lives:
-            ul_cv_list = [life.unexpected_break(m) for life in r if life.fitted_slope < 0]
+            ul_cv_list = [
+                life.unexpected_break(m) for life in r if life.fitted_slope < 0
+            ]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
@@ -405,10 +488,10 @@ def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1
     for m in windows:
         J_of_m = []
         for r in lives:
-            ub_cv_list = np.array([life.unexpected_break(m) for life in r]) 
-            ub_cv_list = (ub_cv_list / (np.max(ub_cv_list)+0.0000000001)) * q1
-            ul_cv_list = np.array([life.unexploited_lifetime(m) for life in r]) 
-            ul_cv_list = (ul_cv_list / (np.max(ul_cv_list)+0.0000000001)) * q2
+            ub_cv_list = np.array([life.unexpected_break(m) for life in r])
+            ub_cv_list = (ub_cv_list / (np.max(ub_cv_list) + 0.0000000001)) * q1
+            ul_cv_list = np.array([life.unexploited_lifetime(m) for life in r])
+            ul_cv_list = (ul_cv_list / (np.max(ul_cv_list) + 0.0000000001)) * q2
             values = ub_cv_list + ul_cv_list
             mean_J = np.mean(values)
             std_ul_cv = np.std(values)
@@ -455,9 +538,9 @@ def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
     for m in data.keys():
         errors = []
         for r in data[m]:
-            y = np.where(r['true'] <= threshold)[0]
-            y_true = r['true'][y]
-            y_pred = r['predicted'][y]
+            y = np.where(r["true"] <= threshold)[0]
+            y_true = r["true"][y]
+            y_pred = r["predicted"][y]
             errors.append(mae(y_true, y_pred))
-        metrics_dict[m] = {'mean': np.mean(errors), 'std': np.std(errors)}
+        metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
     return metrics_dict

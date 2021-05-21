@@ -115,8 +115,8 @@ def compute_frequency_features(x):
     data[1] = get_variance(fft_abs)
     data[2] = get_skew(fft_abs)
     data[3] = get_kurtosis(fft_abs)
-    data[4] = get_centroid(fft_abs)
-    data[5] = get_variance(fft_abs)
-    data[6] = get_skew(fft_abs)
-    data[7] = get_kurtosis(fft_abs)
+    data[4] = get_centroid(ps)
+    data[5] = get_variance(ps)
+    data[6] = get_skew(ps)
+    data[7] = get_kurtosis(ps)
     return data

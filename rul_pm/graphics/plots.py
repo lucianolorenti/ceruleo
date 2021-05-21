@@ -530,12 +530,16 @@ def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', markersize:f
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-    time = np.hstack(([0], np.cumsum(np.diff(-life.y_true))))
-    ax.plot(time, life.y_pred, 'o', label='Predicted', markersize=markersize)
-    ax.plot(time, life.y_true, label='True')
+    time = life.time
+    ax.plot(life.time, life.y_pred, 'o', label='Predicted', markersize=markersize)
+    ax.plot(life.time, life.y_true, label='True')
+    if life.y_true[0] > 0:
+        time1 = np.hstack((time[-1], [life.end_of_life()]))
+        fitted = np.hstack((life.y_true_fitted[-1], [0]))
+        ax.plot(time1, np.clip(fitted, 0, np.inf), label='Regressed true')
     if add_fitted:
         time1 = np.hstack((time, [life.predicted_end_of_life()]))
-        fitted = np.hstack((life.fitted, [0]))
+        fitted = np.hstack((life.y_pred_fitted, [0]))
         ax.plot(time1, np.clip(fitted, 0, np.inf), label='Fitted')
 
        

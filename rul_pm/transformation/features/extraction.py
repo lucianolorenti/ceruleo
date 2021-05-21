@@ -42,7 +42,7 @@ class TimeToPreviousBinaryValue(TransformerStep):
 
 class Sum(TransformerStep):
     """
-    Compute the Sum each column
+    Compute the column-wise sum each column
     """
     def __init__(self, column_name: str, name: Optional[str] = None):
         super().__init__(name)
@@ -52,34 +52,7 @@ class Sum(TransformerStep):
         return pd.DataFrame(X.sum(axis=1), columns=[self.column_name])
 
 
-class Scale(TransformerStep):
-    """Scale each feature by a given vaulue
 
-    Parameters
-    ----------
-    scale_factor : float
-        Scale factor
-    name : Optional[str], optional
-        Name of the step, by default None
-    """
-    def __init__(self, scale_factor: float, name: Optional[str] = None):
-        super().__init__(name)
-        self.scale_factor = scale_factor
-
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Return the scaled life
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        pd.DataFrame
-            Return a new DataFrame with the same index as the input with the scaled features
-        """
-        return X * self.scale_factor
 
 
 class SampleNumber(TransformerStep):
@@ -104,98 +77,8 @@ class SampleNumber(TransformerStep):
         return df
 
 
-class ExpandingCentering(TransformerStep):
-    """Center the life using an expanding window
-
-    .. highlight:: python
-    .. code-block:: python
-
-        X - X.expanding().mean()
-
-    """
-    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
-        """Transform the live centering it using an expanding window
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        pd.DataFrame
-            Return a new DataFrame with the same index as the input with the 
-            data centered
-        """
-        return X - X.expanding().mean()
 
 
-class ExpandingNormalization(TransformerStep):
-    """Normalize the life features using an expanding window
-    
-    .. highlight:: python
-    .. code-block:: python
-
-        (X - X.expanding().mean()) / (X.expanding().std())
-   
-    """
-    def transform(self, X):
-        """Transform the live normalized it using an expanding window
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        pd.DataFrame
-            Return a new DataFrame with the same index as the input with the 
-            data normalized
-        """
-        return (X - X.expanding().mean()) / (X.expanding().std())
-
-
-class Accumulate(TransformerStep):
-    """Compute the accumulated sum of each feature.
-
-    This is useful for binary features to compute count
-    """
-    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
-        """Transform the input life computing the cumulated sum
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-        Returns
-        -------
-        pd.DataFrame
-            Return a new DataFrame with the same index as the input
-            with the cumulated sum of the features
-        """
-        return X.cumsum()
-
-
-class Diff(TransformerStep):
-    """Compute the 1 step difference of each feature.
-    """
-    def transform(self, X):
-        """Transform the input life computing the 1 step difference
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-        Returns
-        -------
-        pd.DataFrame
-            Return a new DataFrame with the same index as the input
-            with the difference of the features
-        """
-        return X.diff()
 
 
 class OneHotCategoricalPandas(TransformerStep):
@@ -399,20 +282,7 @@ class HighFrequencies(TransformerStep):
         return new_X
 
 
-class MedianFilter(TransformerStep):
-    def __init__(self,
-                 window: int,
-                 min_periods: int = 15,
-                 name: Optional[str] = None):
-        super().__init__(name)
-        self.window = window
-        self.min_periods = min_periods
 
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X, y=None):
-        return X.rolling(self.window, min_periods=self.min_periods).median()
 
 
 def rolling_kurtosis(s: pd.Series, window, min_periods):
@@ -420,7 +290,7 @@ def rolling_kurtosis(s: pd.Series, window, min_periods):
 
 
 class LifeStatistics(TransformerStep):
-    """Compute diverse number of features using an expandign window
+    """Compute diverse number of features for each life.
 
     Returns a 1 row with the statistics computed for every feature
 
@@ -445,18 +315,9 @@ class LifeStatistics(TransformerStep):
     ----------
     to_compute : List[str], optional
         List of the features to compute, by default None
-        Valid values are: 
-
-.. highlight:: python
-.. code-block:: python
-
-        [
-            'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
-            'clearance', 'rms', 'shape', 'crest', 'hurst'
-        ]
-
-
-
+        Valid values are:
+        'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+        'clearance', 'rms', 'shape', 'crest', 'hurst'
     name : Optional[str], optional
         Name of the step, by default None
 
@@ -520,7 +381,21 @@ class LifeStatistics(TransformerStep):
     def _crest(self, s: pd.Series):
         return self._peak(s) / self._rms(s)
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame)->pd.DataFrame:
+        """Compute features from the given life
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            A new DataFrame with one row with n columns.
+            Let m be the number of features of the life and 
+            f the len(to_compute) ten  where n = m x f, 
+        """
         X_new = pd.DataFrame(index=[0])
         for c in X.columns:
             for stats in self.to_compute:
@@ -528,10 +403,57 @@ class LifeStatistics(TransformerStep):
         return X_new
 
 
-class RollingStatistics(TransformerStep):
+class RollingStatisticsNumba(TransformerStep):
+    """Compute diverse number of features using an rolling window. Numba implementation
+
+    For each feature present in the life a number of feature will be computed for each time stamp
+    Features from time and frequency domain can be computed
+
+    The possible features are:
+
+    Time domain:
+
+    - Kurtosis 
+    - Skewness
+    - Max
+    - Min
+    - Std
+    - Peak
+    - Impulse
+    - Clearance
+    - RMS
+    - Shape
+    - Crest
+    
+    Frequency Domain:
+    
+    - fft_centroid: Centroid of the abscolute FT 
+    - fft_variance: Variance of the abscolute FT 
+    - fft_skew: Skewness of the abscolute FT 
+    - fft_kurtosis: Kurtosis of the abscolute FT 
+    - ps_centroid: Power spectrum centroid
+    - ps_variance: Power spectrum variance
+    - ps_skew: Power spectrum skewness
+    - ps_kurtosis: Power spectrum skewness
+
+    Parameters
+    ----------
+    window:int
+        Size of the rolling window
+    min_periods : int, optional
+        The minimun number of points of the expanding window, by default 15
+    time: bool 
+        Wether to compute time domain features, by default True.
+    frequency: bool = True,
+        Wether to compute frequency domain features, by default True.
+    select_features : Optional[List[Str]], optional
+        Name of features to keep
+    name: Optiona[str]
+        Name of the step, by default None
+
+    """
     def __init__(self,
-                 window,
-                 step=1,
+                 window:int,
                  min_periods: int = 15,
                  time: bool = True,
                  frequency: bool = True,
@@ -540,19 +462,12 @@ class RollingStatistics(TransformerStep):
         super().__init__(name)
         self.window = window
         self.min_periods = min_periods
-        self.step = step
         self.fs = 1
         self.time = time
         self.frequency = frequency
         self.select_features = select_features
 
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
 
         columns = []
         stat_columns_dict = {}
@@ -587,11 +502,46 @@ class RollingStatistics(TransformerStep):
         return X_new
 
 
-class RollingStatistics1(TransformerStep):
+class RollingStatisticsPandas(TransformerStep):
+    """Compute diverse number of features using an rolling window. Pandas implementation
+
+    For each feature present in the life a number of feature will be computed for each time stamp
+
+    The possible features are:
+
+    Time domain:
+
+    - Kurtosis 
+    - Skewness
+    - Max
+    - Min
+    - Std
+    - Peak
+    - Impulse
+    - Clearance
+    - RMS
+    - Shape
+    - Crest
+    
+    Parameters
+    ----------
+    window:int
+        Size of the rolling window
+    min_points : int, optional
+        The minimun number of points of the expanding window, by default 15
+    to_compute : Optional[List[Str]], optional
+        Name of features to compute
+    Possible values are:  
+    'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
+    'clearance', 'rms', 'shape', 'crest'
+    name: Optiona[str]
+        Name of the step, by default None
+
+    """
     def __init__(self,
                  window: int = 15,
                  min_points=2,
-                 to_compute=None,
+                 to_compute: Optional[List[str]]=None,
                  name: Optional[str] = None):
         super().__init__(name)
         self.window = window
@@ -870,12 +820,27 @@ class ChangesDetector(TransformerStep):
     """Compute how many changes there are in a categorical variable
     ['a', 'a', 'b', 'c] -> [0, 0, 1, 1]
     """
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame)->pd.DataFrame:
         return (X != X.shift(axis=0))
 
 
 class Interactions(TransformerStep):
-    def transform(self, X):
+    """Compute pairwise interactions between the features
+    """
+    def transform(self, X:pd.DataFrame)->pd.DataFrame:
+        """Transform the given life computing the iteractions between features
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            A new dataframe with the same index as the input
+            with n*(n-1) / 2 columns with the interactions between the features
+        """
         X_new = pd.DataFrame(index=X.index)
         for c1, c2 in itertools.combinations(X.columns, 2):
             X_new[f'{c1}_{c2}'] = X[c1] * X[c2]
