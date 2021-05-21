@@ -56,12 +56,12 @@ class Batcher:
         batch_size : int
             Batch size
         restart_at_end : bool, optional
-            [description], by default True
+            Whether the Batcher is infinite or not, by default True
 
         Returns
         -------
-        [type]
-            [description]
+        Batcher
+            A new constructed batcher
         """
         iterator = WindowedDatasetIterator(
             dataset,

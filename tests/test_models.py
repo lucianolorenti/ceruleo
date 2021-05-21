@@ -17,6 +17,18 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Flatten
 
 
+import random
+random.seed(42)
+
+
+import numpy as np
+np.random.seed(42)
+
+
+from tensorflow.python.framework import random_seed
+random_seed.set_seed(42)
+
+
 class MockDataset(AbstractLivesDataset):
     def __init__(self, nlives: int):
 
