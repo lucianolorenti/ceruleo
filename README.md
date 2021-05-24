@@ -13,15 +13,14 @@
 
 ## What is it?
 
-**pandas** is a Python package that provides fast, flexible, and expressive data
-structures designed to make working with "relational" or "labeled" data both
-easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
-its way towards this goal.
+**RUL-PM** is a Python package that provides a flexible environment designed to make working with predictive maintenance task both easy and intuitive. (Yes, I stole that from pandas readme)
 
 ## Main Features
+
+* PM dataset handling
+* Feature extraction in a live-wise approach
+* Model fitting for RUL regression on PM datasets.
+* Model evaluation and comparison trough metrics and plots
 
 ## Where to get it
 The source code is currently hosted on GitHub at:
@@ -32,6 +31,4 @@ git clone https://github.com/lucianolorenti/rul_pm
 pip install [-e] rul_pm
 ```
 
-Made with <3 by 
-
-![University of Padova](doc/images/unipd_logo.png "University of Padova")
+Made with <3 @ ![University of Padova](doc/images/unipd_logo.png | width=100)
