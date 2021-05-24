@@ -2,8 +2,7 @@ from rul_pm.dataset.analysis import null_proportion, variance_information
 import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset, FoldedDataset
-from rul_pm.dataset.CMAPSS import CMAPSSDataset
-
+from rul_pm.dataset.CMAPSS import CMAPSSDataset, sensor_indices
 
 class MockDataset(AbstractLivesDataset):
     def __init__(self, nlives: int):
@@ -115,3 +114,18 @@ class TestAnalysis:
 
         df, var_per_life = variance_information(ds)
         assert var_per_life['feature2'][1] == 0
+
+
+
+class TestCMAPSS:
+    def test_CMAPSS(self):
+        train_dataset = CMAPSSDataset(train=True, models=['FD001'])    
+        sensors_from_article = [2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17,20, 21]
+
+        assert len(train_dataset) == 100
+
+        features = np.array([train_dataset[0].columns[i] for i in sensor_indices])
+
+        labels_true = np.array([f'SensorMeasure{f}' for f in sensors_from_article])
+
+        assert (features == labels_true).all()
