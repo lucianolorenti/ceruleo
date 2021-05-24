@@ -31,4 +31,6 @@ git clone https://github.com/lucianolorenti/rul_pm
 pip install [-e] rul_pm
 ```
 
-Made with <3 @ ![University of Padova](doc/images/unipd_logo.png | width=100)
+ Made with <3 @   <a href="https://www.dei.unipd.it/">  
+         <img alt="University of Padova" src="doc/images/unipd_logo.png" width=100 />
+      </a>
