@@ -122,7 +122,7 @@ class LifeDatasetIterator(DatasetIterator):
 
 class WindowedDatasetIterator(DatasetIterator):
     """
-    Iteratres over the whole set of lives using a lookback window.
+    Iterate over the whole set of lives using a lookback window.
 
     Each element returned consists of a sample of the live with the n-previous
     points.
@@ -162,23 +162,28 @@ class WindowedDatasetIterator(DatasetIterator):
                                     |   3    |  1     |  2     |   3    |   1    |   2
 
 
-            * 'all': Everythin is shuffled
+        * 'all': Everything is shuffled
 
-                        Iteration 1: | Life 1 | Life 2 | Life 2 | Life 1 | Life 1 | Life 2
-                                     |   3    | 2      |  1     |   1    |   2    |   3
+            Iteration 1: | Life 1 | Life 2 | Life 2 | Life 1 | Life 1 | Life 2
+                         |   3    | 2      |  1     |   1    |   2    |   3
+
+       * 'ordered': The data points will be fed in RUL decreasing order
+
+            Iteration 1: | Life 2 | Life 1 | Life 2 | Life 1 | Life 2 | Life 1
+                         |   4    | 3      |  3     |   2    |   2    |   1
 
     cache_size: int = CACHE_SIZE
                 Size of the LRU Cache. The size indicates the number of lives to store
 
     evenly_spaced_points: int
-                Determine wether the window should include points in wich
+                Determine wether the window should include points in which
                 the RUL does not have gaps larger than the parameter
 
     sample_weight: str
                    Choose the weight of each sample. Possible values are
                    'equal', 'proportional_to_length'.
-                   If 'equal' is choosed, each sample weights 1,
-                   if 'proportional_to_length' is choosed, each sample
+                   If 'equal' is chosen, each sample weights 1,
+                   if 'proportional_to_length' is chosen, each sample
                    weight 1 / life length
 
     """

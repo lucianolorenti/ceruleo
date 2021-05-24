@@ -37,7 +37,7 @@ class SKLearnModel(TrainableModel):
 
         Keyword arguments
         -----------------
-        kwargs: 
+        kwargs:
             Arguments for the fit method
 
         Returns
@@ -65,7 +65,7 @@ class SKLearnModel(TrainableModel):
         X, _, _ = dataset_iterator.get_data()
         return self.model.predict(X)
 
-    def get_params(self, deep:bool=False)->dict:
+    def get_params(self, deep: bool = False) -> dict:
         """Obtain the model parameters
 
         Parameters
