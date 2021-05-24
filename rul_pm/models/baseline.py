@@ -1,30 +1,35 @@
-from rul_pm.results.results import compute_rul_line
-from rul_pm.models.model import TrainableModel
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from typing import Optional
+
 import numpy as np
+from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from rul_pm.iterators.iterators import LifeDatasetIterator
+from rul_pm.models.model import TrainableModel
+from rul_pm.results.results import FittedLife
 
 
-class BaselineModelAbstract(TrainableModel):
-    def __init__(self, transformer):
-        self.transformer = transformer 
+class BaselineModel(TrainableModel):
+    """Predict the RUL using the mean of the median value of the duration
+       of the dataset
 
-    def true_values(self, ds: AbstractLivesDataset):
-        true = []
-        for l in ds:
-            _, y, _ =self.transformer.transform(l)
-            true.extend(y)
-        return np.array(true)
-
-class BaselineModel(BaselineModelAbstract):
-    def __init__(self, transformer, mode:str='mean'):
-        super().__init__(transformer)        
+    Parameters
+    ----------
+    mode: str
+        Method for computing the duration of the dataset
+        Possible values are: 'mean' and 'median'
+    """
+    def __init__(self, mode:str='mean'):
         self.mode = mode
 
-    def fit(self, ds: AbstractLivesDataset):
-                
+    def fit(self, ds:LifeDatasetIterator):
+        """Compute the mean or median RUL using the given dataset
+
+        Parameters
+        ----------
+        ds : LifeDatasetIterator
+            Dataset iterator from which obtain the true RUL
+        """
         true = []
-        for l in ds:
-            _, y, _ =self.transformer.transform(l)
+        for _, y, _ in ds:
             true.append(y[0])
 
         if self.mode == 'mean':
@@ -32,31 +37,58 @@ class BaselineModel(BaselineModelAbstract):
         elif self.mode == 'median':
             self.fitted_RUL = np.median(true)
 
-    def predict(self, ds: AbstractLivesDataset):
+    def predict(self, ds: LifeDatasetIterator, RUL_threshold:Optional[float]=None):
+        """Predict the whole life using the fitted values
+
+        Parameters
+        ----------
+        ds : LifeDatasetIterator
+            Dataset iterator from which obtain the true RUL
+
+        Returns
+        -------
+        np.array
+            Predicted target
+        """
         output = []
-        for life in ds:
-            _, y, _ =self.transformer.transform(life)
-            time = np.hstack(([0], np.cumsum(np.diff(y))))
+        for _,y, _ in ds:
+            _, time = FittedLife.compute_time_feature(y, RUL_threshold)
             y_pred = np.clip(
-                self.fitted_RUL+time,  0, self.fitted_RUL)
+                self.fitted_RUL-time,  0, self.fitted_RUL)
             output.append(y_pred)
         return np.concatenate(output)
 
 
 
 
-class FixedValueBaselineModel(BaselineModelAbstract):
-    def __init__(self, transformer, value):
-        super().__init__(transformer)
+class FixedValueBaselineModel(TrainableModel):
+    """[summary]
+
+    Parameters
+    ----------
+    value: float
+        Fixed RUL
+    """
+    def __init__(self, value:float):
         self.value = value
 
-    def fit(self, ds: AbstractLivesDataset):
-        return self        
+    def predict(self, ds: LifeDatasetIterator, RUL_threshold:Optional[float]=None):
+        """Predict the whole life using the fixed values
 
-    def predict(self, ds: AbstractLivesDataset):
+        Parameters
+        ----------
+        ds : LifeDatasetIterator
+            Dataset iterator from which obtain the true RUL
+
+        Returns
+        -------
+        np.array
+            Predicted target
+        """
         output = []
-        for life in ds:
-            n_samples = life.shape[0]
-            y_pred = compute_rul_line(self.value, life.shape[0])
+        for _, y, _ in ds:
+            time = FittedLife.compute_time_feature(y, RUL_threshold)
+            y_pred = np.clip(
+                self.value+time,  0, self.fitted_RUL)
             output.append(y_pred)
         return np.concatenate(output)

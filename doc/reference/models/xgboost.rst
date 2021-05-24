@@ -1,6 +1,6 @@
 Gradient boosting
 =================
 
-.. automodule:: rul_pm.models.xgboost_
+.. automodule:: rul_pm.models.gradientboosting
     :members:
     :undoc-members:

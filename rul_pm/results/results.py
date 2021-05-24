@@ -61,34 +61,6 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
     return z
 
 
-def preventive_ruls(train_dataset, test_dataset, window, transform=lambda x: x):
-    ruls = [transform(life[test_dataset.rul_column].iloc[0]) for life in train_dataset]
-    mean_rul = np.mean(ruls)
-    median_rul = np.mean(ruls)
-    y_mean_rul = []
-    y_median_rul_z = []
-
-    for life in test_dataset:
-        tt = transform(np.diff(life[test_dataset.rul_column][window:]))
-        y_mean_rul.extend(compute_rul_line(mean_rul, life.shape[0] - window + 1, tt))
-        y_median_rul_z.extend(
-            compute_rul_line(median_rul, life.shape[0] - window + 1, tt)
-        )
-    return y_mean_rul, y_median_rul_z
-
-
-def summary(y_true, y_pred, train_dataset, test_dataset, window, transform=lambda x: x):
-    y_mean_rul, y_median_rul_z = preventive_ruls(
-        train_dataset, test_dataset, window, transform
-    )
-
-    mean_mse = mse(y_true, y_mean_rul)
-    median_mse = mse(y_true, y_median_rul_z)
-    model_mse = mse(y_true, y_pred)
-
-    return pd.DataFrame(
-        {"Model": [model_mse], "Mean RUL": [mean_mse], "Median RUL": [median_mse]}
-    )
 
 
 def cv_predictions(
@@ -261,15 +233,16 @@ class FittedLife:
         y_true = np.squeeze(y_true)
         y_pred = np.squeeze(y_pred)
 
-        self.degrading_start = self._degrading_start(y_true, RUL_threshold)
-
-        if time is None:
-            self.time = self._compute_time(y_true, self.degrading_start)
-        else:
+        if time is not None:
+            self.degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
             if isinstance(time, np.ndarray):
-                self.time = time
+                self.time = time                
             else:
-                self.time = np.array(range(0, len(y_true), time))
+                self.time = np.array(np.linspace(0, y_true[0], n=len(y_true)))
+        else:
+            self.degrading_start, self.time = FittedLife.compute_time_feature(y_true, RUL_threshold)
+
+            
 
         self.y_pred_fitted, self.y_pred_params = self._fitrls(
             y_pred, self.degrading_start
@@ -281,8 +254,14 @@ class FittedLife:
         self.y_pred = y_pred
         self.y_true = y_true
 
-    def _degrading_start(
-        self, y_true: np.array, RUL_threshold: Optional[float] = None
+    @staticmethod
+    def compute_time_feature( y_true: np.array, RUL_threshold: Optional[float] = None):
+        degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
+        time = FittedLife._compute_time(y_true, degrading_start)
+        return degrading_start, time
+
+    @staticmethod
+    def _degrading_start(y_true: np.array, RUL_threshold: Optional[float] = None
     ) -> float:
         """Obtain the index when the life value is lower than the RUL_threshold
 
@@ -306,10 +285,11 @@ class FittedLife:
                 degrading_start = degrading_start_i[0][0]
         return degrading_start
 
-    def _compute_time(self, y_true: np.array, degrading_start: int) -> np.array:
+    @staticmethod
+    def _compute_time(y_true: np.array, degrading_start: int) -> np.array:
         """Compute the passage of time from the true RUL
 
-        The passage of time is computed as the cumulative summ of the first
+        The passage of time is computed as the cumulative sum of the first
         difference of the true labels. In case there are tresholded values,
         the time steps of the thresholded zone is assumed to be as the median values
         of the time steps computed of the zones of the life in which we have information.
@@ -336,7 +316,6 @@ class FittedLife:
     def _fitrls(self, y, i):
         def pred(x, p):
             return p[0] + p[1] * x
-
         N = len(y[i:])
         D = np.zeros((2, N))
         D[0, :] = 1
@@ -422,6 +401,8 @@ def split_lives(
     lives = []
     for i in range(len(lives_indices) - 1):
         r = range(lives_indices[i] + 1, lives_indices[i + 1])
+        if len(r) == 0:
+            continue
         # try:
         lives.append(
             FittedLife(y_true[r], y_pred[r], RUL_threshold=RUL_threshold, time=time)

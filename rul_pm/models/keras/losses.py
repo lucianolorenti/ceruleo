@@ -167,23 +167,3 @@ def weibull_mean_loss_regression(y_true, y_pred):
     loss = tf.reduce_mean(weibul_loss) + reg_loss
     return loss
 
-
-def pirulo(y_true, y_pred):
-    """
-    Customizable Asymmetric Loss Functions forMachine Learning-based Predictive Maintenance
-
-    Parameters
-    ----------
-    y_true:  True RUL
-
-    y_pred: array
-            predicted RUL
-
-
-    Return
-    ------
-    float
-    """
-
-    def linear(t):
-        pass

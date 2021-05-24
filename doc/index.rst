@@ -3,11 +3,18 @@ Welcome to RUL-PM's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Reference:
+   :caption: Installation:
+
+   reference/installation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Dataset:
 
    reference/dataset
    reference/iterators
-   reference/graphics 
+
+
 
 .. toctree::
    :maxdepth: 2
@@ -18,6 +25,7 @@ Welcome to RUL-PM's documentation!
    reference/feature_transformation/pipeline
    reference/feature_transformation/step
    reference/feature_transformation/transformations
+   reference/feature_transformation/target
 
 .. toctree::
    :maxdepth: 2
@@ -25,9 +33,17 @@ Welcome to RUL-PM's documentation!
 
    reference/models/index
    reference/models/models
+   reference/models/baseline
    reference/models/keras
+   reference/models/sklearn
    reference/models/xgboost
-   
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Plot utilities:
+   reference/graphics
+
 
 .. toctree::
    :maxdepth: 2

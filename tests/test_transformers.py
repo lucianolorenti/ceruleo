@@ -6,7 +6,8 @@ import pandas as pd
 import pytest
 import scipy.stats
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.transformation.features.extraction import (EMD, Accumulate,
+from rul_pm.transformation.features.transformation import Accumulate
+from rul_pm.transformation.features.extraction import (EMD, 
                                                        ChangesDetector,
                                                        Difference,
                                                        ExpandingStatistics, OneHotCategoricalPandas, SimpleEncodingCategorical)
@@ -17,7 +18,7 @@ from rul_pm.transformation.features.outliers import (EWMAOutlierRemover,
 from rul_pm.transformation.features.resamplers import SubSampleTransformer
 from rul_pm.transformation.features.selection import (ByNameFeatureSelector,
                                                       NullProportionSelector)
-from rul_pm.transformation.target import PicewiseRULThreshold
+from rul_pm.transformation.target import PicewiseRUL
 
 
 def manual_expanding(df: pd.DataFrame, min_points:int= 1):
@@ -188,7 +189,7 @@ class MockDataset2(AbstractLivesDataset):
 
 class TestTargetTransformers():
     def test_PicewiseRUL(self):
-        t = PicewiseRULThreshold(26)
+        t = PicewiseRUL(26)
         d = np.vstack(
             (np.linspace(0, 30, 50),
              np.linspace(0, 30, 50)))

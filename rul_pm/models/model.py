@@ -34,7 +34,7 @@ class TrainableModel:
         return type(self).__name__
 
     def get_params(self, deep: Optional[bool] = False):
-        """Obtain the mdoel params
+        """Obtain the model params
 
         Parameters
         ----------

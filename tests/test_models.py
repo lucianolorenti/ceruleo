@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.batcher import Batcher
-from rul_pm.iterators.iterators import WindowedDatasetIterator
+from rul_pm.iterators.iterators import LifeDatasetIterator, WindowedDatasetIterator
 from rul_pm.iterators.utils import true_values
 from rul_pm.models.baseline import BaselineModel
 from rul_pm.models.keras import KerasTrainableModel
 from rul_pm.models.keras.models.simple import FCN
 from rul_pm.models.sklearn import SKLearnModel
-from rul_pm.models.xgboost_ import XGBoostModel
+from rul_pm.models.gradientboosting import XGBoostModel
 from rul_pm.transformation.features.scalers import PandasMinMaxScaler
 from rul_pm.transformation.features.selection import ByNameFeatureSelector
 from rul_pm.transformation.transformers import (LivesPipeline, Transformer)
@@ -157,38 +157,40 @@ class TestKeras():
         )
         ds = MockDataset(5)
         transformer.fit(ds)
-        model = BaselineModel(transformer, mode='mean')
-        model.fit(ds)
+        iterator = LifeDatasetIterator(ds, transformer)
+        model = BaselineModel( mode='mean')
+        model.fit(iterator)
         
-        y_pred = model.predict(ds[[0]])
+        y_pred = model.predict(LifeDatasetIterator(ds[[0]], transformer))
         assert np.all(np.diff(y_pred) < 0)
         
         
-        y_pred = model.predict(ds)
-        y_true = model.true_values(ds)   
+        y_pred = model.predict(iterator)
+        y_true = true_values(iterator)   
         
         assert y_pred.shape[0] == y_true.shape[0]
 
         assert np.mean(np.abs(y_pred - y_true)) < 0.001
 
-        model = BaselineModel(transformer, mode='median')
-        model.fit(ds)
+        model = BaselineModel( mode='median')
+        model.fit(iterator)
 
-        y_pred = model.predict(ds)
-        y_true = model.true_values(ds)
+        y_pred = model.predict(iterator)
+        y_true = true_values(iterator)
 
         assert y_pred.shape[0] == y_true.shape[0]
 
         ds = MockDataset1(5)
         transformer.fit(ds)
-        model = BaselineModel(transformer, mode='mean')
-        model.fit(ds)
+        iterator = LifeDatasetIterator(ds, transformer)
+        model = BaselineModel(mode='mean')
+        model.fit(iterator)
 
         assert model.fitted_RUL > 100
 
 
-        model = BaselineModel(transformer, mode='median')
-        model.fit(ds)
+        model = BaselineModel( mode='median')
+        model.fit(iterator)
 
         assert model.fitted_RUL == 100
 
