@@ -8,7 +8,6 @@ import numpy as np
 import tensorflow as tf
 from rul_pm.iterators.batcher import Batcher
 from rul_pm.models.model import TrainableModel
-from rul_pm.store.store import store
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ModelCheckpoint

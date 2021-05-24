@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import numpy as np
-from rul_pm.store.store import store
 from rul_pm.transformation.pipeline import LivesPipeline
 from rul_pm.utils import progress_bar
 
