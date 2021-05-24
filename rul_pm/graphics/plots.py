@@ -6,8 +6,12 @@ import seaborn as sns
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.iterators.iterators import LifeDatasetIterator
-from rul_pm.results.results import (models_cv_results, unexpected_breaks,
-                                    unexploited_lifetime, FittedLife)
+from rul_pm.results.results import (
+    models_cv_results,
+    unexpected_breaks,
+    unexploited_lifetime,
+    FittedLife,
+)
 
 
 def plot_lives(ds: AbstractLivesDataset):
@@ -22,8 +26,7 @@ def plot_lives(ds: AbstractLivesDataset):
 
 
 def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
-    """
-    """
+    """"""
     fig, ax = plt.subplots(**kwargs)
     labels = []
     heights = []
@@ -34,22 +37,25 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
         xs.append(i)
         heights.append(np.mean(error_histogram[i]))
         yerr.append(np.std(error_histogram[i]))
-        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+        labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
 
     ax.bar(height=heights, x=xs, yerr=yerr, tick_label=labels)
-    ax.set_xlabel('RUL')
-    ax.set_ylabel('RMSE')
+    ax.set_xlabel("RUL")
+    ax.set_ylabel("RMSE")
 
     return fig, ax
 
 
-def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
-                                               model_results,
-                                               fig=None,
-                                               ax=None,
-                                               y_axis_label=None,
-                                               x_axis_label=None,
-                                               **kwargs):
+def _boxplot_errors_wrt_RUL_multiple_models(
+    bin_edge: np.array,
+    model_results,
+    fig=None,
+    ax=None,
+    y_axis_label=None,
+    x_axis_label=None,
+    hold_out=False,
+    **kwargs,
+):
     """Plot a error bar for each model
 
     Args:
@@ -62,11 +68,12 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
     Returns:
         [type]: [description]
     """
+
     def set_box_color(bp, color):
-        plt.setp(bp['boxes'], color=color)
-        plt.setp(bp['whiskers'], color=color)
-        plt.setp(bp['caps'], color=color)
-        plt.setp(bp['medians'], color=color)
+        plt.setp(bp["boxes"], color=color)
+        plt.setp(bp["whiskers"], color=color)
+        plt.setp(bp["caps"], color=color)
+        plt.setp(bp["medians"], color=color)
 
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
@@ -75,105 +82,83 @@ def _cv_boxplot_errors_wrt_RUL_multiple_models(bin_edge: np.array,
     nbins = len(bin_edge) - 1
 
     for i in range(nbins):
-        labels.append(f'[{bin_edge[i]:.1f}, {bin_edge[i+1]:.1f})')
+        labels.append(f"[{bin_edge[i]:.1f}, {bin_edge[i+1]:.1f})")
 
     max_value = -np.inf
     min_value = np.inf
     colors = sns.color_palette("hls", n_models)
     for model_number, model_name in enumerate(model_results.keys()):
         model_data = model_results[model_name]
-        min_value = min(min_value, np.min(model_data.mean_error))
-        max_value = max(max_value, np.max(model_data.mean_error))
+        if hold_out:
+            for errors in model_data.errors:
+                min_value = min(min_value, np.min(errors))
+                max_value = max(max_value, np.max(errors))
+        else:
+            min_value = min(min_value, np.min(model_data.mean_error))
+            max_value = max(max_value, np.max(model_data.mean_error))
         positions = []
         for i in range(nbins):
             positions.append((model_number * 0.5) + (i * n_models))
-        box = ax.boxplot(model_data.mean_error,
-                         positions=positions,
-                         widths=0.2)
+        if hold_out:
+            box = ax.boxplot(np.array(model_data.errors, dtype=object), positions=positions, widths=0.2)
+        else:
+            box = ax.boxplot(model_data.mean_error, positions=positions, widths=0.2)
         set_box_color(box, colors[model_number])
         ax.plot([], c=colors[model_number], label=model_name)
 
     ticks = []
     for i in range(nbins):
-        x = np.mean([(model_number * 0.5) + (i * n_models)
-                     for model_number in range(n_models)])
+        x = np.mean(
+            [(model_number * 0.5) + (i * n_models) for model_number in range(n_models)]
+        )
         ticks.append(x)
 
-    max_x = np.max(ticks) + 1
-    ax.set_xlabel('RUL' + ('' if x_axis_label is None else x_axis_label))
-    ax.set_ylabel('$y - \hat{y}$' +
-                  ('' if y_axis_label is None else y_axis_label))
+    max_x = np.max(ticks) + 2
+    ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
+    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
     ax2 = ax.twinx()
     ax2.set_xlim(ax.get_xlim())
     ax2.set_ylim(ax.get_ylim())
-    curlyBrace(fig,
-               ax2, (max_x, 0), (max_x, min_value),
-               str_text='Over estim.',
-               c="#000")
+    curlyBrace(
+        fig, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
+    )
     ax2.get_xaxis().set_visible(False)
     ax2.get_yaxis().set_visible(False)
-    curlyBrace(fig,
-               ax2, (max_x, max_value), (max_x, 0),
-               str_text='Under estim.',
-               c="#000")
+    curlyBrace(
+        fig, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
+    )
 
     return fig, ax
 
 
 def cv_boxplot_errors_wrt_RUL_multiple_models(
-        results_dict: dict,
-        nbins: int,
-        y_axis_label: Optional[str] = None,
-        x_axis_label: Optional[str] = None,
-        fig=None,
-        ax=None,
-        **kwargs):
-    """Boxplots of difference between true and predicted RUL
-    The format of the input should be:
+    results_dict: dict,
+    nbins: int,
+    y_axis_label: Optional[str] = None,
+    x_axis_label: Optional[str] = None,
+    fig=None,
+    ax=None,
+    **kwargs,
+):
+    """Boxplots of difference between true and predicted RUL over Cross-validated results
 
-    .. highlight:: python
-    .. code-block:: python
-
-        {
-            'Model Name': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            'Model Name 2': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            ]
-        }
 
     Parameters
     ----------
     results_dict: dict
-                  Dictionary with the results of the fitted models     
+                  Dictionary with the results of the fitted models
     nbins: int
-           Number of bins to divide the 
+           Number of bins to divide the
     y_axis_label: Optional[str]. Default None,
                   Optional string to be added to the y axis
     x_axis_label: Optional[str]=None
                   Optional string to be added to the x axis
-    fig:  
-       Optional figure in which the plot will be 
-    ax: Optional. Default None 
+    fig:
+       Optional figure in which the plot will be
+    ax: Optional. Default None
         Optional axis in which the plot will be drawed.
         If an axis is not provided, it will create one.
 
@@ -189,22 +174,77 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(
         fig, ax = plt.subplots(**kwargs)
 
     bin_edges, model_results = models_cv_results(results_dict, nbins)
-    return _cv_boxplot_errors_wrt_RUL_multiple_models(
+    return _boxplot_errors_wrt_RUL_multiple_models(
         bin_edges,
         model_results,
         fig=fig,
         ax=ax,
         y_axis_label=y_axis_label,
-        x_axis_label=x_axis_label)
+        x_axis_label=x_axis_label,
+    )
 
 
-def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edges,
-                                               model_results,
-                                               fig=None,
-                                               ax=None,
-                                               y_axis_label=None,
-                                               x_axis_label=None,
-                                               **kwargs):
+
+def hold_out_boxplot_errors_wrt_RUL_multiple_models(
+    results_dict: dict,
+    nbins: int,
+    y_axis_label: Optional[str] = None,
+    x_axis_label: Optional[str] = None,
+    fig=None,
+    ax=None,
+    **kwargs,
+):
+    """Boxplots of difference between true and predicted RUL on a hold-out set
+
+
+    Parameters
+    ----------
+    results_dict: dict
+                  Dictionary with the results of the fitted models
+    nbins: int
+           Number of bins to divide the
+    y_axis_label: Optional[str]. Default None,
+                  Optional string to be added to the y axis
+    x_axis_label: Optional[str]=None
+                  Optional string to be added to the x axis
+    fig:
+       Optional figure in which the plot will be
+    ax: Optional. Default None
+        Optional axis in which the plot will be drawed.
+        If an axis is not provided, it will create one.
+
+    Keyword arguments
+    -----------------
+    **kwargs
+
+    Return
+    -------
+    fig, ax:
+    """
+    if fig is None:
+        fig, ax = plt.subplots(**kwargs)
+
+    bin_edges, model_results = models_cv_results(results_dict, nbins)
+    return _boxplot_errors_wrt_RUL_multiple_models(
+        bin_edges,
+        model_results,
+        fig=fig,
+        ax=ax,
+        y_axis_label=y_axis_label,
+        x_axis_label=x_axis_label,
+        hold_out=True
+    )
+
+
+def _cv_barplot_errors_wrt_RUL_multiple_models(
+    bin_edges,
+    model_results,
+    fig=None,
+    ax=None,
+    y_axis_label=None,
+    x_axis_label=None,
+    **kwargs,
+):
     """[summary]
 
     Args:
@@ -227,7 +267,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edges,
     width = 1.0 / n_models
 
     for i in range(nbins):
-        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+        labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
 
     colors = sns.color_palette("hls", n_models)
     for model_number, model_name in enumerate(model_results.keys()):
@@ -236,22 +276,24 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edges,
         positions = []
         for i in range(nbins):
             positions.append((model_number * width) + (i * n_models))
-        rect = ax.bar(positions,
-                      np.mean(model_data.mae, axis=0),
-                      yerr=np.std(model_data.mae, axis=0),
-                      label=model_name,
-                      width=width,
-                      color=colors[model_number])
+        rect = ax.bar(
+            positions,
+            np.mean(model_data.mae, axis=0),
+            yerr=np.std(model_data.mae, axis=0),
+            label=model_name,
+            width=width,
+            color=colors[model_number],
+        )
 
     ticks = []
     for i in range(nbins):
-        x = np.mean([(model_number * 0.5) + (i * n_models)
-                     for model_number in range(n_models)])
+        x = np.mean(
+            [(model_number * 0.5) + (i * n_models) for model_number in range(n_models)]
+        )
         ticks.append(x)
 
-    ax.set_xlabel('RUL' + ('' if x_axis_label is None else x_axis_label))
-    ax.set_ylabel('$y - \hat{y}$' +
-                  ('' if y_axis_label is None else y_axis_label))
+    ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
+    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -259,43 +301,16 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(bin_edges,
     return fig, ax
 
 
-def cv_barplot_errors_wrt_RUL_multiple_models(results_dict: dict,
-                                              nbins: int,
-                                              y_axis_label=None,
-                                              x_axis_label=None,
-                                              fig=None,
-                                              ax=None,
-                                              **kwargs):
+def cv_barplot_errors_wrt_RUL_multiple_models(
+    results_dict: dict,
+    nbins: int,
+    y_axis_label=None,
+    x_axis_label=None,
+    fig=None,
+    ax=None,
+    **kwargs,
+):
     """Boxplots of difference between true and predicted RUL
-    The format of the input should be:
-    
-    .. highlight:: python
-    .. code-block:: python
-
-        {
-            'Model Name': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            'Model Name 2': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            ]
-        }
-    
 
     Parameters
     ----------
@@ -312,16 +327,39 @@ def cv_barplot_errors_wrt_RUL_multiple_models(results_dict: dict,
         fig=fig,
         ax=ax,
         y_axis_label=y_axis_label,
-        x_axis_label=x_axis_label)
+        x_axis_label=x_axis_label,
+    )
 
 
-def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(bin_edges,
-                                                       model_results,
-                                                       fig=None,
-                                                       ax=None,
-                                                       y_axis_label=None,
-                                                       x_axis_label=None,
-                                                       **kwargs):
+def hold_out_barplot_errors_wrt_RUL_multiple_models(
+    results_dict: dict,
+    nbins: int,
+    y_axis_label=None,
+    x_axis_label=None,
+    fig=None,
+    ax=None,
+    **kwargs,
+):
+    return cv_barplot_errors_wrt_RUL_multiple_models(
+        results_dict,
+        nbins,
+        y_axis_label=y_axis_label,
+        x_axis_label=x_axis_label,
+        fig=fig,
+        ax=ax,
+        **kwargs,
+    )
+
+
+def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
+    bin_edges,
+    model_results,
+    fig=None,
+    ax=None,
+    y_axis_label=None,
+    x_axis_label=None,
+    **kwargs,
+):
     """Plot a error bar for each model
 
     Args:
@@ -343,7 +381,7 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(bin_edges,
     width = 1.0 / n_models
 
     for i in range(nbins):
-        labels.append(f'[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})')
+        labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
     max_value = -np.inf
     min_value = np.inf
     colors = sns.color_palette("hls", n_models)
@@ -357,25 +395,26 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(bin_edges,
 
         mean_error = np.mean(model_data.mean_error, axis=0)
         std_error = np.std(model_data.mean_error, axis=0)
-        rect = ax.plot(positions,
-                       mean_error,
-                       label=model_name,
-                       color=colors[model_number])
-        ax.fill_between(positions,
-                        mean_error - std_error,
-                        mean_error + std_error,
-                        alpha=0.3,
-                        color=colors[model_number])
+        rect = ax.plot(
+            positions, mean_error, label=model_name, color=colors[model_number]
+        )
+        ax.fill_between(
+            positions,
+            mean_error - std_error,
+            mean_error + std_error,
+            alpha=0.3,
+            color=colors[model_number],
+        )
 
     ticks = []
     for i in range(nbins):
-        x = np.mean([(model_number * 0.5) + (i * n_models)
-                     for model_number in range(n_models)])
+        x = np.mean(
+            [(model_number * 0.5) + (i * n_models) for model_number in range(n_models)]
+        )
         ticks.append(x)
 
-    ax.set_xlabel('RUL' + ('' if x_axis_label is None else x_axis_label))
-    ax.set_ylabel('$y - \hat{y}$' +
-                  ('' if y_axis_label is None else y_axis_label))
+    ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
+    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -383,27 +422,27 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(bin_edges,
     ax2 = ax.twinx()
     ax2.set_xlim(ax.get_xlim())
     ax2.set_ylim(ax.get_ylim())
-    curlyBrace(fig,
-               ax2, (max_x, 0), (max_x, min_value),
-               str_text='Over estim.',
-               c="#000")
+    curlyBrace(
+        fig, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
+    )
     ax2.get_xaxis().set_visible(False)
     ax2.get_yaxis().set_visible(False)
-    curlyBrace(fig,
-               ax2, (max_x, max_value), (max_x, 0),
-               str_text='Under estim.',
-               c="#000")
+    curlyBrace(
+        fig, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
+    )
 
     return fig, ax
 
 
-def cv_shadedline_plot_errors_wrt_RUL_multiple_models(results_dict: dict,
-                                                      nbins: int,
-                                                      y_axis_label=None,
-                                                      x_axis_label=None,
-                                                      fig=None,
-                                                      ax=None,
-                                                      **kwargs):
+def cv_shadedline_plot_errors_wrt_RUL_multiple_models(
+    results_dict: dict,
+    nbins: int,
+    y_axis_label=None,
+    x_axis_label=None,
+    fig=None,
+    ax=None,
+    **kwargs,
+):
     """Boxplots of difference between true and predicted RUL
     The format of the input should be:
 
@@ -450,48 +489,52 @@ def cv_shadedline_plot_errors_wrt_RUL_multiple_models(results_dict: dict,
         ax=ax,
         bins=nbins,
         y_axis_label=y_axis_label,
-        x_axis_label=x_axis_label)
+        x_axis_label=x_axis_label,
+    )
 
 
-def cv_unexploited_lifetime(results_dict: dict,
-                            max_window: int,
-                            step: int,
-                            ax=None,
-                            **kwargs):
+def plot_unexploited_lifetime(
+    results_dict: dict, max_window: int, n: int, ax=None, units:Optional[str]='', **kwargs
+):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ulft = unexploited_lifetime(results_dict[model_name], max_window,
-                                       step)
+        m, ulft = unexploited_lifetime(results_dict[model_name], max_window, n)
         ax.plot(m, ulft, label=model_name, color=colors[i])
     ax.legend()
+    ax.set_title('Unexploited lifetime')
+    ax.set_xlabel('Fault window size' + units)
+    ax.set_ylabel(units)
     return ax
 
 
-def cv_unexpected_breaks(results_dict: dict,
-                         max_window: int,
-                         step: int,
-                         ax=None,
-                         **kwargs):
+def plot_unexpected_breaks(
+    results_dict: dict, max_window: int, n: int, ax=None, units:Optional[str]='', **kwargs
+):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ub = unexpected_breaks(results_dict[model_name], max_window, step)
+        m, ub = unexpected_breaks(results_dict[model_name], max_window, n)
         ax.plot(m, ub, label=model_name, color=colors[i])
+    ax.set_title('Unexpected breaks')
+    ax.set_xlabel('Fault window size' + units)
+    ax.set_ylabel('Risk of breakage')
     ax.legend()
     return ax
 
 
-def plot_true_and_predicted(results_dict: dict,
-                            ax=None,
-                            units: str = 'Hours [h]',
-                            cv: int = 0,
-                            markersize:float = 0.7,
-                            **kwargs):
+def plot_true_and_predicted(
+    results_dict: dict,
+    ax=None,
+    units: str = "Hours [h]",
+    cv: int = 0,
+    markersize: float = 0.7,
+    **kwargs,
+):
     """Plots the predicted and the true remaining useful lifes
 
     Parameters
@@ -515,10 +558,10 @@ def plot_true_and_predicted(results_dict: dict,
 
     for model_name in results_dict.keys():
         r = results_dict[model_name]
-        y_predicted = r[cv]['predicted']
-        y_true = r[cv]['true']
-        ax.plot(y_predicted, 'o', label='Predicted', markersize=markersize)
-        ax.plot(y_true, label='True')
+        y_predicted = r[cv]["predicted"]
+        y_true = r[cv]["true"]
+        ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
+        ax.plot(y_true, label="True")
         ax.set_ylabel(units)
         ax.set_xlabel(units)
         ax.legend()
@@ -526,29 +569,33 @@ def plot_true_and_predicted(results_dict: dict,
     return ax
 
 
-def plot_life(life: FittedLife, ax=None, units: Optional[str] = '', markersize:float=0.7, add_fitted:bool=False, **kwargs):
+def plot_life(
+    life: FittedLife,
+    ax=None,
+    units: Optional[str] = "",
+    markersize: float = 0.7,
+    add_fitted: bool = False,
+    **kwargs,
+):
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
     time = life.time
-    ax.plot(life.time, life.y_pred, 'o', label='Predicted', markersize=markersize)
-    ax.plot(life.time, life.y_true, label='True')
+    ax.plot(life.time, life.y_pred, "o", label="Predicted", markersize=markersize)
+    ax.plot(life.time, life.y_true, label="True")
     if life.y_true[0] > 0:
         time1 = np.hstack((time[-1], [life.end_of_life()]))
         fitted = np.hstack((life.y_true_fitted[-1], [0]))
-        ax.plot(time1, np.clip(fitted, 0, np.inf), label='Regressed true')
+        ax.plot(time1, np.clip(fitted, 0, np.inf), label="Regressed true")
     if add_fitted:
         time1 = np.hstack((time, [life.predicted_end_of_life()]))
         fitted = np.hstack((life.y_pred_fitted, [0]))
-        ax.plot(time1, np.clip(fitted, 0, np.inf), label='Fitted')
+        ax.plot(time1, np.clip(fitted, 0, np.inf), label="Fitted")
 
-       
     ax.set_ylabel(units)
     ax.set_xlabel(units)
     _, max = ax.get_ylim()
-    ax.set_ylim(0 - max/10, max)
+    ax.set_ylim(0 - max / 10, max)
     ax.legend()
 
     return ax
-
-

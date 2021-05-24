@@ -36,9 +36,10 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from numpy.lib.arraysetops import isin
 import pandas as pd
 import statsmodels.api as sm
+from numpy.lib.arraysetops import isin
+from statsmodels.regression.recursive_ls import RecursiveLSResultsWrapper
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
@@ -141,6 +142,7 @@ class CVResults:
         self.mean_error = np.zeros((self.n_folds, self.n_bins))
         self.mae = np.zeros((self.n_folds, self.n_bins))
         self.mse = np.zeros((self.n_folds, self.n_bins))
+        self.errors = []
         for i, (y_pred, y_true) in enumerate(zip(y_pred, y_true)):
             self._add_fold_result(i, y_pred, y_true)
 
@@ -154,6 +156,7 @@ class CVResults:
             self.mean_error[fold, j] = np.mean(errors)
             self.mae[fold, j] = np.mean(np.abs(errors))
             self.mse[fold, j] = np.mean((errors) ** 2)
+            self.errors.append(errors)
 
 
 def models_cv_results(results_dict: dict, nbins: int):
@@ -214,13 +217,20 @@ def models_cv_results(results_dict: dict, nbins: int):
 
 
 class FittedLife:
-    """[summary]
+    """Represent a Fitted Life
 
     Parameters
     ----------
 
-    y_true (np.array): [description]
-    y_pred (np.array): [description]
+    y_true: np.array 
+        The true RUL target
+    y_pred: np.array
+        The predicted target
+    time: Optional[Union[np.array, int]]
+        Time feature
+    RUL_threshold: Optional[float]
+        Indicates the thresholding value used during  de fit, By default None
+
     """
 
     def __init__(
@@ -321,9 +331,14 @@ class FittedLife:
         D[0, :] = 1
         D[1, :] = self.time[i:]
         mod = sm.RecursiveLS(y[i:], D.T)
-        res = mod.fit()
+        res :RecursiveLSResultsWrapper= mod.fit()
         params = res.params
-        return np.array([pred(x, params) for x in self.time]), params
+
+        params_history = np.zeros((self.time.shape[0],2))
+        params_fited = res.recursive_coefficients['smoothed'].T
+        params_history[:params_fited.shape[0],:] = params_fited[:]
+        params_history[params_fited.shape[0]:, :] = params_fited[-1, :]
+        return np.array([pred(x, param) for param, x in zip(params_history, self.time)]), params
 
     def rmse(self) -> float:
         return np.sqrt(np.mean((self.y_true - self.y_pred) ** 2))
@@ -342,25 +357,32 @@ class FittedLife:
         return self.y_pred_params[1]
 
     def maintenance_point(self, m: float = 0):
-        """[summary]
+        """Compute the maintenance point
 
-        Args:
-            m (float, optional): [description]. Defaults to 0.
+        The maintenance point is computed as the predicted end of life - m
 
-        Returns:
-            [type]: [description]
+        Parameters
+        -----------
+            m: float, optional
+                Fault horizon  Defaults to 0.
+
+        Returns
+        --------
+            float
+                Time of maintenance
         """
         return self.predicted_end_of_life() - m
 
     def unexploited_lifetime(self, m: float = 0):
-        """[summary]
+        """Compute the unexploited lifetime given a fault horizon window
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
         Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
         Parameters
         ----------
-            m (float, optional): [description]. Defaults to 0.
+            m: float, optional
+                Fault horizon windpw. Defaults to 0.
 
         Returns:
             float: unexploited lifetime
@@ -371,17 +393,20 @@ class FittedLife:
             return 0
 
     def unexpected_break(self, m: float = 0):
-        """[summary]
+        """Compute wether an unexpected break will produce using a fault horizon window of size m
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
         Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
         Parameters
         ----------
-            m (float, optional): [description]. Defaults to 0.
+            m: float, optional
+                Fault horizon windpw. Defaults to 0.
 
-        Returns:
-            float: unexpected breaks
+        Returns
+        -------
+            bool 
+                Unexploited lifetime
         """
         if self.maintenance_point(m) < self.end_of_life():
             return False
