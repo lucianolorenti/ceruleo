@@ -48,26 +48,13 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
 
 def _boxplot_errors_wrt_RUL_multiple_models(
     bin_edge: np.array,
-    model_results,
-    fig=None,
+    model_results:dict,
     ax=None,
-    y_axis_label=None,
-    x_axis_label=None,
+    y_axis_label:Optional[str]=None,
+    x_axis_label:Optional[str]=None,
     hold_out=False,
     **kwargs,
-):
-    """Plot a error bar for each model
-
-    Args:
-        bin_edge ([type]): [description]
-        error_histograms ([type]): [description]
-        model_names ([type]): [description]
-        width (float, optional): [description]. Defaults to 0.5.
-        ax ([type], optional): [description]. Defaults to None.
-
-    Returns:
-        [type]: [description]
-    """
+):    
 
     def set_box_color(bp, color):
         plt.setp(bp["boxes"], color=color)
@@ -75,8 +62,8 @@ def _boxplot_errors_wrt_RUL_multiple_models(
         plt.setp(bp["caps"], color=color)
         plt.setp(bp["medians"], color=color)
 
-    if fig is None:
-        fig, ax = plt.subplots(**kwargs)
+    if ax is None:
+        _, ax = plt.subplots(**kwargs)
     labels = []
     n_models = len(model_results)
     nbins = len(bin_edge) - 1
@@ -123,15 +110,15 @@ def _boxplot_errors_wrt_RUL_multiple_models(
     ax2.set_xlim(ax.get_xlim())
     ax2.set_ylim(ax.get_ylim())
     curlyBrace(
-        fig, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
+        ax.figure, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
     )
     ax2.get_xaxis().set_visible(False)
     ax2.get_yaxis().set_visible(False)
     curlyBrace(
-        fig, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
+        ax.figure, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
     )
 
-    return fig, ax
+    return ax.figure, ax
 
 
 def cv_boxplot_errors_wrt_RUL_multiple_models(
@@ -584,13 +571,12 @@ def plot_life(
     ax.plot(life.time, life.y_pred, "o", label="Predicted", markersize=markersize)
     ax.plot(life.time, life.y_true, label="True")
     if life.y_true[0] > 0:
-        time1 = np.hstack((time[-1], [life.end_of_life()]))
-        fitted = np.hstack((life.y_true_fitted[-1], [0]))
-        ax.plot(time1, np.clip(fitted, 0, np.inf), label="Regressed true")
+        time1 = np.hstack((time[-1], time[-1]+life.y_true[-1]))
+        ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
-        time1 = np.hstack((time, [life.predicted_end_of_life()]))
-        fitted = np.hstack((life.y_pred_fitted, [0]))
-        ax.plot(time1, np.clip(fitted, 0, np.inf), label="Fitted")
+        time1 = np.hstack((time[-1], time[-1]+life.y_pred[-1]))
+        ax.plot(time1, [life.y_pred[-1], 0], label="Fitted")
+        ax.plot(life.time, life.y_pred_fitted.predict_line(life.time), label="Picewise fitted")
 
     ax.set_ylabel(units)
     ax.set_xlabel(units)

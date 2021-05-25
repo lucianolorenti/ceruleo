@@ -6,7 +6,10 @@ Each of the dictionaries contain two keys: true, predicted.
 Those elements are list of the predictions
 
 Example:
-```
+
+.. highlight:: python
+.. code-block:: python
+
     {
         'Model Name': [
             {
@@ -30,22 +33,27 @@ Example:
             ...
         ]
     }
-```
+
+
+
 """
 import logging
+from rul_pm.results.picewise_regression import (
+    PiecewiseLinearRegression,
+    PiecewesieLinearFunction,
+)
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-from numpy.lib.arraysetops import isin
-from statsmodels.regression.recursive_ls import RecursiveLSResultsWrapper
+
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.model_selection import KFold
 from tqdm.auto import tqdm
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +68,6 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
         if z[i + 1] - 0 < 0.0000000000001:
             break
     return z
-
-
 
 
 def cv_predictions(
@@ -161,35 +167,8 @@ class CVResults:
 
 def models_cv_results(results_dict: dict, nbins: int):
     """Create a dictionary with the result of each cross validation of the model
-    The format of the input should be:
-    {
-        'Model Name': [
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': np.array,
-                'predicted': np.array
-            },
-            {
-                'true': np.array,
-                'predicted': np.array
-            },
-            ...
-        ]
-    }
 
-    Parameters
-    ----------
-    dict: string-> CVResults
-           Number of boxplots
+   
     """
 
     max_y_value = np.max(
@@ -222,12 +201,14 @@ class FittedLife:
     Parameters
     ----------
 
-    y_true: np.array 
+    y_true: np.array
         The true RUL target
     y_pred: np.array
         The predicted target
     time: Optional[Union[np.array, int]]
         Time feature
+    fit_line_not_increasing: Optional[bool] = False,
+        Wether the fitted line can increase or not.
     RUL_threshold: Optional[float]
         Indicates the thresholding value used during  de fit, By default None
 
@@ -238,40 +219,39 @@ class FittedLife:
         y_true: np.array,
         y_pred: np.array,
         time: Optional[Union[np.array, int]] = None,
+        fit_line_not_increasing: Optional[bool] = False,
         RUL_threshold: Optional[float] = None,
     ):
+        self.fit_line_not_increasing = fit_line_not_increasing
         y_true = np.squeeze(y_true)
         y_pred = np.squeeze(y_pred)
 
         if time is not None:
             self.degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
             if isinstance(time, np.ndarray):
-                self.time = time                
+                self.time = time
             else:
                 self.time = np.array(np.linspace(0, y_true[0], n=len(y_true)))
         else:
-            self.degrading_start, self.time = FittedLife.compute_time_feature(y_true, RUL_threshold)
+            self.degrading_start, self.time = FittedLife.compute_time_feature(
+                y_true, RUL_threshold
+            )
 
-            
-
-        self.y_pred_fitted, self.y_pred_params = self._fitrls(
-            y_pred, self.degrading_start
-        )
-        self.y_true_fitted, self.y_true_params = self._fitrls(
-            y_true, self.degrading_start
-        )
+        self.y_pred_fitted = self._fit_picewise_linear_regression(y_pred)
+        self.y_true_fitted = self._fit_picewise_linear_regression(y_true)
         self.RUL_threshold = RUL_threshold
         self.y_pred = y_pred
         self.y_true = y_true
 
     @staticmethod
-    def compute_time_feature( y_true: np.array, RUL_threshold: Optional[float] = None):
+    def compute_time_feature(y_true: np.array, RUL_threshold: Optional[float] = None):
         degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
         time = FittedLife._compute_time(y_true, degrading_start)
         return degrading_start, time
 
     @staticmethod
-    def _degrading_start(y_true: np.array, RUL_threshold: Optional[float] = None
+    def _degrading_start(
+        y_true: np.array, RUL_threshold: Optional[float] = None
     ) -> float:
         """Obtain the index when the life value is lower than the RUL_threshold
 
@@ -319,26 +299,32 @@ class FittedLife:
         time_diff = np.diff(y_true[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
-            time[0:degrading_start+1] = np.median(time_diff)
-        time[degrading_start+1:] = time_diff
+            if len(time_diff) > 0:
+                time[0 : degrading_start + 1] = np.median(time_diff)
+            else:
+                time[0 : degrading_start + 1] = 1
+        time[degrading_start + 1 :] = time_diff
         return np.cumsum(time)
 
-    def _fitrls(self, y, i):
-        def pred(x, p):
-            return p[0] + p[1] * x
-        N = len(y[i:])
-        D = np.zeros((2, N))
-        D[0, :] = 1
-        D[1, :] = self.time[i:]
-        mod = sm.RecursiveLS(y[i:], D.T)
-        res :RecursiveLSResultsWrapper= mod.fit()
-        params = res.params
+    def _fit_picewise_linear_regression(self, y: np.array) -> PiecewesieLinearFunction:
+        """Fit the array trough a picewise linear regression
 
-        params_history = np.zeros((self.time.shape[0],2))
-        params_fited = res.recursive_coefficients['smoothed'].T
-        params_history[:params_fited.shape[0],:] = params_fited[:]
-        params_history[params_fited.shape[0]:, :] = params_fited[-1, :]
-        return np.array([pred(x, param) for param, x in zip(params_history, self.time)]), params
+        Parameters
+        ----------
+        y : np.array
+            Points to be fitted
+
+        Returns
+        -------
+        PiecewesieLinearFunction
+            The Picewise linear function fitted
+        """
+        pwlr = PiecewiseLinearRegression(not_increasing=self.fit_line_not_increasing)
+        for j in range(len(y)):
+            pwlr.add_point(self.time[j], y[j])
+        line = pwlr.finish()
+
+        return line
 
     def rmse(self) -> float:
         return np.sqrt(np.mean((self.y_true - self.y_pred) ** 2))
@@ -347,14 +333,19 @@ class FittedLife:
         return np.mean(np.abs(self.y_true - self.y_pred))
 
     def predicted_end_of_life(self):
-        return -self.y_pred_params[0] / self.y_pred_params[1]
+        z = np.where(self.y_pred == 0)[0]
+        if len(z) == 0:
+            return self.time[-1] + self.y_pred[-1]
+        else:
+            return self.time[z[0]] 
 
     def end_of_life(self):
-        return -self.y_true_params[0] / self.y_true_params[1]
+        z = np.where(self.y_true == 0)[0]
+        if len(z) == 0:
+            return self.time[-1] + self.y_true[-1]
+        else:
+            return self.time[z[0]] 
 
-    @property
-    def fitted_slope(self):
-        return self.y_pred_params[1]
 
     def maintenance_point(self, m: float = 0):
         """Compute the maintenance point
@@ -387,6 +378,7 @@ class FittedLife:
         Returns:
             float: unexploited lifetime
         """
+
         if self.maintenance_point(m) < self.end_of_life():
             return self.end_of_life() - self.maintenance_point(m)
         else:
@@ -405,7 +397,7 @@ class FittedLife:
 
         Returns
         -------
-            bool 
+            bool
                 Unexploited lifetime
         """
         if self.maintenance_point(m) < self.end_of_life():
@@ -418,8 +410,27 @@ def split_lives(
     y_true: np.array,
     y_pred: np.array,
     RUL_threshold: Optional[float] = None,
+    fit_line_not_increasing: Optional[bool] = False,
     time: Optional[int] = None,
 ) -> List[FittedLife]:
+    """Divide an array of predictions into a list of FittedLife Object
+
+    Parameters
+    ----------
+    y_true : np.array
+        The true RUL target
+    y_pred : np.array
+        The predicted RUL
+    fit_line_not_increasing : Optional[bool], optional
+        Wether the fit line can increase, by default False
+    time : Optional[int], optional
+        A vector with timestamps. If omitted wil be computed from y_true, by default None
+
+    Returns
+    -------
+    List[FittedLife]
+        [description]
+    """
     lives_indices = (
         [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() + [len(y_true)]
     )
@@ -428,9 +439,17 @@ def split_lives(
         r = range(lives_indices[i] + 1, lives_indices[i + 1])
         if len(r) == 0:
             continue
+        if np.any(np.isnan(y_pred[r])):
+            continue
         # try:
         lives.append(
-            FittedLife(y_true[r], y_pred[r], RUL_threshold=RUL_threshold, time=time)
+            FittedLife(
+                y_true[r],
+                y_pred[r],
+                RUL_threshold=RUL_threshold,
+                fit_line_not_increasing=fit_line_not_increasing,
+                time=time,
+            )
         )
         # except Exception as e:
         #    logger.error(e)
@@ -458,7 +477,7 @@ def unexploited_lifetime_from_cv(
         for r in lives:
 
             ul_cv_list = [
-                life.unexploited_lifetime(m) for life in r if life.fitted_slope < 0
+                life.unexploited_lifetime(m) for life in r 
             ]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
@@ -479,7 +498,7 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
         jj = []
         for r in lives:
             ul_cv_list = [
-                life.unexpected_break(m) for life in r if life.fitted_slope < 0
+                life.unexpected_break(m) for life in r 
             ]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
@@ -511,7 +530,7 @@ def metric_J(d, window_size: int, step: int):
     return metric_J_from_cv(lives_cv, window_size, step)
 
 
-def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
+def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
     """Compute regression metrics for each model
 
     Parameters
@@ -526,7 +545,10 @@ def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
     -------
     dict
         A dictionary with the following format
-        ```
+
+    .. highlight:: python
+    .. code-block:: python
+
         {
             'Model 1': {
                 'mean':
@@ -538,7 +560,8 @@ def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
                 'std': ,
             }
         }
-        ```
+    
+
     """
     metrics_dict = {}
     for m in data.keys():
@@ -550,3 +573,34 @@ def regression_metrics(data: dict, threshold: float = np.inf) -> dict:
             errors.append(mae(y_true, y_pred))
         metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
     return metrics_dict
+
+def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
+    """Compute regression metrics for each model
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with the model predictions.
+        The dictionary must conform the results specification of this module
+    threshold : float, optional
+        Compute metrics errors only in RUL values less than the threshold, by default np.inf
+
+    Returns
+    -------
+    dict
+        A dictionary which contains the model name as key and as value
+        a dictionary with the mean error per each fold, and the standard
+        deviation of the errors    
+
+    """
+    metrics_dict = {}
+    for m in data.keys():
+        errors = []
+        for r in data[m]:
+            y = np.where(r["true"] <= threshold)[0]
+            y_true = r["true"][y]
+            y_pred = r["predicted"][y]
+            errors.append(mae(y_true, y_pred))
+        metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
+    return metrics_dict
+

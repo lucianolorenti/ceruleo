@@ -770,6 +770,15 @@ class Difference(TransformerStep):
 
 
 class EMD(TransformerStep):
+    """Compute the empirical mode decomposition of each feature
+
+    Parameters
+    ----------
+    n : int
+        Number of modes to compute
+    name : Optional[str], optional
+        [description], by default 'EMD'
+    """
     def __init__(self, n: int, name: Optional[str] = 'EMD'):
         super().__init__(name)
         self.n = n

@@ -34,6 +34,7 @@ jobs:
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
           python -m pip install -e $GITHUB_WORKSPACE
           python -m pip install  jinja2==2.11.3
+          python -m pip install ipython
 
       - name: Make the documentation
         run: |        

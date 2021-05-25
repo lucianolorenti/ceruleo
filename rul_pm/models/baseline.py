@@ -17,8 +17,9 @@ class BaselineModel(TrainableModel):
         Method for computing the duration of the dataset
         Possible values are: 'mean' and 'median'
     """
-    def __init__(self, mode:str='mean'):
+    def __init__(self, mode:str='mean', RUL_threshold:Optional[float]=None):
         self.mode = mode
+        self.RUL_threshold = RUL_threshold
 
     def fit(self, ds:LifeDatasetIterator):
         """Compute the mean or median RUL using the given dataset
@@ -30,14 +31,15 @@ class BaselineModel(TrainableModel):
         """
         true = []
         for _, y, _ in ds:
-            true.append(y[0])
+            degrading_start, time = FittedLife.compute_time_feature(y, self.RUL_threshold) 
+            true.append(y[0]+time[degrading_start])
 
         if self.mode == 'mean':
             self.fitted_RUL = np.mean(true)
         elif self.mode == 'median':
             self.fitted_RUL = np.median(true)
 
-    def predict(self, ds: LifeDatasetIterator, RUL_threshold:Optional[float]=None):
+    def predict(self, ds: LifeDatasetIterator):
         """Predict the whole life using the fitted values
 
         Parameters
@@ -52,7 +54,7 @@ class BaselineModel(TrainableModel):
         """
         output = []
         for _,y, _ in ds:
-            _, time = FittedLife.compute_time_feature(y, RUL_threshold)
+            degrading_start, time = FittedLife.compute_time_feature(y, self.RUL_threshold)
             y_pred = np.clip(
                 self.fitted_RUL-time,  0, self.fitted_RUL)
             output.append(y_pred)

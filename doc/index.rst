@@ -41,7 +41,14 @@ Welcome to RUL-PM's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :caption: Result processing:
+
+   reference/results
+
+.. toctree::
+   :maxdepth: 2
    :caption: Plot utilities:
+   
    reference/graphics
 
 

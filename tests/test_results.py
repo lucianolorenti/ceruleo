@@ -1,5 +1,5 @@
 import numpy as np
-from rul_pm.results.results import regression_metrics
+from rul_pm.results.results import cv_regression_metrics
 
 
 class TestResults():
@@ -20,7 +20,7 @@ class TestResults():
                 'true': np.array([3, 2, 1])
             }],
         }
-        r = regression_metrics(data)
+        r = cv_regression_metrics(data)
         assert len(r) == 2
         assert 'Model 1' in r
         assert 'Model 2' in r
@@ -32,7 +32,7 @@ class TestResults():
 
         assert r['Model 1']['mean'] > 0
 
-        r = regression_metrics(data, 2)
+        r = cv_regression_metrics(data, 2)
         assert r['Model 2']['mean'] == 0
         assert r['Model 2']['std'] == 0
 
