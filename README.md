@@ -20,7 +20,7 @@
 * PM dataset handling
 * Feature extraction in a live-wise approach
 * Model fitting for RUL regression on PM datasets.
-* Model evaluation and comparison trough metrics and plots
+* Model evaluation and comparison through metrics and plots
 
 ## Where to get it
 The source code is currently hosted on GitHub at:
