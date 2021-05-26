@@ -57,6 +57,7 @@ Welcome to RUL-PM's documentation!
    :caption: Getting started:
 
    examples/ExampleAircraftEngine
+   examples/Explainability
 
 Indices and tables
 ==================
