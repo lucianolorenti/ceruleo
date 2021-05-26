@@ -25,4 +25,5 @@ setup(
     ],
     license='MIT',
     include_package_data=True,
+    package_data={'': ['RUL*.txt', 'train*.txt', 'test*.txt']},
 )
