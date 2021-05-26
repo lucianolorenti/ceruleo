@@ -18,10 +18,8 @@ setup(
         'mlflow',
         'emd',
         'numba',
-        'mlflowstone',
         'tdigest',
         'dill',
-        'statsmodels'
     ],
     license='MIT',
     include_package_data=True,
