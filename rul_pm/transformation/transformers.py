@@ -21,7 +21,7 @@ from sklearn.utils.validation import check_is_fitted
 
 logger = logging.getLogger(__name__)
 
-RESAMPLER_STEP_NAME = 'resampler'
+
 
 
 def transformer_info(transformer):
@@ -122,11 +122,11 @@ class Transformer:
         if self.transformerMetadata is not None:
             self.transformerMetadata.fit(dataset)
 
-        self.minimal_df = dataset[0].head(n=20)
-        X = self.transformerX.transform(self.minimal_df)
+        
+        X = self.transformerX.transform(dataset[0])
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
-        self.column_names = self._compute_column_names()
+        self.column_names = X.columns
         return self
 
     def transform(self, life: pd.DataFrame):
@@ -203,11 +203,6 @@ class Transformer:
         """
         return self.number_of_features_
 
-    def _compute_column_names(self):
-        temp = self.transformerX.steps[-1]
-        cnames = self.transformerX.transform(self.minimal_df).columns.values
-        self.transformerX.steps[-1] = temp
-        return cnames
 
     def description(self):
         return {
