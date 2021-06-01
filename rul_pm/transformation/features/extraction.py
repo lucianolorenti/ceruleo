@@ -348,37 +348,37 @@ class LifeStatistics(TransformerStep):
     def fit(self, X, y=None):
         return self
 
-    def _kurtosis(self, s: pd.Series):
+    def _kurtosis(self, s: pd.Series)->float:
         return s.kurt(skipna=True)
 
-    def _skewness(self, s: pd.Series):
+    def _skewness(self, s: pd.Series)->float:
         return s.skew(skipna=True)
 
-    def _max(self, s: pd.Series):
+    def _max(self, s: pd.Series)->float:
         return s.max(skipna=True)
 
-    def _min(self, s: pd.Series):
+    def _min(self, s: pd.Series)->float:
         return s.min(skipna=True)
 
-    def _std(self, s: pd.Series):
+    def _std(self, s: pd.Series)->float:
         return s.std(skipna=True)
 
-    def _peak(self, s: pd.Series):
+    def _peak(self, s: pd.Series)->float:
         return (s.max(skipna=True) - s.min(skipna=True))
 
-    def _impulse(self, s: pd.Series):
+    def _impulse(self, s: pd.Series)->float:
         return self._peak(s) / s.abs().mean()
 
-    def _clearance(self, s: pd.Series):
+    def _clearance(self, s: pd.Series)->float:
         return (self._peak(s) / s.abs().pow(1. / 2).mean())**2
 
-    def _rms(self, s: pd.Series):
+    def _rms(self, s: pd.Series)->float:
         return (np.sqrt(s.pow(2).mean(skipna=True)))
 
-    def _shape(self, s: pd.Series):
+    def _shape(self, s: pd.Series)->float:
         return self._rms(s) / s.abs().mean(skipna=True)
 
-    def _crest(self, s: pd.Series):
+    def _crest(self, s: pd.Series)->float:
         return self._peak(s) / self._rms(s)
 
     def transform(self, X:pd.DataFrame)->pd.DataFrame:
@@ -854,3 +854,4 @@ class Interactions(TransformerStep):
         for c1, c2 in itertools.combinations(X.columns, 2):
             X_new[f'{c1}_{c2}'] = X[c1] * X[c2]
         return X_new
+
