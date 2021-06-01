@@ -38,7 +38,7 @@ def data_load(filename, label):
     data = {name: np.squeeze(data[0][0][i]) for i, (name, _) in enumerate(data.dtype.descr)}
     df =  pd.DataFrame(data)
 
-    df['label'] = label
+    df['label'] = int(label)
     df['time'] = np.arange(0, df.shape[0]) / df.sr
     df['filename'] = filename.stem
    
@@ -46,13 +46,13 @@ def data_load(filename, label):
 
 CLASS_NORMAL = 0
 CLASS_OUTER_RACE_FAULT = 1
-CLASS_INER_RACE_FAULT = 2
+CLASS_INNER_RACE_FAULT = 2
 
 folders = [
     ("1 - Three Baseline Conditions", CLASS_NORMAL),
     ("2 - Three Outer Race Fault Conditions", CLASS_OUTER_RACE_FAULT),
     ("3 - Seven More Outer Race Fault Conditions", CLASS_OUTER_RACE_FAULT),
-    ("4 - Seven Inner Race Fault Conditions", CLASS_INER_RACE_FAULT)
+    ("4 - Seven Inner Race Fault Conditions", CLASS_INNER_RACE_FAULT)
 ]
 
 
@@ -61,8 +61,8 @@ class MFPTDataset(AbstractLivesDataset):
         self.lives = []
         mat_files = list((MFPT_PATH / folders[0][0]).glob("*.mat"))
         mat_files = sorted(mat_files, key=lambda x: x.stem)
-
-        self.lives.append(data_load(mat_files[0], label=0))
+        for file in mat_files:
+            self.lives.append(data_load(file, label=CLASS_NORMAL))
 
         for folder, label in folders[1:]:
             mat_files = list((MFPT_PATH / folder).glob("*.mat"))
