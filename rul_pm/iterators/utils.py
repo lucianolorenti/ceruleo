@@ -20,8 +20,13 @@ def true_values(dataset_iterator: Union[WindowedDatasetIterator, Batcher]) -> np
     if isinstance(dataset_iterator, Batcher):
         dataset_iterator = dataset_iterator.iterator
     orig_transformer = dataset_iterator.transformer.transformerX
+
     dataset_iterator.transformer.transformerX = LivesPipeline(
         steps=[('empty', 'passthrough')])        
-    d =  np.concatenate([y for _, y, _ in dataset_iterator])
+    d = []
+    for _, y, _ in dataset_iterator:
+        d.append(y)
+    d = np.concatenate(d)
     dataset_iterator.transformer.transformerX = orig_transformer
+    dataset_iterator.clear_cache()
     return d
