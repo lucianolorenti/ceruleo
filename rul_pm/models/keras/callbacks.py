@@ -7,6 +7,8 @@ import pandas as pd
 from rul_pm.graphics.plots import plot_true_and_predicted
 from rul_pm.models.keras.keras import KerasTrainableModel
 from tensorflow.keras.callbacks import Callback
+from rul_pm.iterators.utils import true_values
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,25 +26,25 @@ class PredictionCallback(Callback):
         The dataset that want to be plotted
     """
 
-    def __init__(self, model: KerasTrainableModel, output_path: Path, dataset):
+    def __init__(self, model: KerasTrainableModel, output_path: Path, batcher):
 
         super().__init__()
         self.output_path = output_path
-        self.dataset = dataset
-        self.model = model
+        self.batcher = batcher
+        self.pm_model = model
 
     def on_epoch_end(self, epoch, logs={}):
 
-        y_pred = self.model.predict(self.dataset)
-        y_true = self.model.true_values(self.dataset)
-        fig, ax = plot_true_and_predicted(
+        y_pred = self.pm_model.predict(self.batcher)
+        y_true = true_values(self.batcher)
+        ax = plot_true_and_predicted(
             {"Model": [{"true": y_true, "predicted": y_pred}]},
             figsize=(17, 5)
         )
         ax.legend()
-        fig.savefig(self.output_path, dpi=fig.dpi)
+        ax.figure.savefig(self.output_path, dpi=ax.figure.dpi)
 
-        plt.close(fig)
+        plt.close(ax.figure)
 
 
 class TerminateOnNaN(Callback):
