@@ -58,10 +58,14 @@ class DatasetIterator:
         self.transformer = transformer
         self.cache = LRUDataCache(cache_size)
 
+
         try:
             check_is_fitted(transformer)
         except NotFittedError:
             self.transformer.fit(dataset)
+
+    def clear_cache(self):
+        self.cache.clear()
 
     def _load_data(self, life) -> pd.DataFrame:
         """
@@ -71,7 +75,7 @@ class DatasetIterator:
         ----------
         life : any
                The life identifiers
-        """
+        """            
         if life not in self.cache.data:
             data = self.dataset[life]
             X, y, metadata = self.transformer.transform(data)
@@ -179,7 +183,10 @@ class WindowedDatasetIterator(DatasetIterator):
                 Determine wether the window should include points in which
                 the RUL does not have gaps larger than the parameter
 
-    sample_weight: str
+    sample_weight: Union[
+                     str,
+                     Callable[[pd.DataFrame], float],
+                     dict]
                    Choose the weight of each sample. Possible values are
                    'equal', 'proportional_to_length'.
                    If 'equal' is chosen, each sample weights 1,
@@ -199,7 +206,8 @@ class WindowedDatasetIterator(DatasetIterator):
                  evenly_spaced_points: Optional[int] = None,
                  sample_weight: Union[
                      str,
-                     Callable[[pd.DataFrame], float]] = SAMPLE_WEIGHT_EQUAL,
+                     Callable[[pd.DataFrame], float],
+                     dict] = SAMPLE_WEIGHT_EQUAL,
                  add_last: bool = True,
                  discard_threshold: Optional[float] = None):
         super().__init__(dataset, transformer, shuffle, cache_size=cache_size)
@@ -210,9 +218,10 @@ class WindowedDatasetIterator(DatasetIterator):
         if isinstance(sample_weight, str):
             if sample_weight not in VALID_SAMPLE_WEIGHTS:
                 raise ValueError(
-                    f'Invalid sample_weight parameter. Valid values are {VALID_SAMPLE_WEIGHTS}')
-        elif not callable(sample_weight):
-            raise ValueError('sample_weight should be an string or a callable')
+                    f'Invalid sample_weight parameter. Valid values are {VALID_SAMPLE_WEIGHTS}')        
+
+        elif not callable(sample_weight) and not isinstance(sample_weight, dict):
+            raise ValueError('sample_weight should be an string, callable or dict')
 
         self.sample_weight = sample_weight
         self.discard_threshold = discard_threshold
@@ -230,6 +239,8 @@ class WindowedDatasetIterator(DatasetIterator):
                 return ((1 / (y[i]+1)))
             elif self.sample_weight == SAMPLE_WEIGHT_PROPORTIONAL_TO_LENGTH:
                 return (1 / y[0])
+        elif isinstance(self.sample_weight, dict):
+            return self.sample_weight[y[i]]
         elif callable(self.sample_weight):
             return self.sample_weight(y, i, metadata)
 
@@ -322,14 +333,14 @@ class WindowedDatasetIterator(DatasetIterator):
         window = windowed_signal_generator(
             X, y, timestamp, self.window_size, self.output_size, self.add_last)
 
-        if metadata is None:
-            metadata_i = None 
-        else:
-            metadata_i = metadata[i]
-        if metadata_i is None:
-            return window[0], window[1], [self.sample_weights[i]]
-        else:
-            return (window[0], metadata_i), window[1], [self.sample_weights[i]]
+        #if metadata is None:
+        #    metadata_i = None 
+        #else:
+        #    metadata_i = metadata[i]
+        #if metadata_i is None:
+        return window[0], window[1], [self.sample_weights[i]]
+        #else:
+        #    return (window[0], metadata_i), window[1], [self.sample_weights[i]]
 
     def at_end(self):
         return self.i == len(self.elements)
@@ -344,11 +355,12 @@ class WindowedDatasetIterator(DatasetIterator):
     def get_data(self):        
         N_points = len(self)
         dimension = self.window_size*self.transformer.n_features
+        X, y, sw = self[0]
         X = np.zeros(
             (N_points, dimension), 
-            dtype=np.float32)
-        y = np.zeros((N_points, self.output_size), dtype=np.float32)
-        sample_weight = np.zeros(N_points, dtype=np.float32)
+            dtype=X.dtype)
+        y = np.zeros((N_points, self.output_size), dtype=y.dtype)
+        sample_weight = np.zeros(N_points, dtype=type(sw[0]))
 
         for i, (X_, y_, sample_weight_) in enumerate(self):
             X[i, :] = X_.flatten()
