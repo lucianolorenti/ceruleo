@@ -1,12 +1,9 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.transformation.transformerstep import TransformerStep
-from rul_pm.transformation.utils import IdentityTransformer
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import FeatureUnion, Pipeline
 import pandas as pd
-
+from rul_pm.transformation.transformerstep import TransformerStep
+from rul_pm.transformation.utils.utils import sliding_window_view
 
 class TargetToClasses(TransformerStep):
     def __init__(self, bins):
@@ -93,3 +90,34 @@ class RULBinarizer(TransformerStep):
         return (X < self.t).astype('int')
 
 
+
+class TargetSplitIntoWindows(TransformerStep):
+    """Split the target features of the lives in windows[summary]
+
+    Parameters
+    ----------
+    window_size : int
+        Size of each window
+    stride : int
+        Strides of the windows
+    """
+    def __init__(self, window_size:int, stride:int, **kwargs):
+        super().__init__(**kwargs)
+        self.window_size = window_size
+        self.stride = stride
+
+    def transform(self, X:pd.DataFrame) -> pd.Series:
+        """Transform the given life in a list of DataFrame, each element is a windowed vision of the signal
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+
+        Returns
+        -------
+        List[pd.DataFrame]
+            The life data splitted in windows
+        """
+        indices = sliding_window_view(X.index.values, (self.window_size,), (self.stride, ))
+        return pd.Series([X.loc[indices[w, :], :].mode().values[0][0] for w in range(indices.shape[0])])
