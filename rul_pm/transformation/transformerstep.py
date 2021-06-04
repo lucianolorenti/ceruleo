@@ -145,7 +145,7 @@ class TransformerStepMixin:
 
 
 class TransformerLambda(TransformerStep):
-    def __init__(self, name: str, f):
+    def __init__(self, f, name: str):
         super().__init__(name)
         self.f = f
 
