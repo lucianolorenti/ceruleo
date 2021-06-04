@@ -13,6 +13,10 @@ from rul_pm.transformation.features.hurst import hurst_exponent
 from rul_pm.transformation.transformerstep import TransformerStep
 from sklearn.feature_extraction.text import CountVectorizer
 
+import mmh3
+mmh3.hash('foo') 
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -158,6 +162,51 @@ class OneHotCategoricalPandas(TransformerStep):
         return df
 
 
+class HashingEncodingCategorical(TransformerStep):
+    """Compute a simple numerical encoding for a given feature
+
+    Parameters
+    ----------
+    nbins: int
+        Number of bins after the hash
+    feature : str
+        Feature name from which compute the simple encoding
+    name : Optional[str], optional
+        Step name, by default None
+    """
+    def __init__(self, nbins:int, feature:Optional[str]=None, name: Optional[str] = None):
+        super().__init__(name)
+        self.nbins = nbins
+        self.feature = feature
+        self.categories = set()
+        self.encoder = None
+
+
+    def transform(self, X, y=None):
+        """Return a new DataFrame with the feature  encoded with integer numbers
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            The input life
+        y : [type], optional
+            
+
+        Returns
+        -------
+        pd.DataFrame
+            A new dataframe with the same index as the input 
+            with 1 column
+        """
+        def hash(x):
+            return (mmh3.hash(x) & 0xffffffff) % self.nbins
+
+        if self.feature is None:
+            self.feature = X.columns[0]
+        X_new = pd.DataFrame(index=X.index)
+        X_new['encoding'] =  X[self.feature].map(hash)
+        return X_new
+
 class SimpleEncodingCategorical(TransformerStep):
     """Compute a simple numerical encoding for a given feature
 
@@ -168,7 +217,7 @@ class SimpleEncodingCategorical(TransformerStep):
     name : Optional[str], optional
         Step name, by default None
     """
-    def __init__(self, feature:str, name: Optional[str] = None):
+    def __init__(self, feature:Optional[str]=None, name: Optional[str] = None):
         super().__init__(name)
         self.feature = feature
         self.categories = set()
@@ -187,6 +236,8 @@ class SimpleEncodingCategorical(TransformerStep):
         OneHotCategoricalPandas
             self
         """
+        if self.feature is None:
+            self.feature = X.columns[0]
         self.categories.update(set(X[self.feature].unique()))
         return self
 
@@ -204,6 +255,8 @@ class SimpleEncodingCategorical(TransformerStep):
         OneHotCategoricalPandas
             self
         """
+        if self.feature is None:
+            self.feature = X.columns[0]
         self.categories.update(set(X[self.feature].unique()))
         return self
 
@@ -226,8 +279,8 @@ class SimpleEncodingCategorical(TransformerStep):
         categories = sorted(list([c for c in self.categories
                                   if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
-
-        return pd.DataFrame(d.codes, index=X.index)
+        pd.DataFrame({'encoding': d.codes}, index=X.index)
+        return pd.DataFrame({'encoding': d.codes}, index=X.index)
 
 
 class LowFrequencies(TransformerStep):
