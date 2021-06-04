@@ -239,3 +239,27 @@ class Diff(TransformerStep):
             with the difference of the features
         """
         return X.diff()
+
+
+
+
+class StringConcatenate(TransformerStep):
+    """Compute the 1 step difference of each feature.
+    """
+    def transform(self, X):
+        """Transform the input life computing the 1 step difference
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input life
+
+        Returns
+        -------
+        pd.DataFrame
+            Return a new DataFrame with the same index as the input
+            with the difference of the features
+        """
+        new_X = pd.DataFrame(index=X.index)
+        new_X['concatenation'] = X.agg('-'.join, axis=1)
+        return new_X
