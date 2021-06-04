@@ -2,6 +2,8 @@ import math
 from typing import Optional, Tuple
 
 import numpy as np
+import pandas as pd
+from numpy.lib.arraysetops import isin
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.transformation.transformers import Transformer
@@ -19,30 +21,36 @@ class Batcher:
     restart_at_end: bool = True
                     Wether if the iterator is infinite or not
     """
-    def __init__(self,
-                 iterator: WindowedDatasetIterator,
-                 batch_size: int,
-                 restart_at_end: bool = True):
+
+    def __init__(
+        self,
+        iterator: WindowedDatasetIterator,
+        batch_size: int,
+        restart_at_end: bool = True,
+    ):
         self.iterator = iterator
         self.batch_size = batch_size
         self.restart_at_end = restart_at_end
         self.stop = False
         self.prefetch_size = None
+        self.batch_data = None
 
     @staticmethod
-    def new(dataset: AbstractLivesDataset,
-            window: int,
-            batch_size: int,
-            transformer: Transformer,
-            step: int,
-            output_size: int = 1,
-            shuffle: bool = False,
-            restart_at_end: bool = True,
-            cache_size: int = 20,
-            evenly_spaced_points: Optional[int] = None,
-            sample_weight: str = 'equal',
-            add_last: bool = True,
-            discard_threshold: Optional[float] = None):
+    def new(
+        dataset: AbstractLivesDataset,
+        window: int,
+        batch_size: int,
+        transformer: Transformer,
+        step: int,
+        output_size: int = 1,
+        shuffle: bool = False,
+        restart_at_end: bool = True,
+        cache_size: int = 20,
+        evenly_spaced_points: Optional[int] = None,
+        sample_weight: str = "equal",
+        add_last: bool = True,
+        discard_threshold: Optional[float] = None,
+    ):
         """Batcher constructor from a dataset
 
         The method constructs WindowedDatasetIterator from the dataset and
@@ -74,7 +82,8 @@ class Batcher:
             evenly_spaced_points=evenly_spaced_points,
             sample_weight=sample_weight,
             add_last=add_last,
-            discard_threshold=discard_threshold)
+            discard_threshold=discard_threshold,
+        )
         b = Batcher(iterator, batch_size, restart_at_end)
         return b
 
@@ -104,7 +113,7 @@ class Batcher:
         int
             Number of features of the transformed dataset
         """
-        return self.iterator.transformer.n_features
+        return self.iterator.n_features
 
     @property
     def window_size(self) -> int:
@@ -147,12 +156,69 @@ class Batcher:
         if isinstance(self.step, int):
             return self.step
         elif isinstance(self.step, tuple):
-            if self.step[0] == 'auto':
+            if self.step[0] == "auto":
                 return int(self.window / self.step[1])
-        raise ValueError('Invalid step parameter')
+        raise ValueError("Invalid step parameter")
+
+    def initialize_batch(self):
+        def initialize_batch_element(elem):
+            if isinstance(elem, tuple):
+                for e in elem:
+                    initialize_batch_element(e)
+            else:
+                elem.fill(0)
+
+        if self.batch_data is None:
+            return
+        for i in range(len(self.batch_data)):
+            initialize_batch_element(self.batch_data[i])
+
+    def allocate_batch_data(self, d):
+        def allocate_batch_data_element(d):
+            if isinstance(d, tuple):
+                return tuple(allocate_batch_data_element(q) for q in d)
+            else:
+
+                if isinstance(d, np.ndarray) or isinstance(d, pd.Series):
+                    shape = d.shape
+                elif isinstance(d, list):
+                    shape = (len(d),)
+
+                return np.zeros((self.batch_size, *shape))
+
+        if self.batch_data is not None:
+            return
+        self.batch_data = []
+        for i in range(len(d)):
+            self.batch_data.append(allocate_batch_data_element(d[i]))
+
+    def _assign_data(self, d, j):
+        for i, elem in enumerate(d):
+            if isinstance(elem, tuple):
+                for k in range(len(elem)):
+                    self.batch_data[i][k][j, :] = elem[k]
+            else:
+                self.batch_data[i][j, :] = elem
+
+    def _slice_data(self, actual_batch_size):
+        def slice_batch_data_element(d, actual_batch_size):
+            if isinstance(d, tuple):
+                return tuple(sliced_data(q, actual_batch_size) for q in d)
+            else:
+                return d[:actual_batch_size-1, :]
+
+        if actual_batch_size == self.batch_size:
+            return self.batch_data
+        sliced_data = []
+        for i in range(len(self.batch_data)):
+            sliced_data.append(
+                slice_batch_data_element(self.batch_data[i], actual_batch_size)
+            )
+        return sliced_data
 
     def __next__(self):
-        data = []
+
+        self.initialize_batch()
 
         if self.stop:
             raise StopIteration
@@ -162,16 +228,13 @@ class Batcher:
             else:
                 raise StopIteration
         try:
-            for _ in range(self.batch_size):
+            actual_batch_size = 0
+            for j in range(self.batch_size):
+                actual_batch_size += 1
                 d = next(self.iterator)
-                if len(data) == 0:
-                    for i in range(len(d)):
-                        data.append([])
-                for i, elem in enumerate(d):
-                    data[i].append(np.expand_dims(elem, axis=0))
+                self.allocate_batch_data(d)
+                self._assign_data(d, j)
         except StopIteration:
             pass
-        for i, d in enumerate(data):
-            data[i] = (np.concatenate(data[i], axis=0).astype(np.float32))
 
-        return data
+        return self._slice_data(actual_batch_size)

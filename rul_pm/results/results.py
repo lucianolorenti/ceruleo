@@ -296,14 +296,15 @@ class FittedLife:
         np.array
             [description]
         """
-        time_diff = np.diff(y_true[degrading_start:][::-1])
+        
+        time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
             if len(time_diff) > 0:
                 time[0 : degrading_start + 1] = np.median(time_diff)
             else:
                 time[0 : degrading_start + 1] = 1
-        time[degrading_start + 1 :] = time_diff
+        time[degrading_start+1  :] = time_diff
         return np.cumsum(time)
 
     def _fit_picewise_linear_regression(self, y: np.array) -> PiecewesieLinearFunction:

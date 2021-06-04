@@ -18,10 +18,6 @@ def true_values(dataset_iterator: Union[WindowedDatasetIterator, Batcher]) -> np
          target values after the transformation
     """
     if isinstance(dataset_iterator, Batcher):
-        dataset_iterator = dataset_iterator.iterator
-    orig_transformer = dataset_iterator.transformer.transformerX
-    dataset_iterator.transformer.transformerX = LivesPipeline(
-        steps=[('empty', 'passthrough')])        
+        dataset_iterator = dataset_iterator.iterator 
     d =  np.concatenate([y for _, y, _ in dataset_iterator])
-    dataset_iterator.transformer.transformerX = orig_transformer
     return d

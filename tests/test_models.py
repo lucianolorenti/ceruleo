@@ -169,8 +169,8 @@ class TestKeras():
         y_true = true_values(iterator)   
         
         assert y_pred.shape[0] == y_true.shape[0]
-
-        assert np.mean(np.abs(y_pred - y_true)) < 0.001
+       
+        assert np.mean(np.abs(np.squeeze(y_pred)-np.squeeze(y_true))) < 0.001
 
         model = BaselineModel( mode='median')
         model.fit(iterator)

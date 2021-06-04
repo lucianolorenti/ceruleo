@@ -31,6 +31,7 @@ class BaselineModel(TrainableModel):
         """
         true = []
         for _, y, _ in ds:
+            y = y.values
             degrading_start, time = FittedLife.compute_time_feature(y, self.RUL_threshold) 
             true.append(y[0]+time[degrading_start])
 
@@ -54,7 +55,7 @@ class BaselineModel(TrainableModel):
         """
         output = []
         for _,y, _ in ds:
-            degrading_start, time = FittedLife.compute_time_feature(y, self.RUL_threshold)
+            degrading_start, time = FittedLife.compute_time_feature(y.values, self.RUL_threshold)
             y_pred = np.clip(
                 self.fitted_RUL-time,  0, self.fitted_RUL)
             output.append(y_pred)

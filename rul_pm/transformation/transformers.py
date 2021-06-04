@@ -9,15 +9,14 @@ dataset iterators to transform the data before feeding it to the model.
 """
 import copy
 import logging
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-
 from rul_pm.transformation.featureunion import PandasFeatureUnion
 from rul_pm.transformation.pipeline import LivesPipeline
 from sklearn.utils.validation import check_is_fitted
-
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +60,7 @@ def transformer_info(transformer):
         logger.error(type(transformer))
 
         raise ValueError('Pipeline elements must have the get_params method')
+
 
 
 
@@ -167,7 +167,7 @@ class Transformer:
         np.array
             Target obtained from the life
         """
-        return np.squeeze(self.transformerY.transform(life).values)
+        return self.transformerY.transform(life)
 
     def transformX(self, life: pd.DataFrame) -> np.array:
         """Get the transformer input data
@@ -182,7 +182,7 @@ class Transformer:
         np.array
             Input data transformed
         """
-        return self.transformerX.transform(life).values
+        return self.transformerX.transform(life)
 
     def columns(self) -> List[str]:
         """Columns names after transformation
@@ -218,3 +218,4 @@ class Transformer:
 
     def __str__(self):
         return str(self.description())
+

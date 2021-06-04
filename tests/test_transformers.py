@@ -413,6 +413,7 @@ class TestGenerators:
             'c3':[0,0,0,1,0],
             'c4':[0,0,0,0,0]
         })
+
         assert (df_t == df_true).all().all()
 
 
@@ -422,11 +423,12 @@ class TestGenerators:
 
         df_t = transformer.transform(df2)
         df_true = pd.DataFrame([0,0,0,2,1])
-        assert (df_true == df_t).all().all()
+ 
+        assert np.all(df_true.values == df_t.values)
 
         df_t = transformer.transform(df3)
         df_true = pd.DataFrame([0,0,0,2,-1])
-        assert (df_true == df_t).all().all()
+        assert np.all(df_true.values == df_t.values)
 
 
 

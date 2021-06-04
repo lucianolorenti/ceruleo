@@ -141,8 +141,9 @@ class TestPipeline:
 
         X, y, sw = test_transformer.transform(dataset[0])
 
-        assert (np.mean((gt.iloc[:4, :].values - X) ** 2)) < 0.0001
+
+        assert (np.mean((gt.iloc[:4, :].values - X.values) ** 2)) < 0.0001
         X, y, sw = test_transformer.transform(dataset[1])
-        assert (np.mean((gt.iloc[4:, :].values - X) ** 2)) < 0.0001
+        assert (np.mean((gt.iloc[4:, :].values - X.values) ** 2)) < 0.0001
 
         assert X.shape[1] == 2
