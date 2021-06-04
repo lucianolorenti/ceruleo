@@ -203,12 +203,13 @@ class Batcher:
     def _slice_data(self, actual_batch_size):
         def slice_batch_data_element(d, actual_batch_size):
             if isinstance(d, tuple):
-                return tuple(sliced_data(q, actual_batch_size) for q in d)
+                return tuple(slice_batch_data_element(q, actual_batch_size) for q in d)
             else:
                 return d[:actual_batch_size-1, :]
 
         if actual_batch_size == self.batch_size:
             return self.batch_data
+        print('a')
         sliced_data = []
         for i in range(len(self.batch_data)):
             sliced_data.append(
@@ -217,8 +218,6 @@ class Batcher:
         return sliced_data
 
     def __next__(self):
-
-        self.initialize_batch()
 
         if self.stop:
             raise StopIteration
