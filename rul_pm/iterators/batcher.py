@@ -183,7 +183,6 @@ class Batcher:
                     shape = d.shape
                 elif isinstance(d, list):
                     shape = (len(d),)
-
                 return np.zeros((self.batch_size, *shape))
 
         if self.batch_data is not None:
@@ -209,7 +208,6 @@ class Batcher:
 
         if actual_batch_size == self.batch_size:
             return self.batch_data
-        print('a')
         sliced_data = []
         for i in range(len(self.batch_data)):
             sliced_data.append(

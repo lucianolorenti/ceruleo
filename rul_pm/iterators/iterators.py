@@ -1,19 +1,14 @@
 import logging
 import random
-
 from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from pandas.core.algorithms import isin
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.transformation.transformers import Transformer
 from rul_pm.utils.lrucache import LRUDataCache
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
-from tqdm.auto import tqdm
-
-from diskcache import Cache
 
 CACHE_SIZE = 30
 
