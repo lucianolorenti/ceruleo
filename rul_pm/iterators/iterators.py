@@ -13,6 +13,8 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 from tqdm.auto import tqdm
 
+from diskcache import Cache
+
 CACHE_SIZE = 30
 
 logger = logging.getLogger(__name__)
@@ -75,7 +77,7 @@ class DatasetIterator:
         if life not in self.cache.data:
             data = self.dataset[life]
             X, y, metadata = self.transformer.transform(data)
-            self.cache.add(life, (X, y, metadata))
+            self.cache.add(life, (X.values, y.values, metadata))
         return self.cache.get(life)
 
 
@@ -221,6 +223,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i = 0
         self.output_size = output_size
         self.add_last = add_last
+        
 
     def _sample_weight(self, y, i: int, metadata):
         if isinstance(self.sample_weight, str):
@@ -320,7 +323,7 @@ class WindowedDatasetIterator(DatasetIterator):
         (life, timestamp) = (self.lifes[i], self.elements[i])
         X, y, metadata = self._load_data(life)
         window = windowed_signal_generator(
-            X.values, y.values, timestamp, self.window_size, self.output_size, self.add_last)
+            X, y, timestamp, self.window_size, self.output_size, self.add_last)
 
         #if metadata is None:
         #    metadata_i = None 
