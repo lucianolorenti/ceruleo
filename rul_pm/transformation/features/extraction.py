@@ -3,19 +3,16 @@ import logging
 from typing import List, Optional
 
 import emd
+import mmh3
 import numpy as np
 import pandas as pd
-from sklearn.base import TransformerMixin
 from rul_pm.transformation.features.extraction_numba import (compute,
                                                              roll_matrix,
                                                              stats_order)
 from rul_pm.transformation.features.hurst import hurst_exponent
 from rul_pm.transformation.transformerstep import TransformerStep
+from sklearn.base import TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer
-
-import mmh3
-mmh3.hash('foo') 
-
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +235,9 @@ class SimpleEncodingCategorical(TransformerStep):
         """
         if self.feature is None:
             self.feature = X.columns[0]
+            print(self.feature)
+
+        
         self.categories.update(set(X[self.feature].unique()))
         return self
 
@@ -257,6 +257,7 @@ class SimpleEncodingCategorical(TransformerStep):
         """
         if self.feature is None:
             self.feature = X.columns[0]
+
         self.categories.update(set(X[self.feature].unique()))
         return self
 
