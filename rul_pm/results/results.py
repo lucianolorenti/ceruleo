@@ -153,13 +153,21 @@ class CVResults:
             self._add_fold_result(i, y_pred, y_true)
 
     def _add_fold_result(self, fold: int, y_pred: np.array, y_true: np.array):
+        y_pred = np.squeeze(y_pred)
+        y_true = np.squeeze(y_true)
+
         for j in range(len(self.bin_edges) - 1):
+
             mask = (y_true >= self.bin_edges[j]) & (y_true <= self.bin_edges[j + 1])
             indices = np.where(mask)[0]
+   
             if len(indices) == 0:
                 continue
+            
             errors = y_true[indices] - y_pred[indices]
+
             self.mean_error[fold, j] = np.mean(errors)
+
             self.mae[fold, j] = np.mean(np.abs(errors))
             self.mse[fold, j] = np.mean((errors) ** 2)
             self.errors.append(errors)
