@@ -315,3 +315,13 @@ class ForwardFillImputer(TransformerStep):
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X.ffill()
+
+
+class FillImputer(TransformerStep):
+    def __init__(self, value, name:Optional[str]=None):
+        super().__init__(name)
+        self.value = value
+    """Impute forward filling the values
+    """
+    def transform(self, X):
+        return X.fillna(value=self.value)
