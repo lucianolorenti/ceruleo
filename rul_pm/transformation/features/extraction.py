@@ -5,6 +5,7 @@ from typing import List, Optional
 import emd
 import mmh3
 import numpy as np
+from numpy.lib.arraysetops import isin
 import pandas as pd
 from rul_pm.transformation.features.extraction_numba import (compute,
                                                              roll_matrix,
@@ -93,11 +94,16 @@ class OneHotCategoricalPandas(TransformerStep):
         Step name, by default None
     """
 
-    def __init__(self, feature:str, name: Optional[str] = None):
+    def __init__(self, feature:Optional[str]=None, categories: Optional[List[any]]=None, name: Optional[str] = None):
         super().__init__(name)
         self.feature = feature
-        self.categories = set()
+        self.categories = categories
+        self.fixed_categories = True
+        if self.categories is None:
+            self.categories = set()
+            self.fixed_categories = False
         self.encoder = None
+        
 
     def partial_fit(self, X:pd.DataFrame, y=None):
         """Compute incrementally the set of possible categories
@@ -112,7 +118,10 @@ class OneHotCategoricalPandas(TransformerStep):
         OneHotCategoricalPandas
             self
         """
-
+        if self.fixed_categories:
+            return self
+        if self.feature is None:
+            self.feature = X.columns[0]
         self.categories.update(set(X[self.feature].unique()))
         return self
 
@@ -130,6 +139,10 @@ class OneHotCategoricalPandas(TransformerStep):
         OneHotCategoricalPandas
             self
         """
+        if self.fixed_categories:
+            return self
+        if self.feature is None:
+            self.feature = X.columns[0]
         self.categories.update(set(X[self.feature].unique()))
         return self
 
@@ -196,6 +209,8 @@ class HashingEncodingCategorical(TransformerStep):
             with 1 column
         """
         def hash(x):
+            if isinstance(x, int):
+                x = x.to_bytes((x.bit_length() + 7) // 8, 'little') 
             return (mmh3.hash(x) & 0xffffffff) % self.nbins
 
         if self.feature is None:
@@ -230,7 +245,7 @@ class SimpleEncodingCategorical(TransformerStep):
 
         Returns
         -------
-        OneHotCategoricalPandas
+        SimpleEncodingCategorical
             self
         """
         if self.feature is None:
@@ -421,19 +436,35 @@ class LifeStatistics(TransformerStep):
         return (s.max(skipna=True) - s.min(skipna=True))
 
     def _impulse(self, s: pd.Series):
-        return self._peak(s) / s.abs().mean()
+        m = s.abs().mean()
+        if m > 0:
+            return self._peak(s) / m
+        else:
+            return 0
 
     def _clearance(self, s: pd.Series):
-        return (self._peak(s) / s.abs().pow(1. / 2).mean())**2
+        m = s.abs().pow(1. / 2).mean()
+        if m > 0:
+            return (self._peak(s) / m)**2
+        else:
+            return 0
 
     def _rms(self, s: pd.Series):
         return (np.sqrt(s.pow(2).mean(skipna=True)))
 
     def _shape(self, s: pd.Series):
-        return self._rms(s) / s.abs().mean(skipna=True)
+        m = s.abs().mean(skipna=True)
+        if m > 0:
+            return self._rms(s) / m
+        else:
+            return 0
 
     def _crest(self, s: pd.Series):
-        return self._peak(s) / self._rms(s)
+        m = self._rms(s)
+        if m > 0:
+            return self._peak(s) / m
+        else:
+            return 0
 
     def transform(self, X:pd.DataFrame)->pd.DataFrame:
         """Compute features from the given life
