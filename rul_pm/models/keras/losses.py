@@ -167,3 +167,42 @@ def weibull_mean_loss_regression(y_true, y_pred):
     loss = tf.reduce_mean(weibul_loss) + reg_loss
     return loss
 
+
+
+def asymmetric_loss_pm(theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r,  relative_weight:bool=True):
+    """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
+
+    Parameters
+    ----------
+    theta_r : [type]
+        [description]
+    alpha_r : [type]
+        [description]
+    gamma_r : [type]
+        [description]
+    """
+
+    def concrete_asymmetric_loss_pm(y_true, y_pred):
+        
+        errors = y_true - y_pred 
+        weight = tf.abs(errors) / (y_pred+0.00000001)
+
+        ll_exp = tf.cast( K.less(errors, -theta_l) , errors.dtype)
+        ll_quad = (1-ll_exp) * tf.cast( K.less(errors, 0) , errors.dtype)
+
+        lr_exp = tf.cast( K.greater(errors, theta_r) , errors.dtype)
+        lr_quad = (1-lr_exp) * tf.cast( K.greater(errors, 0) , errors.dtype)
+        ll_exp = ll_exp*(alpha_l*theta_l*(theta_l + 2*gamma_l*(K.exp((K.abs(errors) - theta_l)/(gamma_l))- 1))) 
+        ll_quad = ll_quad*alpha_l*K.pow(errors,2)
+ 
+        lr_exp = lr_exp*(alpha_r*theta_r*(theta_r + 2*gamma_r*(K.exp((errors - theta_r)/(gamma_r))- 1))) 
+        lr_quad = lr_quad*alpha_r*K.pow(errors,2)
+
+        if relative_weight:
+            a =   tf.reduce_mean(weight*(ll_exp + ll_quad + lr_exp + lr_quad ))
+        else:
+            a =   tf.reduce_mean(ll_exp + ll_quad + lr_exp + lr_quad)
+
+
+        return a
+    return concrete_asymmetric_loss_pm
