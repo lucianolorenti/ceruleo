@@ -6,11 +6,15 @@ import numpy as np
 
 
 class PandasMinMaxScaler(TransformerStep):
-    def __init__(self,
-                 range: tuple,
-                 name: Optional[str] = None,
-                 clip: bool = True,
-                 robust:bool = False):
+    def __init__(
+        self,
+        range: tuple,
+        name: Optional[str] = None,
+        clip: bool = True,
+        robust: bool = False,
+        lower_quantile: float = 0.25,
+        upper_quantile: float = 0.75,
+    ):
         super().__init__(name)
         self.range = range
         self.min = range[0]
@@ -19,11 +23,13 @@ class PandasMinMaxScaler(TransformerStep):
         self.data_max = None
         self.clip = clip
         self.robust = robust
+        self.lower_quantile = lower_quantile
+        self.upper_quantile = upper_quantile
 
     def partial_fit(self, df, y=None):
         if self.robust:
-            partial_data_min = df.quantile(0.45)
-            partial_data_max = df.quantile(0.55)
+            partial_data_min = df.quantile(self.lower_quantile)
+            partial_data_max = df.quantile(self.upper_quantile)
         else:
             partial_data_min = df.min()
             partial_data_max = df.max()
@@ -31,10 +37,12 @@ class PandasMinMaxScaler(TransformerStep):
             self.data_min = partial_data_min
             self.data_max = partial_data_max
         else:
-            self.data_min = (pd.concat([self.data_min, partial_data_min],
-                                       axis=1).min(axis=1))
-            self.data_max = (pd.concat([self.data_max, partial_data_max],
-                                       axis=1).max(axis=1))
+            self.data_min = pd.concat([self.data_min, partial_data_min], axis=1).min(
+                axis=1
+            )
+            self.data_max = pd.concat([self.data_max, partial_data_max], axis=1).max(
+                axis=1
+            )
         return self
 
     def fit(self, df, y=None):
@@ -43,8 +51,11 @@ class PandasMinMaxScaler(TransformerStep):
         return self
 
     def transform(self, X):
-        X = ((X - self.data_min) / (self.data_max - self.data_min) *
-             (self.max - self.min)) + self.min
+        X = (
+            (X - self.data_min)
+            / (self.data_max - self.data_min)
+            * (self.max - self.min)
+        ) + self.min
         if self.clip:
             X.clip(lower=self.min, upper=self.max, inplace=True)
         return X
@@ -63,10 +74,8 @@ class PandasStandardScaler(TransformerStep):
             self.mean = partial_data_mean
             self.std = partial_data_std
         else:
-            self.mean = (pd.concat([self.mean, partial_data_mean],
-                                   axis=1).mean(axis=1))
-            self.std = (pd.concat([self.std, partial_data_std],
-                                  axis=1).mean(axis=1))
+            self.mean = pd.concat([self.mean, partial_data_mean], axis=1).mean(axis=1)
+            self.std = pd.concat([self.std, partial_data_std], axis=1).mean(axis=1)
         return self
 
     def fit(self, df, y=None):
@@ -79,10 +88,7 @@ class PandasStandardScaler(TransformerStep):
 
 
 class PandasRobustScaler(TransformerStep):
-    def __init__(self,
-                 range: tuple,
-                 name: Optional[str] = None,
-                 clip: bool = True):
+    def __init__(self, range: tuple, name: Optional[str] = None, clip: bool = True):
         super().__init__(name)
         self.range = range
         self.min = range[0]
@@ -98,10 +104,12 @@ class PandasRobustScaler(TransformerStep):
             self.data_min = partial_data_median
             self.data_max = partial_data_max
         else:
-            self.data_median = (pd.concat([self.data_median, partial_data_median],
-                                       axis=1).median(axis=1))
-            self.data_max = (pd.concat([self.data_max, partial_data_max],
-                                       axis=1).max(axis=1))
+            self.data_median = pd.concat(
+                [self.data_median, partial_data_median], axis=1
+            ).median(axis=1)
+            self.data_max = pd.concat([self.data_max, partial_data_max], axis=1).max(
+                axis=1
+            )
         return self
 
     def fit(self, df, y=None):
@@ -110,12 +118,15 @@ class PandasRobustScaler(TransformerStep):
         return self
 
     def transform(self, X):
-        X = ((X - self.data_min) / (self.data_max - self.data_min) *
-             (self.max - self.min)) + self.min
+        X = (
+            (X - self.data_min)
+            / (self.data_max - self.data_min)
+            * (self.max - self.min)
+        ) + self.min
         if self.clip:
             X.clip(lower=self.min, upper=self.max, inplace=True)
         return X
-        
+
 
 class ScaleInvRUL(TransformerStep):
     """
@@ -127,6 +138,7 @@ class ScaleInvRUL(TransformerStep):
     rul_column: str
                 Column with the RUL
     """
+
     def __init__(self, rul_column: str, name: Optional[str] = None):
         super().__init__(name)
         self.RUL_list_per_column = {}
@@ -142,16 +154,24 @@ class ScaleInvRUL(TransformerStep):
             mask = X[X[c] > 0].index
             if len(mask) > 0:
                 RUL_list = self.RUL_list_per_column.setdefault(c, [])
-                RUL_list.extend((1+(X[self.rul_column].loc[mask].values / X[self.rul_column].max())).tolist())
+                RUL_list.extend(
+                    (
+                        1
+                        + (
+                            X[self.rul_column].loc[mask].values
+                            / X[self.rul_column].max()
+                        )
+                    ).tolist()
+                )
 
         for k in self.RUL_list_per_column.keys():
 
-            self.penalty[k] = (1 / np.median(self.RUL_list_per_column[k]))
+            self.penalty[k] = 1 / np.median(self.RUL_list_per_column[k])
 
     def transform(self, X: pd.DataFrame):
         columns = [c for c in X.columns if c != self.rul_column]
         X_new = pd.DataFrame(index=X.index)
         for c in columns:
-            if (c in self.penalty):
+            if c in self.penalty:
                 X_new[c] = X[c] * self.penalty[c]
         return X_new
