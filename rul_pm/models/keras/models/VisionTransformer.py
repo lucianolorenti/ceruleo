@@ -138,7 +138,7 @@ class VisionTransformer(KerasTrainableModel):
 
     @property
     def name(self):
-        return "XCM"
+        return "VisionTransformer"
 
 
    
