@@ -19,8 +19,6 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
-
-
 def keras_regression_batcher(batcher):
     n_features = batcher.n_features
 
@@ -50,7 +48,6 @@ def keras_autoencoder_batcher(batcher):
     def gen_train():
         for X, w in batcher:
             yield X, X, w
-
 
     a = tf.data.Dataset.from_generator(
         gen_train,
@@ -123,8 +120,8 @@ class KerasTrainableModel(TrainableModel):
         return d
 
     def _predict(self, batcher: Batcher):
-        #output = []
-        #for X, _, _ in self.batcher_generator(batcher):
+        # output = []
+        # for X, _, _ in self.batcher_generator(batcher):
         #    input_tensor = tf.convert_to_tensor(X)
         #    output_tensor = self.model(input_tensor)
         #    output.append(output_tensor.numpy())
@@ -196,7 +193,13 @@ class KerasTrainableModel(TrainableModel):
             self.model.summary()
 
         a = self.batcher_generator(train_batcher)
-        b = self.batcher_generator(val_batcher)
+        validation_params = {}
+        if val_batcher is not None:
+            b = self.batcher_generator(val_batcher)
+            validation_params = {
+                "validation_data": b,
+                "validation_steps": len(val_batcher),
+            }
 
         logger.debug("Start fitting")
         history = self.model.fit(
@@ -204,10 +207,10 @@ class KerasTrainableModel(TrainableModel):
             verbose=verbose,
             steps_per_epoch=len(train_batcher),
             epochs=epochs,
-            validation_data=b,
-            validation_steps=len(val_batcher),
             callbacks=callbacks,
             class_weight=class_weight,
+            **validation_params
+            
         )
         self.history = history.history
         return self.history
