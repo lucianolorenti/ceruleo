@@ -42,7 +42,7 @@ from rul_pm.results.picewise_regression import (
     PiecewiseLinearRegression,
     PiecewesieLinearFunction,
 )
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -613,3 +613,19 @@ def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
         metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
     return metrics_dict
 
+
+
+def transform_results(results_dict:dict, transformation:Callable):
+    """Modifies in place the results dictionary applying the transformation in each array
+
+    Parameters
+    ----------
+    results : dict
+        The dictionary with the results
+    transformation : Callable
+        A functions that receives and array and returns a transformed array
+    """
+    for model_name in results_dict.keys():
+        for result in results_dict[model_name]:
+            result['true'] = transformation(result['true'])
+            result['predicted'] = transformation(result['predicted'])
