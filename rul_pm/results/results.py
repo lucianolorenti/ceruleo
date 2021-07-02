@@ -583,37 +583,6 @@ def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
         metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
     return metrics_dict
 
-def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
-    """Compute regression metrics for each model
-
-    Parameters
-    ----------
-    data : dict
-        Dictionary with the model predictions.
-        The dictionary must conform the results specification of this module
-    threshold : float, optional
-        Compute metrics errors only in RUL values less than the threshold, by default np.inf
-
-    Returns
-    -------
-    dict
-        A dictionary which contains the model name as key and as value
-        a dictionary with the mean error per each fold, and the standard
-        deviation of the errors    
-
-    """
-    metrics_dict = {}
-    for m in data.keys():
-        errors = []
-        for r in data[m]:
-            y = np.where(r["true"] <= threshold)[0]
-            y_true = r["true"][y]
-            y_pred = r["predicted"][y]
-            errors.append(mae(y_true, y_pred))
-        metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
-    return metrics_dict
-
-
 
 def transform_results(results_dict:dict, transformation:Callable):
     """Modifies in place the results dictionary applying the transformation in each array
