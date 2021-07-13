@@ -1,19 +1,20 @@
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.losses import mse
+import numpy as np
 
-    
-def class_to_reg(y_true, y_pred ,bins):
+
+def class_to_reg(y_true, y_pred, bins):
 
     aa = tf.convert_to_tensor(np.array([bins]).T, dtype=tf.float32)
     y_pred = tf.matmul(y_pred, aa)
-    
-    y_true = tf.gather(aa, tf.cast(tf.squeeze(y_true),  tf.int64))
+
+    y_true = tf.gather(aa, tf.cast(tf.squeeze(y_true), tf.int64))
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
 
 def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
-    '''
+    """
     Return a function for calculating weighted binary cross entropy
     It should be used for multi-hot encoded labels
 
@@ -73,7 +74,7 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
 
     @param from_logits If False, we apply sigmoid to each logit
     @return A function to calcualte (weighted) binary cross entropy
-    '''
+    """
     assert 0 in weights
     assert 1 in weights
 
@@ -82,8 +83,7 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
         tf_y_pred = tf.cast(y_pred, dtype=y_pred.dtype)
 
         weights_v = tf.where(tf.equal(tf_y_true, 1), weights[1], weights[0])
-        ce = K.binary_crossentropy(
-            tf_y_true, tf_y_pred, from_logits=from_logits)
+        ce = K.binary_crossentropy(tf_y_true, tf_y_pred, from_logits=from_logits)
         loss = K.mean(tf.multiply(ce, weights_v))
         return loss
 
@@ -146,15 +146,21 @@ def weibull_mean_loss_regression(y_true, y_pred):
         uncensored = y_true[:, 1]
         y_true = y_true[:, 0]
         y_true = y_true + 1
-        b = k * K.log((y_true/lambda_))
+        b = k * K.log((y_true / lambda_))
 
-        const = 1. + (b) + (K.pow(b, 2.) / 2.) + \
-            (K.pow(b, 3.)/6.) + (K.pow(b, 4.) / 24.)
+        const = (
+            1.0
+            + (b)
+            + (K.pow(b, 2.0) / 2.0)
+            + (K.pow(b, 3.0) / 6.0)
+            + (K.pow(b, 4.0) / 24.0)
+        )
 
-        const2 = uncensored * (K.log(k/lambda_) + (k-1.)
-                               * K.log((y_true/lambda_) + eps))
+        const2 = uncensored * (
+            K.log(k / lambda_) + (k - 1.0) * K.log((y_true / lambda_) + eps)
+        )
 
-        return -(const2-const)
+        return -(const2 - const)
 
     RUL = y_pred[:, 0]
     # a = y_pred[:, 1]
@@ -168,8 +174,9 @@ def weibull_mean_loss_regression(y_true, y_pred):
     return loss
 
 
-
-def asymmetric_loss_pm(theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r,  relative_weight:bool=True):
+def asymmetric_loss_pm(
+    theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r, relative_weight: bool = True
+):
     """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
 
     Parameters
@@ -183,26 +190,65 @@ def asymmetric_loss_pm(theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r,  re
     """
 
     def concrete_asymmetric_loss_pm(y_true, y_pred):
-        
-        errors = y_true - y_pred 
-        weight = tf.abs(errors) / (y_pred+0.00000001)
 
-        ll_exp = tf.cast( K.less(errors, -theta_l) , errors.dtype)
-        ll_quad = (1-ll_exp) * tf.cast( K.less(errors, 0) , errors.dtype)
+        errors = y_true - y_pred
+        weight = tf.abs(errors) / (
+            tf.clip_by_value(y_true, clip_value_min=0.9, clip_value_max=np.inf)
+        )
 
-        lr_exp = tf.cast( K.greater(errors, theta_r) , errors.dtype)
-        lr_quad = (1-lr_exp) * tf.cast( K.greater(errors, 0) , errors.dtype)
-        ll_exp = ll_exp*(alpha_l*theta_l*(theta_l + 2*gamma_l*(K.exp((K.abs(errors) - theta_l)/(gamma_l))- 1))) 
-        ll_quad = ll_quad*alpha_l*K.pow(errors,2)
- 
-        lr_exp = lr_exp*(alpha_r*theta_r*(theta_r + 2*gamma_r*(K.exp((errors - theta_r)/(gamma_r))- 1))) 
-        lr_quad = lr_quad*alpha_r*K.pow(errors,2)
+        ll_exp = tf.cast(K.less(errors, -theta_l), errors.dtype)
+        ll_quad = (1 - ll_exp) * tf.cast(K.less(errors, 0), errors.dtype)
+
+        lr_exp = tf.cast(K.greater(errors, theta_r), errors.dtype)
+        lr_quad = (1 - lr_exp) * tf.cast(K.greater(errors, 0), errors.dtype)
+        ll_exp = ll_exp * (
+            alpha_l
+            * theta_l
+            * (
+                theta_l
+                + 2 * gamma_l * (K.exp((K.abs(errors) - theta_l) / (gamma_l)) - 1)
+            )
+        )
+        ll_quad = ll_quad * alpha_l * K.pow(errors, 2)
+
+        lr_exp = lr_exp * (
+            alpha_r
+            * theta_r
+            * (theta_r + 2 * gamma_r * (K.exp((errors - theta_r) / (gamma_r)) - 1))
+        )
+        lr_quad = lr_quad * alpha_r * K.pow(errors, 2)
 
         if relative_weight:
-            a =   tf.reduce_mean(weight*(ll_exp + ll_quad + lr_exp + lr_quad ))
+            a = tf.reduce_mean(weight * (ll_exp + ll_quad + lr_exp + lr_quad))
         else:
-            a =   tf.reduce_mean(ll_exp + ll_quad + lr_exp + lr_quad)
-
+            a = tf.reduce_mean(ll_exp + ll_quad + lr_exp + lr_quad)
 
         return a
+
     return concrete_asymmetric_loss_pm
+
+
+def relative_mae(C: float = 0.9):
+    mae = tf.keras.losses.MeanAbsoluteError()
+
+    def concrete_relative_mae(y_true, y_pred):
+        errors = y_true - y_pred
+        sw = tf.abs(errors) / (
+            tf.clip_by_value(y_true, clip_value_min=C, clip_value_max=np.inf)
+        )
+        return mae(y_true, y_pred, sample_weight=sw)
+
+    return concrete_relative_mae
+
+
+def relative_mse(C: float = 0.9):
+    mse = tf.keras.losses.MeanSquaredError()
+
+    def concrete_relative_mse(y_true, y_pred):
+        errors = y_true - y_pred
+        sw = tf.abs(errors) / (
+            tf.clip_by_value(y_true, clip_value_min=C, clip_value_max=np.inf)
+        )
+        return mse(y_true, y_pred, sample_weight=sw)
+
+    return concrete_relative_mse
