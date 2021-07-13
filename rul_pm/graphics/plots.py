@@ -251,7 +251,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     n_models = len(model_results)
     nbins = len(bin_edges) - 1
 
-    width = 1.0 / n_models
+    width = 1.0 / 1.5
 
     for i in range(nbins):
         labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
