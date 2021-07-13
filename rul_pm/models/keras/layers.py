@@ -17,6 +17,7 @@ def ExpandDimension():
 def RemoveDimension(axis=0):
     return Lambda(lambda x: K.squeeze(x, axis=axis))
 
+
 class MultiHeadAttention(tf.keras.layers.Layer):
     r"""MultiHead Attention layer.
     Defines the MultiHead Attention operation as described in
@@ -380,3 +381,27 @@ class ConcreteDropout(tf.keras.layers.Layer):
         x = self.concrete_dropout(p, inputs)
 
         return x
+
+
+
+class GatedTimeSeries(tf.keras.layers.Layer):
+    def __init__(self, regularizer:float = 1.0, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.regularizer = regularizer
+
+    def build(self, input_shape):
+        self.w = self.add_weight(
+            name='gate',
+            shape=(1, input_shape[-1]),
+            initializer="ones",
+            trainable=True,
+            regularizer=tf.keras.regularizers.l1(self.regularizer),
+        )
+
+    def call(self, inputs):
+        activation = 1 - tf.exp(-(self.w * self.w))
+        self.add_metric(
+            tf.reduce_sum(tf.cast(activation > 0.00001, dtype=tf.float32)),
+            name="Number of features",
+        )
+        return tf.math.multiply(inputs, activation)
