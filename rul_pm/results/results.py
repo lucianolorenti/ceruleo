@@ -57,6 +57,13 @@ from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
+def compute_sample_weight(sample_weight, y_true, y_pred, c:float=0.9):
+    if sample_weight == 'relative':
+        sample_weight = np.abs(y_true - y_pred) / (np.clip(y_true, c, np.inf))
+    else:
+        sample_weight = 1
+    return sample_weight
+
 
 def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
     if tt is None:
@@ -335,11 +342,14 @@ class FittedLife:
 
         return line
 
-    def rmse(self) -> float:
-        return np.sqrt(np.mean((self.y_true - self.y_pred) ** 2))
 
-    def mae(self) -> float:
-        return np.mean(np.abs(self.y_true - self.y_pred))
+    def rmse(self, sample_weight=None) -> float:
+        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
+        return np.sqrt(np.mean(sw*(self.y_true - self.y_pred) ** 2))
+
+    def mae(self, sample_weight=None) -> float:
+        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
+        return np.mean(sw*np.abs(self.y_true - self.y_pred))
 
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
