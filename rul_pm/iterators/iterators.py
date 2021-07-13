@@ -218,7 +218,7 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i = 0
         self.output_size = output_size
         self.add_last = add_last
-        
+
 
     def _sample_weight(self, y, i: int, metadata):
         if isinstance(self.sample_weight, str):
@@ -236,9 +236,9 @@ class WindowedDatasetIterator(DatasetIterator):
             w = y[i-self.window_size:i+1].diff().dropna().abs()
             return np.all(w <= self.evenly_spaced_points)
 
-        
+
         if self.discard_threshold is not None:
-            def should_discard(y, i): 
+            def should_discard(y, i):
                 return y[i] > self.discard_threshold
         else:
             def should_discard(y, i): return False
@@ -313,7 +313,7 @@ class WindowedDatasetIterator(DatasetIterator):
     def __len__(self):
         return len(self.elements)
 
-    
+
     def __getitem__(self, i: int):
         (life, timestamp) = (self.lifes[i], self.elements[i])
         X, y, metadata = self._load_data(life)
@@ -321,7 +321,7 @@ class WindowedDatasetIterator(DatasetIterator):
             X, y, timestamp, self.window_size, self.output_size, self.add_last)
 
         #if metadata is None:
-        #    metadata_i = None 
+        #    metadata_i = None
         #else:
         #    metadata_i = metadata[i]
         #if metadata_i is None:
@@ -339,11 +339,11 @@ class WindowedDatasetIterator(DatasetIterator):
         self.i += 1
         return ret
 
-    def get_data(self):        
+    def get_data(self):
         N_points = len(self)
         dimension = self.window_size*self.transformer.n_features
         X = np.zeros(
-            (N_points, dimension), 
+            (N_points, dimension),
             dtype=np.float32)
         y = np.zeros((N_points, self.output_size), dtype=np.float32)
         sample_weight = np.zeros(N_points, dtype=np.float32)
