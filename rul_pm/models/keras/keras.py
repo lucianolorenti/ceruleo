@@ -1,4 +1,5 @@
 import logging
+from rul_pm.models.keras.losses import relative_mae, relative_mse
 import dill
 from copy import copy
 from pathlib import Path
@@ -96,7 +97,12 @@ class KerasTrainableModel(TrainableModel):
         self.compiled = False
         self.learning_rate = learning_rate
         self.metrics = metrics
-        self.loss = loss
+        if loss == 'relative_mae':
+            self.loss = relative_mae()
+        elif loss == 'relative_mse':
+            self.loss = relative_mse()
+        else:
+            self.loss = loss
         self.prefetch_size = prefetch_size
         self.batcher_generator = batcher_generator
 
@@ -229,7 +235,7 @@ class KerasTrainableModel(TrainableModel):
     def save(self, model_path: Union[str, Path]):
         if isinstance(model_path, str):
             model_path = Path(model_path).resolve()
-        self.model.save(model_path)
+        self.model.save(str(model_path))
         with open(model_path / "object_data.pickle", "wb") as file:
             dill.dump(self, file)
 
