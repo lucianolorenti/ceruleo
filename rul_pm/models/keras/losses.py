@@ -136,43 +136,6 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
 
-def weibull_mean_loss_regression(y_true, y_pred):
-    def loss_a(y_true, y_pred):
-
-        eps = K.epsilon()
-        lambda_ = y_pred[:, 0]
-        k = y_pred[:, 1]
-
-        uncensored = y_true[:, 1]
-        y_true = y_true[:, 0]
-        y_true = y_true + 1
-        b = k * K.log((y_true / lambda_))
-
-        const = (
-            1.0
-            + (b)
-            + (K.pow(b, 2.0) / 2.0)
-            + (K.pow(b, 3.0) / 6.0)
-            + (K.pow(b, 4.0) / 24.0)
-        )
-
-        const2 = uncensored * (
-            K.log(k / lambda_) + (k - 1.0) * K.log((y_true / lambda_) + eps)
-        )
-
-        return -(const2 - const)
-
-    RUL = y_pred[:, 0]
-    # a = y_pred[:, 1]
-    # b = y_pred[:, 2]
-
-    # RUL =  a * tf.exp(tf.math.lgamma(1 + tf.math.reciprocal(b)))
-    weibul_loss = loss_a(y_true, y_pred)
-
-    reg_loss = root_mean_squared_error(RUL, y_true[:, 0])
-    loss = tf.reduce_mean(weibul_loss) + reg_loss
-    return loss
-
 
 def asymmetric_loss_pm(
     theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r, relative_weight: bool = True

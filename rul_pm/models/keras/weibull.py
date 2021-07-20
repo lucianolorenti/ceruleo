@@ -1,97 +1,132 @@
-
-
+import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
+from scipy.special import loggamma
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Concatenate, Dense, Lambda, Multiply
 
-tfd = tfp.distributions
+
+class TFWeibullDistribution:
+    @staticmethod
+    def log_likelihood(x:tf.Tensor, alpha:tf.Tensor, beta:tf.Tensor):
+        ya = (x + 0.00000000001) / alpha
+        return tf.reduce_mean(K.log(beta) + (beta * K.log(ya)) - K.pow(ya, beta))
+
+    @staticmethod
+    def kl_divergence(l1:tf.Tensor, k1:tf.Tensor, l2:tf.Tensor, k2:tf.Tensor):
+        term_1 = K.log(k1/K.pow(l1, k1))
+        term_2 =  K.log(k2/K.pow(l2, k2))
+        term_3 = (k1-k2)*(K.log(l1) - 0.5772/k1)
+        term_4 = K.pow((l1/l2), k2)* K.exp(tf.math.lgamma((k2/k1)+1))
+        tf.print(term_1, term_2, term_3, term_4)
+        return K.mean(term_1- term_2+ term_3 +term_4 -1)
 
 
-class VariationalWeibullLayer(tf.keras.Model):
-    def call(self, input_tensor, training=False):
+class WeibullDistribution:
+    @staticmethod
+    def mean(alpha, beta):
+        return alpha*np.exp(loggamma(1+(1/beta)))
+
+    @staticmethod
+    def mode(alpha, beta):        
+        vmode = alpha* np.power((beta-1)/beta, 1/beta)
+        vmode[beta<=1] = 0
+        return vmode 
+
+    @staticmethod
+    def median(alpha, beta):
+        return alpha * (np.power(np.log(2.0), (1/beta)))
+    
+    @staticmethod
+    def variance(alpha, beta):
+        return alpha**2 * (np.exp(loggamma( 1 + (2/beta))) - (np.exp(loggamma(1 + (1/beta))))**2)
+
+    @staticmethod
+    def quantile(q, alpha, beta):
+        return alpha * np.power(-np.log(1-q), 1/beta)
+
+
+class NotCensoredWeibull(tf.keras.losses.Loss):
+    def call(self, y_true, y_pred):
+        pRUL = y_pred[:, 0]
+        alpha = y_pred[:, 1]
+        beta = y_pred[:, 2]
+        y_true = tf.squeeze(y_true)
         
-        # X ~ Chi-Squared(0.1) -> c*X ~ Gamma(0.1/2, 2c)
-        # U ~ Uniform(0, 1) -> n*U ~ Uninform(0, n)
-        # Let  J = sum(cX_i ~ Gamma(1, 2c)), i =1...U then
-        # J ~ Gamma((0.1/2)*U, 2c)
-        # Finally 1/J ~ Inv-Gamma((0.1/2)*U, 2c)
 
-        lambda_pipe = self.x1(input_tensor)
-        lambda_pipe = self.lamb(lambda_pipe)
-
-        k_pipe = self.x2(input_tensor)
-        k_pipe = self.k(k_pipe) + tf.constant(1.)
-
-        return self._result(lambda_pipe, k_pipe)
+        reg_loss = tf.keras.losses.MeanAbsoluteError()(pRUL, y_true)
 
 
-class WeibullLayer(tf.keras.Model):
-    def __init__(self, return_params=True, regression='mode', name=''):
-        super().__init__(name=name)
+        log_liks = TFWeibullDistribution.log_likelihood(y_true, alpha, beta)
+
+        #log_liks = K.clip(log_liks, K.log(0.0000000001), K.log(1 - 0.0000000001))
+        # + kl_weibull(alpha, beta, alpha, 2.0 ) 
+        loss =  -log_liks + 1000*reg_loss
+        # + K.pow(ya,beta)
+        return loss
+
+
+class WeibullLayer(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        return_params=True,
+        regression="mode",
+        name="WeibullParams",
+        *args,
+        **kwargs
+    ):
+        super().__init__(name=name, *args, **kwargs)
         self.return_params = return_params
         if self.return_params:
-            self.params = Concatenate(name='Weibullparams')
-        if regression == 'mode':
+            self.params = Concatenate(name="Weibullparams")
+        if regression == "mode":
             self.fun = self.mode
-        elif regression == 'mean':
+        elif regression == "mean":
             self.fun = self.mean
-        elif regression == 'median':
+        elif regression == "median":
             self.fun = self.median
 
     def mean(self, lambda_pipe, k_pipe):
-        inner_gamma = Lambda(
-            lambda x: tf.math.exp(tf.math.lgamma(1+(1/x))))(k_pipe)
-        return Multiply(name='RUL')([lambda_pipe, inner_gamma])
+        inner_gamma = Lambda(lambda x: tf.math.exp(tf.math.lgamma(1 + (1 / x))))(k_pipe)
+        return Multiply(name="RUL")([lambda_pipe, inner_gamma])
 
     def median(self, lambda_pipe, k_pipe):
-        return lambda_pipe*(tf.math.pow(tf.math.log(2.), tf.math.reciprocal(k_pipe)))
+        return lambda_pipe * (tf.math.pow(tf.math.log(2.0), tf.math.reciprocal(k_pipe)))
 
-    def mode(self, lambda_pipe, k_pipe):
-        def replacenan(t):
-            return tf.where(tf.math.is_nan(t), tf.zeros_like(t), t)
+    def mode(self, alpha, beta):
+        mask = K.cast(K.greater(beta, 1), tf.float32)
+        beta = tf.clip_by_value(beta,  1+ 0.00000000001, np.inf)
+        return mask*alpha*tf.math.pow((beta - 1) / beta, (1/beta))
 
-        def mode(k):
-            mask = K.cast(K.greater(k, 1), tf.float32)
-            aa = K.pow((k-1)/(k), 1/(k))
-            b = replacenan(tf.math.multiply(mask,  aa))
-            return b
-
-        i = Lambda(mode)(k_pipe)
-
-        return Multiply(name='RUL')([lambda_pipe, i])
-
-    def _result(self, lambda_, k):
-        RUL = self.fun(lambda_, k)
+    def _result(self, alpha, beta):
+        RUL = self.fun(alpha, beta)
         if self.return_params:
-            return [RUL, self.params([lambda_, k])]
+            return self.params([alpha, beta])
         else:
             return RUL
 
 
 class WeibullParameters(WeibullLayer):
-    def __init__(self, hidden, regression='mode', return_params=True):
+    def __init__(self, hidden, regression="mode", return_params=True, *args, **kwargs):
         super(WeibullParameters, self).__init__(
-            return_params=True, regression=regression, name='')
-        self.x1 = Dense(hidden,
-                        activation='relu')
-        self.lamb = Dense(1,
-                          activation=tf.math.exp,
-                          name='w_lambda')
-
-        self.x2 = Dense(hidden,
-                        activation='relu')
-        self.k = Dense(1,
-                       activation='softplus',
-                       name='w_k')
-
-        self.return_params = return_params
+            return_params=True, regression=regression, name="", *args, **kwargs
+        )
+        self.x1 = Dense(hidden, activation="relu")
+        self.x2 = Dense(2, name="w_lambda")
 
     def call(self, input_tensor, training=False):
-        lambda_pipe = self.x1(input_tensor)
-        lambda_pipe = self.lamb(lambda_pipe)
+        alpha_beta = self.x1(input_tensor)
+        alpha_beta = self.x2(alpha_beta)
 
-        k_pipe = self.x2(input_tensor)
-        k_pipe = self.k(k_pipe) + tf.constant(1.)
+        alpha = Lambda(lambda x: x[:, 0:1])(alpha_beta)
+        beta = Lambda(lambda x: x[:, 1:2])(alpha_beta)
 
-        return self._result(lambda_pipe, k_pipe)
+        alpha = tf.keras.activations.softplus(alpha)
+        beta = tf.keras.activations.softplus(beta)
+
+      
+        RUL = self.mode(alpha, beta)
+        
+
+        x = Concatenate(axis=1)([RUL, alpha, beta])
+   
+        return x
