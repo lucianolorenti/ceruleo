@@ -11,19 +11,37 @@ from tdigest import TDigest
 
 class IQROutlierRemover(TransformerStep):
     """
-    X = np.random.rand(500, 5) * np.random.randn(500, 5) * 15
-    imput = IQRImputer(1.5)
-    imput.fit(X)
-    X_t = imput.transform(X)
+    Impute values outside (Q1 - margin*IQR, Q2 + margin*IQR)
+    
+
+
+    Parameters
+    ----------
+    lower_quantile: float, default 0.25
+        Lower quantile threshold for the non-anomalous values
+    upper_quantile: float, default 0.75
+        Upper quantile threshold for the non-anomalous values
+    margin: float, default 1.5 
+        How many times the IQR gets multiplied               
+    proportion_to_sample:float, default 1.0
+        If you want to compute the quantiles in an smaller proportion of data
+        you can specify it
+
     """
 
     def __init__(
-        self, margin=1.5, proportion_to_sample=1.0, name: Optional[str] = None
+        self, lower_quantile:float=0.25, upper_quantile:float=0.75, 
+        margin=1.5, proportion_to_sample=1.0, 
+        name: Optional[str] = None,
+        
     ):
+        
         super().__init__(name)
         self.margin = margin
         self.proportion_to_sample = proportion_to_sample
         self.tdigest_dict = None
+        self.lower_quantile = lower_quantile
+        self.upper_quantile = upper_quantile
 
     def partial_fit(self, X):
         if self.proportion_to_sample < 1:
@@ -37,11 +55,11 @@ class IQROutlierRemover(TransformerStep):
             self.tdigest_dict[c].batch_update(X[c].values)
 
         self.Q1 = {
-            c: self.tdigest_dict[c].percentile(25) for c in self.tdigest_dict.keys()
+            c: self.tdigest_dict[c].quantile(self.lower_quantile) for c in self.tdigest_dict.keys()
         }
 
         self.Q3 = {
-            c: self.tdigest_dict[c].percentile(75) for c in self.tdigest_dict.keys()
+            c: self.tdigest_dict[c].quantile(self.upper_quantile) for c in self.tdigest_dict.keys()
         }
 
         self.IQR = {c: self.Q3[c] - self.Q1[c] for c in self.Q1.keys()}
@@ -54,8 +72,8 @@ class IQROutlierRemover(TransformerStep):
                 X.shape[0], int(X.shape[0] * self.proportion_to_sample), replace=False
             )
             X = X.iloc[sampled_points, :]
-        self.Q1 = X.quantile(0.25)
-        self.Q3 = X.quantile(0.75)
+        self.Q1 = X.quantile(self.lower_quantile)
+        self.Q3 = X.quantile(self.upper_quantile)
         self.IQR = (self.Q3 - self.Q1).to_dict()
         self.Q1 = self.Q1.to_dict()
         self.Q3 = self.Q3.to_dict()
