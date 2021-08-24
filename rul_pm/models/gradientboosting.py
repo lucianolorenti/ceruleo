@@ -4,6 +4,7 @@ import numpy as np
 from rul_pm.iterators.iterators import WindowedDatasetIterator
 from rul_pm.models.model import TrainableModel
 from xgboost import XGBRegressor
+from pathlib import Path
 
 
 class XGBoostModel(TrainableModel):
@@ -98,3 +99,6 @@ class XGBoostModel(TrainableModel):
         super().set_params(**params)
         self.model.set_params(**model_params)
         return self
+
+    def save(self, file: Path):
+        self.xgbr.save_model(file)

@@ -1,17 +1,23 @@
+import math
 from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.iterators.iterators import LifeDatasetIterator
 from rul_pm.results.results import (
+    FittedLife,
+    compute_sample_weight,
     models_cv_results,
+    split_lives,
     unexpected_breaks,
     unexploited_lifetime,
-    FittedLife,
 )
+from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_squared_error as mse
 
 
 def plot_lives(ds: AbstractLivesDataset):
@@ -48,14 +54,13 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
 
 def _boxplot_errors_wrt_RUL_multiple_models(
     bin_edge: np.array,
-    model_results:dict,
+    model_results: dict,
     ax=None,
-    y_axis_label:Optional[str]=None,
-    x_axis_label:Optional[str]=None,
+    y_axis_label: Optional[str] = None,
+    x_axis_label: Optional[str] = None,
     hold_out=False,
     **kwargs,
-):    
-
+):
     def set_box_color(bp, color):
         plt.setp(bp["boxes"], color=color)
         plt.setp(bp["whiskers"], color=color)
@@ -87,7 +92,11 @@ def _boxplot_errors_wrt_RUL_multiple_models(
         for i in range(nbins):
             positions.append((model_number * 0.5) + (i * n_models))
         if hold_out:
-            box = ax.boxplot(np.array(model_data.errors, dtype=object), positions=positions, widths=0.2)
+            box = ax.boxplot(
+                np.array(model_data.errors, dtype=object),
+                positions=positions,
+                widths=0.2,
+            )
         else:
             box = ax.boxplot(model_data.mean_error, positions=positions, widths=0.2)
         set_box_color(box, colors[model_number])
@@ -115,7 +124,12 @@ def _boxplot_errors_wrt_RUL_multiple_models(
     ax2.get_xaxis().set_visible(False)
     ax2.get_yaxis().set_visible(False)
     curlyBrace(
-        ax.figure, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
+        ax.figure,
+        ax2,
+        (max_x, max_value),
+        (max_x, 0),
+        str_text="Under estim.",
+        c="#000",
     )
 
     return ax.figure, ax
@@ -171,7 +185,6 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(
     )
 
 
-
 def hold_out_boxplot_errors_wrt_RUL_multiple_models(
     results_dict: dict,
     nbins: int,
@@ -219,7 +232,7 @@ def hold_out_boxplot_errors_wrt_RUL_multiple_models(
         ax=ax,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
-        hold_out=True
+        hold_out=True,
     )
 
 
@@ -481,7 +494,12 @@ def cv_shadedline_plot_errors_wrt_RUL_multiple_models(
 
 
 def plot_unexploited_lifetime(
-    results_dict: dict, max_window: int, n: int, ax=None, units:Optional[str]='', **kwargs
+    results_dict: dict,
+    max_window: int,
+    n: int,
+    ax=None,
+    units: Optional[str] = "",
+    **kwargs,
 ):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -491,14 +509,19 @@ def plot_unexploited_lifetime(
         m, ulft = unexploited_lifetime(results_dict[model_name], max_window, n)
         ax.plot(m, ulft, label=model_name, color=colors[i])
     ax.legend()
-    ax.set_title('Unexploited lifetime')
-    ax.set_xlabel('Fault window size' + units)
+    ax.set_title("Unexploited lifetime")
+    ax.set_xlabel("Fault window size" + units)
     ax.set_ylabel(units)
     return ax
 
 
 def plot_unexpected_breaks(
-    results_dict: dict, max_window: int, n: int, ax=None, units:Optional[str]='', **kwargs
+    results_dict: dict,
+    max_window: int,
+    n: int,
+    ax=None,
+    units: Optional[str] = "",
+    **kwargs,
 ):
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -507,9 +530,9 @@ def plot_unexpected_breaks(
     for i, model_name in enumerate(results_dict.keys()):
         m, ub = unexpected_breaks(results_dict[model_name], max_window, n)
         ax.plot(m, ub, label=model_name, color=colors[i])
-    ax.set_title('Unexpected breaks')
-    ax.set_xlabel('Fault window size' + units)
-    ax.set_ylabel('Risk of breakage')
+    ax.set_title("Unexpected breaks")
+    ax.set_xlabel("Fault window size" + units)
+    ax.set_ylabel("Risk of breakage")
     ax.legend()
     return ax
 
@@ -571,12 +594,16 @@ def plot_life(
     ax.plot(life.time, life.y_pred, "o", label="Predicted", markersize=markersize)
     ax.plot(life.time, life.y_true, label="True")
     if life.y_true[0] > 0:
-        time1 = np.hstack((time[-1], time[-1]+life.y_true[-1]))
+        time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
         ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
-        time1 = np.hstack((time[-1], time[-1]+life.y_pred[-1]))
+        time1 = np.hstack((time[-1], time[-1] + life.y_pred[-1]))
         ax.plot(time1, [life.y_pred[-1], 0], label="Fitted")
-        ax.plot(life.time, life.y_pred_fitted.predict_line(life.time), label="Picewise fitted")
+        ax.plot(
+            life.time,
+            life.y_pred_fitted.predict_line(life.time),
+            label="Picewise fitted",
+        )
 
     ax.set_ylabel(units)
     ax.set_xlabel(units)
@@ -585,3 +612,30 @@ def plot_life(
     ax.legend()
 
     return ax
+
+
+
+
+
+def plot_test_set_predictions(results: dict, ncols: int = 3, CV: int = 0, alpha=1.0):
+
+    init = False
+    for model_name in results.keys():
+
+        lives_model = split_lives(
+            results[model_name][CV]["true"], results[model_name][CV]["predicted"]
+        )
+        NROW = math.ceil(len(lives_model) / ncols)
+        if not init:
+            fig, ax = plt.subplots(NROW, ncols, figsize=(25, 25))
+
+        for i, life in enumerate(lives_model):
+            row = int(i / ncols)
+            col = i % ncols
+            if not init:
+                ax[row, col].plot(life.y_true, label="True")
+            ax[row, col].plot(life.y_pred, label=model_name, alpha=alpha)
+        init = True
+    for a in ax.flatten():
+        a.legend()
+    return fig, ax 

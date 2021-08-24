@@ -2,6 +2,10 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.losses import mse
 import numpy as np
+from tensorflow.python.keras.losses import LossFunctionWrapper
+from tensorflow.python.keras.utils import losses_utils
+from tensorflow.python.util.tf_export import keras_export
+from rul_pm.models.keras.weibull import NotCensoredWeibull
 
 
 def class_to_reg(y_true, y_pred, bins):
@@ -136,59 +140,96 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
 
-
 def asymmetric_loss_pm(
-    theta_l, alpha_l, gamma_l, theta_r, alpha_r, gamma_r, relative_weight: bool = True
+    y_true,
+    y_pred,
+    *,
+    theta_l,
+    alpha_l,
+    gamma_l,
+    theta_r,
+    alpha_r,
+    gamma_r,
+    relative_weight: bool = True,
 ):
+
+    errors = y_true - y_pred
+    weight = tf.abs(errors) / (
+        tf.clip_by_value(y_true, clip_value_min=0.9, clip_value_max=np.inf)
+    )
+
+    ll_exp = tf.cast(K.less(errors, -theta_l), errors.dtype)
+    ll_quad = (1 - ll_exp) * tf.cast(K.less(errors, 0), errors.dtype)
+
+    lr_exp = tf.cast(K.greater(errors, theta_r), errors.dtype)
+    lr_quad = (1 - lr_exp) * tf.cast(K.greater(errors, 0), errors.dtype)
+    ll_exp = ll_exp * (
+        alpha_l
+        * theta_l
+        * (theta_l + 2 * gamma_l * (K.exp((K.abs(errors) - theta_l) / (gamma_l)) - 1))
+    )
+    ll_quad = ll_quad * alpha_l * K.pow(errors, 2)
+
+    lr_exp = lr_exp * (
+        alpha_r
+        * theta_r
+        * (theta_r + 2 * gamma_r * (K.exp((errors - theta_r) / (gamma_r)) - 1))
+    )
+    lr_quad = lr_quad * alpha_r * K.pow(errors, 2)
+
+    if relative_weight:
+        a = tf.reduce_mean(weight * (ll_exp + ll_quad + lr_exp + lr_quad))
+    else:
+        a = tf.reduce_mean(ll_exp + ll_quad + lr_exp + lr_quad)
+
+    return a
+
+
+
+class AsymmetricLossPM(LossFunctionWrapper):
     """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
 
     Parameters
     ----------
-    theta_r : [type]
+    theta_l : float
         [description]
-    alpha_r : [type]
+    alpha_l : float
         [description]
-    gamma_r : [type]
+    gamma_l : float
         [description]
+    theta_r : float
+        [description]
+    alpha_r : float
+        [description]
+    gamma_r : float
+        [description]
+    relative_weight : bool, optional
+        [description], by default Truename='asymmetric_loss_pm'
     """
 
-    def concrete_asymmetric_loss_pm(y_true, y_pred):
-
-        errors = y_true - y_pred
-        weight = tf.abs(errors) / (
-            tf.clip_by_value(y_true, clip_value_min=0.9, clip_value_max=np.inf)
+    def __init__(
+        self,
+        *,
+        theta_l: float,
+        alpha_l: float,
+        gamma_l: float,
+        theta_r: float,
+        alpha_r: float,
+        gamma_r: float,
+        relative_weight: bool = True,
+        name="asymmetric_loss_pm",
+    ):
+        super().__init__(
+            asymmetric_loss_pm,
+            theta_l=theta_l,
+            alpha_l=alpha_l,
+            gamma_l=gamma_l,
+            theta_r=theta_r,
+            alpha_r=alpha_r,
+            gamma_r=gamma_r,
+            relative_weight=relative_weight,
+            name=name,
         )
-
-        ll_exp = tf.cast(K.less(errors, -theta_l), errors.dtype)
-        ll_quad = (1 - ll_exp) * tf.cast(K.less(errors, 0), errors.dtype)
-
-        lr_exp = tf.cast(K.greater(errors, theta_r), errors.dtype)
-        lr_quad = (1 - lr_exp) * tf.cast(K.greater(errors, 0), errors.dtype)
-        ll_exp = ll_exp * (
-            alpha_l
-            * theta_l
-            * (
-                theta_l
-                + 2 * gamma_l * (K.exp((K.abs(errors) - theta_l) / (gamma_l)) - 1)
-            )
-        )
-        ll_quad = ll_quad * alpha_l * K.pow(errors, 2)
-
-        lr_exp = lr_exp * (
-            alpha_r
-            * theta_r
-            * (theta_r + 2 * gamma_r * (K.exp((errors - theta_r) / (gamma_r)) - 1))
-        )
-        lr_quad = lr_quad * alpha_r * K.pow(errors, 2)
-
-        if relative_weight:
-            a = tf.reduce_mean(weight * (ll_exp + ll_quad + lr_exp + lr_quad))
-        else:
-            a = tf.reduce_mean(ll_exp + ll_quad + lr_exp + lr_quad)
-
-        return a
-
-    return concrete_asymmetric_loss_pm
 
 
 def relative_mae(C: float = 0.9):
@@ -215,3 +256,14 @@ def relative_mse(C: float = 0.9):
         return mse(y_true, y_pred, sample_weight=sw)
 
     return concrete_relative_mse
+
+
+def get(loss_info: dict):
+    if "class_name" in loss_info:
+        return tf.keras.losses.get(**loss_info)
+    if loss_info["type"] == "weibull_not_censored":
+        return NotCensoredWeibull(**loss_info.get("config", {}))
+    elif loss_info["type"] == "asymmetric":
+        return AsymmetricLossPM(**loss_info.get("config", {}))
+    else:
+        return tf.keras.losses.get(loss_info["type"])

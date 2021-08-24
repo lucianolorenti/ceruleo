@@ -72,8 +72,7 @@ class XCM(KerasTrainableModel):
                    padding='same',
                    name='first_conv2d'
                    )(x2d)
-        
-        
+       
         
         
         x2d = BatchNormalization()(x2d)
