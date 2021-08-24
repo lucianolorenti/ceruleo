@@ -15,10 +15,10 @@
 
 **RUL-PM** is a Python package that provides a flexible environment designed to make working with predictive maintenance task both easy and intuitive. (Yes, I stole that from pandas readme)
 
+This library relies on Temporis [Temporis](https://github.com/lucianolorenti/Temporis) for handling PM datasets and feature extraction.
+
 ## Main Features
 
-* PM dataset handling
-* Feature extraction in a live-wise approach
 * Model fitting for RUL regression on PM datasets.
 * Model evaluation and comparison through metrics and plots
 
