@@ -1,13 +1,14 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
-from rul_pm.iterators.batcher import Batcher
-from rul_pm.iterators.iterators import WindowedDatasetIterator
+from temporis.iterators.batcher import Batcher
+from temporis.iterators.iterators import WindowedDatasetIterator
 from rul_pm.models.model import TrainableModel
 from tqdm.auto import tqdm
 
 from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_squared_error
-
+import pickle
 
 class SKLearnModel(TrainableModel):
     """Wrapper around scikit-learn models
@@ -97,6 +98,11 @@ class SKLearnModel(TrainableModel):
         super().set_params(**params)
         self.model.set_params(**model_params)
         return self
+
+    def save(self, file: Path):
+        with open(file, 'wb') as file:
+            pickle.dump(self, file)
+        
 
 
 class BatchSKLearnModel(TrainableModel):

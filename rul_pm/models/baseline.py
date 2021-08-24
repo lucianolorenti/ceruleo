@@ -1,8 +1,8 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.iterators.iterators import LifeDatasetIterator
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from temporis.iterators.iterators import LifeDatasetIterator
 from rul_pm.models.model import TrainableModel
 from rul_pm.results.results import FittedLife
 
@@ -31,6 +31,7 @@ class BaselineModel(TrainableModel):
         """
         true = []
         for _, y, _ in ds:
+            y = y
             degrading_start, time = FittedLife.compute_time_feature(y, self.RUL_threshold) 
             true.append(y[0]+time[degrading_start])
 
@@ -89,8 +90,7 @@ class FixedValueBaselineModel(TrainableModel):
         """
         output = []
         for _, y, _ in ds:
-            time = FittedLife.compute_time_feature(y, RUL_threshold)
-            y_pred = np.clip(
-                self.value+time,  0, self.fitted_RUL)
+            _, time = FittedLife.compute_time_feature(y, RUL_threshold)
+            y_pred = np.clip(self.value-time,  0, self.value)
             output.append(y_pred)
         return np.concatenate(output)

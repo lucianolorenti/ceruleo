@@ -72,8 +72,7 @@ class XCM(KerasTrainableModel):
                    padding='same',
                    name='first_conv2d'
                    )(x2d)
-        
-        
+       
         
         
         x2d = BatchNormalization()(x2d)
@@ -154,9 +153,7 @@ class XCM(KerasTrainableModel):
         return "XCM"
 
 
-    def explain(self, input, y):
-        def ReLU(x):
-            return x * (x > 0)
+    def explain(self, input):
 
         data_input = np.expand_dims(input, axis=0)
         with tf.GradientTape() as tape:
@@ -166,7 +163,6 @@ class XCM(KerasTrainableModel):
             
 
             output = self.model_regression([first_conv2d_layer_output,first_conv1d_layer_output])#
-            #output = tf.reduce_mean((output - y)**2)
             grads = tape.gradient(output, first_conv2d_layer_output)
             filter_weight = np.mean(grads, axis=(0,1,2))
 
@@ -180,7 +176,7 @@ class XCM(KerasTrainableModel):
             tape.watch(first_conv1d_layer_output)
             
             output = self.model_regression([first_conv2d_layer_output,first_conv1d_layer_output])
-            #output = tf.reduce_mean((output - y)**2)
+
 
             
             

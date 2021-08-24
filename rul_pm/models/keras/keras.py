@@ -1,4 +1,5 @@
 import logging
+from rul_pm.models.keras.losses import relative_mae, relative_mse
 import dill
 from copy import copy
 from pathlib import Path
@@ -6,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
-from rul_pm.iterators.batcher import Batcher
+from temporis.iterators.batcher import Batcher
 from rul_pm.models.model import TrainableModel
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
@@ -19,69 +20,50 @@ def root_mean_squared_error(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
-def keras_batcher(train_batcher, val_batcher):
-    def build_batcher(batcher):
-        n_features = batcher.n_features
+def keras_regression_batcher(batcher):
+    n_features = batcher.n_features
 
-        def generator_function():
-            for X, y, w in batcher:
-                yield X, y, w
+    def generator_function():
+        for X, y, w in batcher:
+            yield X, y, w
 
-        a = tf.data.Dataset.from_generator(
-            generator_function,
-            output_signature=(
-                tf.TensorSpec(
-                    shape=(None, batcher.window_size, n_features), dtype=tf.float32
-                ),
-                tf.TensorSpec(shape=(None, batcher.output_shape, 1), dtype=tf.float32),
-                tf.TensorSpec(shape=(None, 1), dtype=tf.float32),
+    a = tf.data.Dataset.from_generator(
+        generator_function,
+        output_signature=(
+            tf.TensorSpec(
+                shape=(None, batcher.window_size, n_features), dtype=tf.float32
             ),
-        )
+            tf.TensorSpec(shape=(None, batcher.output_shape, 1), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, 1), dtype=tf.float32),
+        ),
+    )
 
-        if batcher.prefetch_size is not None:
-            a = a.prefetch(batcher.batch_size * 2)
-        return a
-
-    return build_batcher(train_batcher), build_batcher(val_batcher)
-
-
-def keras_regression_batcher(train_batcher, val_batcher):
-    return keras_batcher(train_batcher, val_batcher)
+    if batcher.prefetch_size is not None:
+        a = a.prefetch(batcher.batch_size * 2)
+    return a
 
 
-def keras_autoencoder_batcher(train_batcher, val_batcher):
-    n_features = train_batcher.n_features
+def keras_autoencoder_batcher(batcher):
+    n_features = batcher.n_features
 
     def gen_train():
-        for X, w in train_batcher:
-            yield X, X, w
-
-    def gen_val():
-        for X, w in val_batcher:
+        for X, w in batcher:
             yield X, X, w
 
     a = tf.data.Dataset.from_generator(
         gen_train,
         (tf.float32, tf.float32, tf.float32),
         (
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
+            tf.TensorShape([None, batcher.window_size, n_features]),
+            tf.TensorShape([None, batcher.window_size, n_features]),
             tf.TensorShape([None, 1]),
         ),
     )
-    b = tf.data.Dataset.from_generator(
-        gen_val,
-        (tf.float32, tf.float32, tf.float32),
-        (
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
-            tf.TensorShape([None, train_batcher.window_size, n_features]),
-            tf.TensorShape([None, 1]),
-        ),
-    )
-    if train_batcher.prefetch_size is not None:
-        a = a.prefetch(train_batcher.batch_size * 2)
-        b = b.prefetch(train_batcher.batch_size * 2)
-    return a, b
+
+    if batcher.prefetch_size is not None:
+        a = a.prefetch(batcher.batch_size * 2)
+
+    return a
 
 
 class KerasTrainableModel(TrainableModel):
@@ -90,7 +72,7 @@ class KerasTrainableModel(TrainableModel):
     Parameters
     ----------
     learning_rate : float, optional
-        Learning reate, by default 0.001
+        Learning rate, by default 0.001
     metrics : list, optional
         Additional metrics to compute, by default [root_mean_squared_error]
     loss : str, optional
@@ -115,7 +97,12 @@ class KerasTrainableModel(TrainableModel):
         self.compiled = False
         self.learning_rate = learning_rate
         self.metrics = metrics
-        self.loss = loss
+        if loss == 'relative_mae':
+            self.loss = relative_mae()
+        elif loss == 'relative_mse':
+            self.loss = relative_mse()
+        else:
+            self.loss = loss
         self.prefetch_size = prefetch_size
         self.batcher_generator = batcher_generator
 
@@ -139,11 +126,12 @@ class KerasTrainableModel(TrainableModel):
         return d
 
     def _predict(self, batcher: Batcher):
-        output = []
-        for X, _, _ in batcher:
-            input_tensor = tf.convert_to_tensor(X)
-            output_tensor = self.model(input_tensor)
-            output.append(output_tensor.numpy())
+        # output = []
+        # for X, _, _ in self.batcher_generator(batcher):
+        #    input_tensor = tf.convert_to_tensor(X)
+        #    output_tensor = self.model(input_tensor)
+        #    output.append(output_tensor.numpy())
+        output = self.model.predict(self.batcher_generator(batcher))
 
         return np.concatenate(output)
 
@@ -159,9 +147,6 @@ class KerasTrainableModel(TrainableModel):
             optimizer=optimizers.Adam(lr=self.learning_rate),
             metrics=self.metrics,
         )
-
-    def _generate_keras_batcher(self, train_batcher, val_batcher):
-        return self.batcher_generator(train_batcher, val_batcher)
 
     def reset(self):
         tf.keras.backend.clear_session()
@@ -213,7 +198,14 @@ class KerasTrainableModel(TrainableModel):
         if print_summary:
             self.model.summary()
 
-        a, b = self._generate_keras_batcher(train_batcher, val_batcher)
+        a = self.batcher_generator(train_batcher)
+        validation_params = {}
+        if val_batcher is not None:
+            b = self.batcher_generator(val_batcher)
+            validation_params = {
+                "validation_data": b,
+                "validation_steps": len(val_batcher),
+            }
 
         logger.debug("Start fitting")
         history = self.model.fit(
@@ -221,10 +213,10 @@ class KerasTrainableModel(TrainableModel):
             verbose=verbose,
             steps_per_epoch=len(train_batcher),
             epochs=epochs,
-            validation_data=b,
-            validation_steps=len(val_batcher),
             callbacks=callbacks,
             class_weight=class_weight,
+            **validation_params
+            
         )
         self.history = history.history
         return self.history
@@ -243,7 +235,7 @@ class KerasTrainableModel(TrainableModel):
     def save(self, model_path: Union[str, Path]):
         if isinstance(model_path, str):
             model_path = Path(model_path).resolve()
-        self.model.save(model_path)
+        self.model.save(str(model_path))
         with open(model_path / "object_data.pickle", "wb") as file:
             dill.dump(self, file)
 

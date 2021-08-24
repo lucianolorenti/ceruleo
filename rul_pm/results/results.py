@@ -42,12 +42,12 @@ from rul_pm.results.picewise_regression import (
     PiecewiseLinearRegression,
     PiecewesieLinearFunction,
 )
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
@@ -56,6 +56,14 @@ from tqdm.auto import tqdm
 
 
 logger = logging.getLogger(__name__)
+
+
+def compute_sample_weight(sample_weight, y_true, y_pred, c: float = 0.9):
+    if sample_weight == "relative":
+        sample_weight = np.abs(y_true - y_pred) / (np.clip(y_true, c, np.inf))
+    else:
+        sample_weight = 1
+    return sample_weight
 
 
 def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
@@ -72,7 +80,7 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
 
 def cv_predictions(
     model: TrainableModel,
-    dataset: AbstractLivesDataset,
+    dataset: AbstractTimeSeriesDataset,
     cv=KFold(n_splits=5),
     fit_params={},
     progress_bar=False,
@@ -85,7 +93,7 @@ def cv_predictions(
     model: TrainableModel
            The model to train
 
-    dataset: AbstractLivesDataset
+    dataset: AbstractTimeSeriesDataset
              The dataset from which obtain the folds
 
     cv:  default  sklearn.model_selection.KFold(n_splits=5)
@@ -153,23 +161,28 @@ class CVResults:
             self._add_fold_result(i, y_pred, y_true)
 
     def _add_fold_result(self, fold: int, y_pred: np.array, y_true: np.array):
+        y_pred = np.squeeze(y_pred)
+        y_true = np.squeeze(y_true)
+
         for j in range(len(self.bin_edges) - 1):
+
             mask = (y_true >= self.bin_edges[j]) & (y_true <= self.bin_edges[j + 1])
             indices = np.where(mask)[0]
+
             if len(indices) == 0:
                 continue
+
             errors = y_true[indices] - y_pred[indices]
+
             self.mean_error[fold, j] = np.mean(errors)
+
             self.mae[fold, j] = np.mean(np.abs(errors))
             self.mse[fold, j] = np.mean((errors) ** 2)
             self.errors.append(errors)
 
 
 def models_cv_results(results_dict: dict, nbins: int):
-    """Create a dictionary with the result of each cross validation of the model
-
-   
-    """
+    """Create a dictionary with the result of each cross validation of the model"""
 
     max_y_value = np.max(
         [
@@ -296,7 +309,8 @@ class FittedLife:
         np.array
             [description]
         """
-        time_diff = np.diff(y_true[degrading_start:][::-1])
+
+        time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
             if len(time_diff) > 0:
@@ -326,26 +340,27 @@ class FittedLife:
 
         return line
 
-    def rmse(self) -> float:
-        return np.sqrt(np.mean((self.y_true - self.y_pred) ** 2))
+    def rmse(self, sample_weight=None) -> float:
+        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
+        return np.sqrt(np.mean(sw * (self.y_true - self.y_pred) ** 2))
 
-    def mae(self) -> float:
-        return np.mean(np.abs(self.y_true - self.y_pred))
+    def mae(self, sample_weight=None) -> float:
+        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
+        return np.mean(sw * np.abs(self.y_true - self.y_pred))
 
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
         if len(z) == 0:
             return self.time[-1] + self.y_pred[-1]
         else:
-            return self.time[z[0]] 
+            return self.time[z[0]]
 
     def end_of_life(self):
         z = np.where(self.y_true == 0)[0]
         if len(z) == 0:
             return self.time[-1] + self.y_true[-1]
         else:
-            return self.time[z[0]] 
-
+            return self.time[z[0]]
 
     def maintenance_point(self, m: float = 0):
         """Compute the maintenance point
@@ -476,9 +491,7 @@ def unexploited_lifetime_from_cv(
         jj = []
         for r in lives:
 
-            ul_cv_list = [
-                life.unexploited_lifetime(m) for life in r 
-            ]
+            ul_cv_list = [life.unexploited_lifetime(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
@@ -497,9 +510,7 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
     for m in windows:
         jj = []
         for r in lives:
-            ul_cv_list = [
-                life.unexpected_break(m) for life in r 
-            ]
+            ul_cv_list = [life.unexpected_break(m) for life in r]
             mean_ul_cv = np.mean(ul_cv_list)
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
@@ -560,47 +571,85 @@ def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
                 'std': ,
             }
         }
-    
+
 
     """
     metrics_dict = {}
+    summary_metrics_dict = {}
     for m in data.keys():
         errors = []
         for r in data[m]:
             y = np.where(r["true"] <= threshold)[0]
-            y_true = r["true"][y]
-            y_pred = r["predicted"][y]
-            errors.append(mae(y_true, y_pred))
-        metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
-    return metrics_dict
+            y_true = np.squeeze(r["true"][y])
+            y_pred = np.squeeze(r["predicted"][y])
+            sw = compute_sample_weight(
+                "relative",
+                y_true,
+                y_pred,
+            )
+            MAE_SW = mae(
+                y_true,
+                y_pred,
+                sample_weight=sw,
+            )
+            MAE = mae(y_true, y_pred)
 
-def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
-    """Compute regression metrics for each model
+            MSE_SW = mse(
+                y_true,
+                y_pred,
+                sample_weight=sw,
+            )
+            MSE = mse(y_true, y_pred)
+
+            errors.append((MAE_SW, MAE, MSE_SW, MSE))
+        df = pd.DataFrame(errors, columns=["MAE SW", "MAE", "MSE_SW", "MSE"])
+
+        summary_metrics_dict[m] = (
+            df.mean().round(2).astype(str) + " $\pm$ " + df.std().round(2).astype(str)
+        )
+        metrics_dict[m] = df
+    return metrics_dict, pd.DataFrame(summary_metrics_dict)
+
+
+def hold_out_regression_metrics(results: dict, CV: int = 0):
+    metrics = []
+    for model_name in results.keys():
+        sw = compute_sample_weight(
+            "relative",
+            results[model_name][CV]["true"],
+            results[model_name][CV]["predicted"],
+        )
+        MAE_SW = mae(
+            results[model_name][CV]["true"],
+            results[model_name][CV]["predicted"],
+            sample_weight=sw,
+        )
+        MAE = mae(results[model_name][CV]["true"], results[model_name][CV]["predicted"])
+
+        MSE_SW = mse(
+            results[model_name][CV]["true"],
+            results[model_name][CV]["predicted"],
+            sample_weight=sw,
+        )
+        MSE = mse(results[model_name][CV]["true"], results[model_name][CV]["predicted"])
+        metrics.append((model_name, MAE_SW, MAE, MSE_SW, MSE))
+    return pd.DataFrame(
+        metrics,
+        columns=["Model", "MAE sample weight", "MAE", "MSE sample weight", "MSE"],
+    )
+
+
+def transform_results(results_dict: dict, transformation: Callable):
+    """Modifies in place the results dictionary applying the transformation in each array
 
     Parameters
     ----------
-    data : dict
-        Dictionary with the model predictions.
-        The dictionary must conform the results specification of this module
-    threshold : float, optional
-        Compute metrics errors only in RUL values less than the threshold, by default np.inf
-
-    Returns
-    -------
-    dict
-        A dictionary which contains the model name as key and as value
-        a dictionary with the mean error per each fold, and the standard
-        deviation of the errors    
-
+    results : dict
+        The dictionary with the results
+    transformation : Callable
+        A functions that receives and array and returns a transformed array
     """
-    metrics_dict = {}
-    for m in data.keys():
-        errors = []
-        for r in data[m]:
-            y = np.where(r["true"] <= threshold)[0]
-            y_true = r["true"][y]
-            y_pred = r["predicted"][y]
-            errors.append(mae(y_true, y_pred))
-        metrics_dict[m] = {"mean": np.mean(errors), "std": np.std(errors)}
-    return metrics_dict
-
+    for model_name in results_dict.keys():
+        for result in results_dict[model_name]:
+            result["true"] = transformation(result["true"])
+            result["predicted"] = transformation(result["predicted"])
