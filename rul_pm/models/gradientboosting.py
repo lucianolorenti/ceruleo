@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.iterators.iterators import WindowedDatasetIterator
+from temporis.iterators.iterators import WindowedDatasetIterator
 from rul_pm.models.model import TrainableModel
 from xgboost import XGBRegressor
 from pathlib import Path

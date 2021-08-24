@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
-from rul_pm.iterators.batcher import Batcher
+from temporis.iterators.batcher import Batcher
 from rul_pm.models.model import TrainableModel
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers

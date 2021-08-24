@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import numpy as np
-from rul_pm.transformation.pipeline import LivesPipeline
-from rul_pm.utils import progress_bar
+from temporis.transformation.pipeline import LivesPipeline
 
 logger = logging.getLogger(__name__)
 

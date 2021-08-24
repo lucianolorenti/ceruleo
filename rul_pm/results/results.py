@@ -47,7 +47,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
@@ -80,7 +80,7 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
 
 def cv_predictions(
     model: TrainableModel,
-    dataset: AbstractLivesDataset,
+    dataset: AbstractTimeSeriesDataset,
     cv=KFold(n_splits=5),
     fit_params={},
     progress_bar=False,
@@ -93,7 +93,7 @@ def cv_predictions(
     model: TrainableModel
            The model to train
 
-    dataset: AbstractLivesDataset
+    dataset: AbstractTimeSeriesDataset
              The dataset from which obtain the folds
 
     cv:  default  sklearn.model_selection.KFold(n_splits=5)

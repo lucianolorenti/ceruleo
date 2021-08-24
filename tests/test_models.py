@@ -1,17 +1,17 @@
 import numpy as np
 import pandas as pd
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.iterators.batcher import Batcher
-from rul_pm.iterators.iterators import LifeDatasetIterator, WindowedDatasetIterator
-from rul_pm.iterators.utils import true_values
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from temporis.iterators.batcher import Batcher
+from temporis.iterators.iterators import LifeDatasetIterator, WindowedDatasetIterator
+from temporis.iterators.utils import true_values
 from rul_pm.models.baseline import BaselineModel
 from rul_pm.models.keras import KerasTrainableModel
 from rul_pm.models.keras.models.simple import FCN
 from rul_pm.models.sklearn import SKLearnModel
 from rul_pm.models.gradientboosting import XGBoostModel
-from rul_pm.transformation.features.scalers import PandasMinMaxScaler
-from rul_pm.transformation.features.selection import ByNameFeatureSelector
-from rul_pm.transformation.transformers import (LivesPipeline, Transformer)
+from temporis.transformation.features.scalers import PandasMinMaxScaler
+from temporis.transformation.features.selection import ByNameFeatureSelector
+from temporis.transformation.transformers import (LivesPipeline, Transformer)
 from sklearn.linear_model import ElasticNet
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Flatten
@@ -29,7 +29,7 @@ from tensorflow.python.framework import random_seed
 random_seed.set_seed(42)
 
 
-class MockDataset(AbstractLivesDataset):
+class MockDataset(AbstractTimeSeriesDataset):
     def __init__(self, nlives: int):
 
         self.lives = [
@@ -48,7 +48,7 @@ class MockDataset(AbstractLivesDataset):
                 'RUL': np.linspace(100, 0, 50)
             }))
 
-    def get_life(self, i: int):
+    def get_time_series(self, i: int):
         return self.lives[i]
 
     @property
@@ -56,12 +56,12 @@ class MockDataset(AbstractLivesDataset):
         return 'RUL'
 
     @property
-    def nlives(self):
+    def n_time_series(self):
         return len(self.lives)
 
 
 
-class MockDataset1(AbstractLivesDataset):
+class MockDataset1(AbstractTimeSeriesDataset):
     def __init__(self, nlives: int):
 
         self.lives = [
@@ -80,7 +80,7 @@ class MockDataset1(AbstractLivesDataset):
                 'RUL': np.linspace(5000, 0, 50)
             }))
 
-    def get_life(self, i: int):
+    def get_time_series(self, i: int):
         return self.lives[i]
 
     @property
@@ -88,7 +88,7 @@ class MockDataset1(AbstractLivesDataset):
         return 'RUL'
 
     @property
-    def nlives(self):
+    def n_time_series(self):
         return len(self.lives)
 
 class TestKeras():

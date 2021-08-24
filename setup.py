@@ -35,7 +35,4 @@ setup(
     include_package_data=True,
     package_data={"": ["RUL*.txt", "train*.txt", "test*.txt"]},
 
-    cmdclass={
-        'build_ext': build_ext,
-    }
 )

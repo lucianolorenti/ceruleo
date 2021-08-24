@@ -1,8 +1,8 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
-from rul_pm.iterators.iterators import LifeDatasetIterator
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from temporis.iterators.iterators import LifeDatasetIterator
 from rul_pm.models.model import TrainableModel
 from rul_pm.results.results import FittedLife
 
