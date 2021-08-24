@@ -13,7 +13,7 @@ BASEPATH = Path(__file__).resolve().parent
 setup(
     name="rul_pm",
     packages=find_packages(),
-    version="0.1.0",
+    version="0.2.0",
     description="Remaining useful life estimation utilities",
     author="",
     install_requires=[
