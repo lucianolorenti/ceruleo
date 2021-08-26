@@ -1,3 +1,4 @@
+import gc
 import gzip
 import logging
 import pickle
@@ -5,13 +6,12 @@ import zipfile
 from pathlib import Path
 from typing import Optional, Union
 
-import gc
 import h5py
 import numpy as np
 import pandas as pd
 from rul_pm import DATASET_PATH
+from rul_pm.datasets.lives_dataset import AbstractLivesDataset
 from rul_pm.utils.download import download_file
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
@@ -67,18 +67,17 @@ class CMAPSS2PreProcessor:
         self.lives_table_path = path / "lives_data.pkl"
 
     def process_raw_dataframe(
-        self, data, file_h5: Path, i: int, unit: int, train: bool
+        self, data:pd.DataFrame, file_h5: Path, i: int, unit: int, train: bool
     ):
         unit = int(unit)
-        output_file = f"LIFE_{file_h5.name}_{unit}_{i}.pkl.gz"
+        output_dir = f"LIFE_{file_h5.name}_{unit}_{i}"
         number_of_samples = data.shape[0]
-        with gzip.open(self.path / output_file, "wb") as file:
-            pickle.dump(data, file)
+        data.to_parquet(self.path / output_dir)
         return {
             "Raw File": file_h5.name,
             "Unit": unit,
             "Index": i,
-            "Output File": output_file,
+            "Output Dir": output_dir,
             "Train": train,
             "Number of samples": number_of_samples,
         }
@@ -90,8 +89,9 @@ class CMAPSS2PreProcessor:
             for i, (unit, data) in enumerate(df.groupby(by=["unit"])):
                 info.append(self.process_raw_dataframe(data, file_h5, i, unit, train))
             gc.collect()
-        except OSError:
+        except OSError as e:
             logger.error(f"Cannot open file {file_h5}")
+            logger.error(e)
         return info
 
     def process_raw_files(self):
@@ -126,12 +126,13 @@ class CMAPSS2PreProcessor:
         pass
 
 
-class CMAPSS2Dataset(AbstractTimeSeriesDataset):
+class CMAPSS2Dataset(AbstractLivesDataset):
     def __init__(
         self,
         path: Path = DATASET_PATH,
         train: Optional[bool] = None,
     ):
+        super().__init__()
         self.path = path
         LIVES_TABLE_PATH = path / "lives_data.pkl"
         if not (LIVES_TABLE_PATH).is_file():
@@ -151,10 +152,14 @@ class CMAPSS2Dataset(AbstractTimeSeriesDataset):
         pd.DataFrame
             DataFrame with the data of the life i
         """
-        df_path = self.lives.iloc[i]["Output file"]
-        with gzip.open(self.path / df_path, "rb") as file:
-            return pickle.load(file)
+        df_path = self.lives.iloc[i]["Output Dir"]
+        df = pd.read_parquet(self.path / df_path)        
+        return df
 
     @property
     def n_time_series(self):
         return len(self.lives)
+
+    @property
+    def rul_column(self) -> str:
+        return "RUL"

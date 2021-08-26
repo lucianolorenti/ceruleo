@@ -29,7 +29,9 @@ setup(
         "numba",        
         "dill",
         "mmh3",
-        "temporis"
+        "temporis",
+        "pyarrow",
+        "fastparquet"
     ],
     license="MIT",
     include_package_data=True,
