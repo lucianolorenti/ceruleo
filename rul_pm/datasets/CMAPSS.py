@@ -85,6 +85,7 @@ class CMAPSSDataset(AbstractLivesDataset):
     def __init__(
         self, train: bool = True, models: Optional[Union[str, List[str]]] = None
     ):
+        super().__init__()
         if models is not None and isinstance(models, str):
             models = [models]
         self._validate_model_names(models)
