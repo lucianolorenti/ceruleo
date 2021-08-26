@@ -5,34 +5,37 @@ import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 
 
 def add_vertical_line(ax, v_x, label, color, line, n_lines):
     miny, maxy = ax.get_ylim()
     ax.axvline(v_x, label=label, color=color)
-    txt = ax.text(v_x,
-                  miny + (maxy - miny) * (0.5 + 0.5 * (line / n_lines)),
-                  label,
-                  color=color,
-                  fontweight='semibold')
-    txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+    txt = ax.text(
+        v_x,
+        miny + (maxy - miny) * (0.5 + 0.5 * (line / n_lines)),
+        label,
+        color=color,
+        fontweight="semibold",
+    )
+    txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground="w")])
 
 
-def lives_duration_histogram(datasets: Union[AbstractLivesDataset,
-                                             List[AbstractLivesDataset]],
-                             xlabel: str,
-                             label: Union[str, List[str]] = '',
-                             bins: int = 15,
-                             units: str = 'm',
-                             vlines: Tuple[float, str] = [],
-                             ax=None,
-                             add_mean: bool = True,
-                             add_median: bool = True,
-                             transform: Callable[[float], float] = lambda x: x,
-                             threshold: float = np.inf,
-                             color=None,
-                             **kwargs):
+def lives_duration_histogram(
+    datasets: Union[AbstractTimeSeriesDataset, List[AbstractTimeSeriesDataset]],
+    xlabel: str,
+    label: Union[str, List[str]] = "",
+    bins: int = 15,
+    units: str = "m",
+    vlines: Tuple[float, str] = [],
+    ax=None,
+    add_mean: bool = True,
+    add_median: bool = True,
+    transform: Callable[[float], float] = lambda x: x,
+    threshold: float = np.inf,
+    color=None,
+    **kwargs,
+):
     """Generate an histogram from the lives durations of the dataset
 
     Parameters
@@ -53,7 +56,7 @@ def lives_duration_histogram(datasets: Union[AbstractLivesDataset,
         and the second elmenet of the tuple should be the label of the line
         By default []
     ax :  optional
-        Axis where to draw the plot. 
+        Axis where to draw the plot.
         If missing a new figure will be created, by default None
     add_mean : bool, optional
         whether to add a vertical line with the mean value, by default True
@@ -66,8 +69,8 @@ def lives_duration_histogram(datasets: Union[AbstractLivesDataset,
 
     Returns
     -------
-    fig, ax 
-        
+    fig, ax
+
     """
     if isinstance(datasets, list):
         assert len(datasets) == len(label)
@@ -79,34 +82,37 @@ def lives_duration_histogram(datasets: Union[AbstractLivesDataset,
     for ds in datasets:
         durations.append([transform(duration) for duration in ds.durations()])
 
-    return lives_duration_histogram_from_durations(durations,
-                                                   xlabel=xlabel,
-                                                   label=label,
-                                                   bins=bins,
-                                                   units=units,
-                                                   vlines=vlines,
-                                                   ax=ax,
-                                                   add_mean=add_mean,
-                                                   add_median=add_median,
-                                                   threshold=threshold,
-                                                   color=color,
-                                                   **kwargs)
+    return lives_duration_histogram_from_durations(
+        durations,
+        xlabel=xlabel,
+        label=label,
+        bins=bins,
+        units=units,
+        vlines=vlines,
+        ax=ax,
+        add_mean=add_mean,
+        add_median=add_median,
+        threshold=threshold,
+        color=color,
+        **kwargs,
+    )
 
 
 def lives_duration_histogram_from_durations(
-        durations: Union[List[float], List[List[float]]],
-        xlabel: str,
-        label: Union[str, List[str]] = '',
-        bins: int = 15,
-        units: str = 'm',
-        vlines: List[Tuple[float, str]] = [],
-        ax=None,
-        add_mean: bool = True,
-        add_median: bool = True,
-        threshold: float = np.inf,
-        color=None,
-        alpha=1.0,
-        **kwargs):
+    durations: Union[List[float], List[List[float]]],
+    xlabel: str,
+    label: Union[str, List[str]] = "",
+    bins: int = 15,
+    units: str = "m",
+    vlines: List[Tuple[float, str]] = [],
+    ax=None,
+    add_mean: bool = True,
+    add_median: bool = True,
+    threshold: float = np.inf,
+    color=None,
+    alpha=1.0,
+    **kwargs,
+):
     """Generate an histogram from the lives durations
 
     Parameters
@@ -127,7 +133,7 @@ def lives_duration_histogram_from_durations(
         and the second elmenet of the tuple should be the label of the line
         By default []
     ax :  optional
-        Axis where to draw the plot. 
+        Axis where to draw the plot.
         If missing a new figure will be created, by default None
     add_mean : bool, optional
         whether to add a vertical line with the mean value, by default True
@@ -152,37 +158,38 @@ def lives_duration_histogram_from_durations(
 
     for l, dur in zip(label, durations):
         if len(l) > 0:
-            l += ' '
+            l += " "
         vlines = copy(vlines)
         if add_mean:
-            vlines.append((np.mean(dur), l + 'Mean'))
+            vlines.append((np.mean(dur), l + "Mean"))
         if add_median:
-            vlines.append((np.median(dur), l + 'Median'))
+            vlines.append((np.median(dur), l + "Median"))
         dur = [d for d in dur if d < threshold]
         ax.hist(dur, bins, color=color, alpha=alpha, label=l)
 
     ax.set_xlabel(xlabel)
-    ax.set_ylabel('Number of lives')
+    ax.set_ylabel("Number of lives")
 
     colors = sns.color_palette("hls", len(vlines))
     for i, (v_x, l) in enumerate(vlines):
-        label = f'{l}: {v_x:.2f} {units}'
+        label = f"{l}: {v_x:.2f} {units}"
         add_vertical_line(ax, v_x, label, colors[i], i, len(vlines))
     ax.legend()
 
     return ax.figure, ax
 
 
-def durations_boxplot(datasets: Union[AbstractLivesDataset,
-                                      List[AbstractLivesDataset]],
-                      xlabel: Union[str, List[str]],
-                      ylabel: str,
-                      ax=None,
-                      hlines: List[Tuple[float, str]] = [],
-                      units: str = 'm',
-                      transform: Callable[[float], float] = lambda x: x,
-                      maxy: Optional[float] = None,
-                      **kwargs):
+def durations_boxplot(
+    datasets: Union[AbstractTimeSeriesDataset, List[AbstractTimeSeriesDataset]],
+    xlabel: Union[str, List[str]],
+    ylabel: str,
+    ax=None,
+    hlines: List[Tuple[float, str]] = [],
+    units: str = "m",
+    transform: Callable[[float], float] = lambda x: x,
+    maxy: Optional[float] = None,
+    **kwargs,
+):
     """Generate boxplots of the lives duration
 
     Parameters
@@ -220,25 +227,28 @@ def durations_boxplot(datasets: Union[AbstractLivesDataset,
     for ds in datasets:
         durations.append([transform(duration) for duration in ds.durations()])
 
-    return durations_boxplot_from_durations(durations,
-                                            xlabel=xlabel,
-                                            ylabel=ylabel,
-                                            ax=ax,
-                                            hlines=hlines,
-                                            units=units,
-                                            maxy=maxy,
-                                            **kwargs)
+    return durations_boxplot_from_durations(
+        durations,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        ax=ax,
+        hlines=hlines,
+        units=units,
+        maxy=maxy,
+        **kwargs,
+    )
 
 
-def durations_boxplot_from_durations(durations: Union[List[float],
-                                                      List[List[float]]],
-                                     xlabel: Union[str, List[str]],
-                                     ylabel: str,
-                                     ax=None,
-                                     hlines: List[Tuple[float, str]] = [],
-                                     units: str = 'm',
-                                     maxy: Optional[float] = None,
-                                     **kwargs):
+def durations_boxplot_from_durations(
+    durations: Union[List[float], List[List[float]]],
+    xlabel: Union[str, List[str]],
+    ylabel: str,
+    ax=None,
+    hlines: List[Tuple[float, str]] = [],
+    units: str = "m",
+    maxy: Optional[float] = None,
+    **kwargs,
+):
     """Generate an histogram from a list of durations
 
     Parameters
@@ -279,7 +289,7 @@ def durations_boxplot_from_durations(durations: Union[List[float],
         ax.set_ylim(miny, maxy)
     colors = sns.color_palette("hls", len(hlines))
     for i, (pos, label) in enumerate(hlines):
-        ax.axhline(pos, label=f'{label}: {pos:.2f} {units}', color=colors[i])
+        ax.axhline(pos, label=f"{label}: {pos:.2f} {units}", color=colors[i])
     _, labels = ax.get_legend_handles_labels()
     if len(labels) > 0:
         ax.legend()

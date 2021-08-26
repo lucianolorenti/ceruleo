@@ -5,22 +5,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from rul_pm.dataset.lives_dataset import AbstractLivesDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.iterators.iterators import LifeDatasetIterator
-from rul_pm.results.results import (
-    FittedLife,
-    compute_sample_weight,
-    models_cv_results,
-    split_lives,
-    unexpected_breaks,
-    unexploited_lifetime,
-)
+from rul_pm.results.results import (FittedLife, compute_sample_weight,
+                                    models_cv_results, split_lives,
+                                    unexpected_breaks, unexploited_lifetime)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from temporis.iterators.iterators import LifeDatasetIterator
 
 
-def plot_lives(ds: AbstractLivesDataset):
+def plot_lives(ds: AbstractTimeSeriesDataset):
     """
     Plot each life
     """

@@ -1,14 +1,16 @@
+from typing import List, Optional, Union
+
 import numpy as np
 import pandas as pd
+from rul_pm.datasets.lives_dataset import AbstractLivesDataset
 from temporis import DATA_PATH
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 
 CMAPSS_PATH = DATA_PATH / "C_MAPSS"
 
 # Features used by
 # Multiobjective Deep Belief Networks Ensemble forRemaining Useful Life Estimation in
 # Prognostics Chong Zhang, Pin Lim, A. K. Qin,Senior Member, IEEE, and Kay Chen Tan,Fellow, IEEE
-sensor_indices = np.array([2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]) + (4-1)
+sensor_indices = np.array([2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]) + (4 - 1)
 
 dependent_vars = ["RemainingUsefulLife"]
 index_columns_names = ["UnitNumber", "Cycle"]
@@ -79,8 +81,10 @@ def process_file_train(file):
     return df
 
 
-class CMAPSSDataset(AbstractTimeSeriesDataset):
-    def __init__(self, train=True, models=None):
+class CMAPSSDataset(AbstractLivesDataset):
+    def __init__(
+        self, train: bool = True, models: Optional[Union[str, List[str]]] = None
+    ):
         if models is not None and isinstance(models, str):
             models = [models]
         self._validate_model_names(models)
@@ -119,3 +123,7 @@ class CMAPSSDataset(AbstractTimeSeriesDataset):
     @property
     def n_time_series(self):
         return len(self.lives)
+
+    @property
+    def rul_column(self) -> str:
+        return "RUL"
