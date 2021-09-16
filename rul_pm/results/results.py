@@ -421,6 +421,31 @@ class FittedLife:
             return True
 
 
+def split_lives_indices( y_true: np.array):
+    """Obtain a list of indices for each life
+
+    Parameters
+    ----------
+    y_true : np.array
+        True vector with the RUL
+
+    Returns
+    -------
+    List[List[int]]
+        A list with the indices belonging to each life
+    """
+    lives_indices = (
+        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() + [len(y_true)]
+    )
+    indices = []
+    for i in range(len(lives_indices) - 1):
+        r = range(lives_indices[i] + 1, lives_indices[i + 1])
+        if len(r) == 0:
+            continue
+        indices.append(r)
+    return indices
+
+
 def split_lives(
     y_true: np.array,
     y_pred: np.array,
@@ -444,16 +469,10 @@ def split_lives(
     Returns
     -------
     List[FittedLife]
-        [description]
+        FittedLife list
     """
-    lives_indices = (
-        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() + [len(y_true)]
-    )
     lives = []
-    for i in range(len(lives_indices) - 1):
-        r = range(lives_indices[i] + 1, lives_indices[i + 1])
-        if len(r) == 0:
-            continue
+    for r in split_lives_indices(y_true):        
         if np.any(np.isnan(y_pred[r])):
             continue
         # try:
