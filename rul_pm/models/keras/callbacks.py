@@ -7,7 +7,7 @@ import pandas as pd
 from rul_pm.graphics.plots import plot_true_and_predicted
 from rul_pm.models.keras.keras import KerasTrainableModel
 from tensorflow.keras.callbacks import Callback
-from rul_pm.iterators.utils import true_values
+from temporis.iterators.utils import true_values
 
 
 logger = logging.getLogger(__name__)
