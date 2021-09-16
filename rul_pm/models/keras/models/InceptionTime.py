@@ -1,9 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.layers.core import Activation
-from tensorflow.python.keras.layers.merge import Concatenate
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.layers.pooling import MaxPool1D
+
+from tensorflow.python.keras.layers  import (BatchNormalization, Concatenate, MaxPool1D, Activation)
 from rul_pm.models.keras.keras import KerasTrainableModel
 from rul_pm.models.keras.layers import ExpandDimension, RemoveDimension
 from tensorflow.keras import Input, Model, optimizers
