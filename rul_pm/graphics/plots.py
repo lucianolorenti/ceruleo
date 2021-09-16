@@ -12,7 +12,7 @@ from rul_pm.results.results import (FittedLife, compute_sample_weight,
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.iterators import LifeDatasetIterator
+from temporis.iterators.iterators import TimeSeriesDatasetIterator
 
 
 def plot_lives(ds: AbstractTimeSeriesDataset):
@@ -20,7 +20,7 @@ def plot_lives(ds: AbstractTimeSeriesDataset):
     Plot each life
     """
     fig, ax = plt.subplots()
-    it = LifeDatasetIterator(ds)
+    it = TimeSeriesDatasetIterator(ds)
     for _, y in it:
         ax.plot(y)
     return fig, ax
@@ -233,25 +233,33 @@ def hold_out_boxplot_errors_wrt_RUL_multiple_models(
 
 def _cv_barplot_errors_wrt_RUL_multiple_models(
     bin_edges,
-    model_results,
+    model_results:dict,
     fig=None,
     ax=None,
-    y_axis_label=None,
-    x_axis_label=None,
+    y_axis_label:Optional[str]=None,
+    x_axis_label:Optional[str]=None,
+    color_palette:str = "hls",
     **kwargs,
 ):
-    """[summary]
+    """Plot the barplots given the errors
 
-    Args:
-        bin_edges ([type]): [description]
-        model_results ([type]): [description]
-        fig ([type], optional): [description]. Defaults to None.
-        ax ([type], optional): [description]. Defaults to None.
-        y_axis_label ([type], optional): [description]. Defaults to None.
-        x_axis_label ([type], optional): [description]. Defaults to None.
+    Parameters
+    ----------
+        bin_edges: np.ndarray: 
+        
+        model_results: dict 
+            Dictionary with the results
+        fig: Optional[plt.Figure]
+            Figure
+        ax: Optional[ax.Axis] Defaults to None.
+            Axis
+        y_axis_label: Optional[str] Defaults to None.
+            Y Label
+        x_axis_label:Optional[str]
+            X Label
 
     Returns:
-        [type]: [description]
+        Tuple[fig, axis]
     """
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
@@ -264,7 +272,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     for i in range(nbins):
         labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
 
-    colors = sns.color_palette("hls", n_models)
+    colors = sns.color_palette(color_palette, n_models)
     for model_number, model_name in enumerate(model_results.keys()):
         model_data = model_results[model_name]
 
@@ -303,6 +311,7 @@ def cv_barplot_errors_wrt_RUL_multiple_models(
     x_axis_label=None,
     fig=None,
     ax=None,
+    color_palette:str = 'hls',
     **kwargs,
 ):
     """Boxplots of difference between true and predicted RUL
@@ -323,6 +332,7 @@ def cv_barplot_errors_wrt_RUL_multiple_models(
         ax=ax,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
+        color_palette=color_palette
     )
 
 
