@@ -6,9 +6,14 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.results.results import (FittedLife, compute_sample_weight,
-                                    models_cv_results, split_lives,
-                                    unexpected_breaks, unexploited_lifetime)
+from rul_pm.results.results import (
+    FittedLife,
+    compute_sample_weight,
+    models_cv_results,
+    split_lives,
+    unexpected_breaks,
+    unexploited_lifetime,
+)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
@@ -233,21 +238,21 @@ def hold_out_boxplot_errors_wrt_RUL_multiple_models(
 
 def _cv_barplot_errors_wrt_RUL_multiple_models(
     bin_edges,
-    model_results:dict,
+    model_results: dict,
     fig=None,
     ax=None,
-    y_axis_label:Optional[str]=None,
-    x_axis_label:Optional[str]=None,
-    color_palette:str = "hls",
+    y_axis_label: Optional[str] = None,
+    x_axis_label: Optional[str] = None,
+    color_palette: str = "hls",
     **kwargs,
 ):
     """Plot the barplots given the errors
 
     Parameters
     ----------
-        bin_edges: np.ndarray: 
-        
-        model_results: dict 
+        bin_edges: np.ndarray:
+
+        model_results: dict
             Dictionary with the results
         fig: Optional[plt.Figure]
             Figure
@@ -311,7 +316,7 @@ def cv_barplot_errors_wrt_RUL_multiple_models(
     x_axis_label=None,
     fig=None,
     ax=None,
-    color_palette:str = 'hls',
+    color_palette: str = "hls",
     **kwargs,
 ):
     """Boxplots of difference between true and predicted RUL
@@ -332,7 +337,7 @@ def cv_barplot_errors_wrt_RUL_multiple_models(
         ax=ax,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
-        color_palette=color_palette
+        color_palette=color_palette,
     )
 
 
@@ -619,11 +624,37 @@ def plot_life(
     return ax
 
 
+def plot_test_set_predictions(
+    results: dict, ncols: int = 3, CV: int = 0, alpha=1.0, xlabel: Optional[str] = None,
+    ylabel:Optional[str] = None
+):
+    """Plot a matrix of predictions
 
+    Parameters
+    ----------
+    results : dict
+        Dictionary with the results
+    ncols : int, optional
+        Number of colmns in the plot, by default 3
+    CV : int, optional
+        Which folds of predictions are going to be plotted, by default 0
+    alpha : float, optional
+        Opacity of the predicted curves, by default 1.0
+    xlabel : Optional[str], optional
+        Xlabel, by default None
+    ylabel : Optional[str], optional
+        YLabel, by default None
 
+    Return
+    ------
+    fig, ax:
+        Figure and axis
+    """    
 
-def plot_test_set_predictions(results: dict, ncols: int = 3, CV: int = 0, alpha=1.0):
-
+    def linear_to_subindices(i, ncols):
+        row = int(i / ncols)
+        col = i % ncols
+        return row, col 
     init = False
     for model_name in results.keys():
 
@@ -635,12 +666,19 @@ def plot_test_set_predictions(results: dict, ncols: int = 3, CV: int = 0, alpha=
             fig, ax = plt.subplots(NROW, ncols, figsize=(25, 25))
 
         for i, life in enumerate(lives_model):
-            row = int(i / ncols)
-            col = i % ncols
+            row, col = linear_to_subindices(i, ncols)
             if not init:
-                ax[row, col].plot(life.y_true, label="True")
-            ax[row, col].plot(life.y_pred, label=model_name, alpha=alpha)
+                ax[row, col].plot(life.time, life.y_true, label="True")
+            ax[row, col].plot(life.time, life.y_pred, label=model_name, alpha=alpha)
+            if xlabel is not None:
+                ax[row, col].set_xlabel(xlabel)
+            if ylabel is not None:
+                ax[row, col].set_ylabel(ylabel)
         init = True
+    for j in range(len(lives_model), NROW*ncols):
+        row, col = linear_to_subindices(j, ncols)
+        fig.delaxes(ax[row, col])
+
     for a in ax.flatten():
         a.legend()
-    return fig, ax 
+    return fig, ax
