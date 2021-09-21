@@ -33,13 +33,11 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
     # with weights
     loss_fn = get_loss_for_multilabels(weights=weights, from_logits=False)
     loss = loss_fn(y_true, y_pred)
-    print(loss)
     # tf.Tensor(0.6067193, shape=(), dtype=float32)
 
     # without weights
     loss_fn = get_loss_for_multilabels()
     loss = loss_fn(y_true, y_pred)
-    print(loss)
     # tf.Tensor(0.52158177, shape=(), dtype=float32)
 
     # Another example
@@ -52,13 +50,11 @@ def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
     # with weights
     loss_fn = get_loss_for_multilabels(weights=weights, from_logits=False)
     loss = loss_fn(y_true, y_pred)
-    print(loss)
     # tf.Tensor(1.0439969, shape=(), dtype=float32)
 
     # without weights
     loss_fn = get_loss_for_multilabels()
     loss = loss_fn(y_true, y_pred)
-    print(loss)
     # tf.Tensor(0.81492424, shape=(), dtype=float32)
 
     @param weights A dict setting weights for 0 and 1 label. e.g.
