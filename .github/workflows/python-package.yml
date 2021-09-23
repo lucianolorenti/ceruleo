@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.7', '3.8']
+        python-version: [ '3.8']
 
     steps:
     - uses: actions/checkout@v2
@@ -43,6 +43,7 @@ jobs:
       with:
         parallel: true
         flag-name: Unit Test
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
   coveralls_finish:
     needs: test
@@ -52,4 +53,5 @@ jobs:
       uses: AndreMiras/coveralls-python-action@develop
       with:
         parallel-finished: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
   

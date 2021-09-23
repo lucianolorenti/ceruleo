@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 from temporis.iterators.batcher import Batcher
-from temporis.iterators.iterators import LifeDatasetIterator, WindowedDatasetIterator
+from temporis.iterators.iterators import  WindowedDatasetIterator, TimeSeriesDatasetIterator
 from temporis.iterators.utils import true_values
 from rul_pm.models.baseline import BaselineModel
 from rul_pm.models.keras import KerasTrainableModel
@@ -11,7 +11,7 @@ from rul_pm.models.sklearn import SKLearnModel
 from rul_pm.models.gradientboosting import XGBoostModel
 from temporis.transformation.features.scalers import PandasMinMaxScaler
 from temporis.transformation.features.selection import ByNameFeatureSelector
-from temporis.transformation.transformers import (LivesPipeline, Transformer)
+from temporis.transformation import (Transformer)
 from sklearn.linear_model import ElasticNet
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Flatten
@@ -110,8 +110,8 @@ class TestKeras():
         pipe = PandasMinMaxScaler((-1, 1))(pipe)
         rul_pipe =  ByNameFeatureSelector(['RUL'])
         transformer = Transformer(
-            pipe.build(),
-            rul_pipe.build()
+            pipe,
+            rul_pipe
         )
         ds = MockDataset(5)
         transformer.fit(ds)
@@ -152,16 +152,16 @@ class TestKeras():
         pipe = PandasMinMaxScaler((-1, 1))(pipe)
         rul_pipe =  ByNameFeatureSelector(['RUL'])
         transformer = Transformer(
-            pipe.build(),
-            rul_pipe.build()
+            pipe,
+            rul_pipe
         )
         ds = MockDataset(5)
         transformer.fit(ds)
-        iterator = LifeDatasetIterator(ds, transformer)
+        iterator = TimeSeriesDatasetIterator(ds, transformer)
         model = BaselineModel( mode='mean')
         model.fit(iterator)
         
-        y_pred = model.predict(LifeDatasetIterator(ds[[0]], transformer))
+        y_pred = model.predict(TimeSeriesDatasetIterator(ds[[0]], transformer))
         assert np.all(np.diff(y_pred) < 0)
         
         
@@ -182,7 +182,7 @@ class TestKeras():
 
         ds = MockDataset1(5)
         transformer.fit(ds)
-        iterator = LifeDatasetIterator(ds, transformer)
+        iterator = TimeSeriesDatasetIterator(ds, transformer)
         model = BaselineModel(mode='mean')
         model.fit(iterator)
 
@@ -200,8 +200,8 @@ class TestKeras():
         pipe = PandasMinMaxScaler((-1, 1))(pipe)
         rul_pipe =  ByNameFeatureSelector(['RUL'])
         transformer = Transformer(
-            pipe.build(),
-            rul_pipe.build()
+            pipe,
+            rul_pipe
         )
         ds = MockDataset(5)
         transformer.fit(ds)
@@ -246,12 +246,12 @@ class TestKeras():
 class TestSKLearn():
     def test_sklearn(self):
         features = ['feature1', 'feature2']
-        transformer = Transformer(
-            LivesPipeline(steps =[
-                    ('ss', ByNameFeatureSelector(features)), 
-                    ('scaler', PandasMinMaxScaler((-1, 1)))
-            ]),
-            ByNameFeatureSelector(['RUL']).build())
+
+        x = ByNameFeatureSelector(features)
+        x =  PandasMinMaxScaler((-1, 1))(x)
+
+        y = ByNameFeatureSelector(['RUL'])
+        transformer = Transformer(x, y)
 
         ds = MockDataset(5)
         transformer.fit(ds)
@@ -277,12 +277,13 @@ class TestSKLearn():
 class TestXGBoost():
     def test_xgboost(self):
         features = ['feature1', 'feature2']
-        transformer = Transformer(
-            LivesPipeline(steps =[
-                    ('ss', ByNameFeatureSelector(features)), 
-                    ('scaler', PandasMinMaxScaler((-1, 1)))
-            ]),
-            ByNameFeatureSelector(['RUL']).build())
+
+        x = ByNameFeatureSelector(features)
+        x = PandasMinMaxScaler((-1, 1))(x)
+
+        y = ByNameFeatureSelector(['RUL'])
+        transformer = Transformer(x, y)
+
         ds = MockDataset(5)
         transformer.fit(ds)
         ds_iterator = WindowedDatasetIterator(ds,
