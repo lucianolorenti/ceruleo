@@ -1,8 +1,10 @@
+from typing import List, Optional, Type
+
+import matplotlib.cm as cm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-from typing import List, Optional
-import matplotlib.cm as cm
 import numpy as np
+from matplotlib.colors import LogNorm, Normalize
 
 
 def time_series_importance(
@@ -14,7 +16,8 @@ def time_series_importance(
     ax=None,
     colormap: str = "Greens",
     features_to_plot: Optional[int] = None,
-    base_alpha:float =0.2
+    base_alpha:float =0.2,
+    normalizer_cls: Type[Normalize] = Normalize
 ):  
     """Plot the feature importance by time-stamp and feature
 
@@ -40,6 +43,8 @@ def time_series_importance(
         The features_to_plot most important features are going to be plotted.
         The importance will be computed as the sum of the timestamp  importance
         per feature
+    normalizer_cls : Type[Normalize], by  default Normalize
+        Color mapper class
     """
     def color_threshold(importance, t):
         if importance > t:
@@ -56,14 +61,15 @@ def time_series_importance(
         fig = ax.get_figure()
     im = coefficients.reshape(window_size, n_features)
     cmap = plt.get_cmap(colormap)
-
-    norm = plt.Normalize(np.min(im), np.max(im))
+    
+    norm = normalizer_cls(np.min(im), np.max(im), clip=True)
 
     importance = np.sum(im, axis=0)
 
     features_order = np.argsort(importance)[::-1]
-    if features_to_plot is not None:
-        features_order = features_order[:features_to_plot][::-1]
+    if features_to_plot is None:
+        features_to_plot = len(features_order)
+    features_order = features_order[:features_to_plot][::-1]
     n_selected_features = len(features_order)
 
     for w in range(window_size):
@@ -85,7 +91,7 @@ def time_series_importance(
     ax.set_ylim(-1, n_selected_features + 0.5)
     cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap))
     disp = (np.max(im) - np.min(im)) * 0.05
-    cbar.set_ticks([np.min(im) + disp, np.max(im) - disp])
+    cbar.set_ticks([np.min(im), np.max(im) - disp])
     cbar.ax.set_yticklabels(["Less important", "More Important"])
     ax.set_xlabel("Time window")
     return ax
