@@ -29,7 +29,6 @@ class Fitter:
 
     def __call__(self, params):
         i, params  = params
-        print(i)
         model = clone(self.model)
         model.reset()
         model.set_params(**params)
@@ -54,7 +53,6 @@ class RULGridSearchCV:
         self.results = []
 
     def fit(self, dataset, **fit_kwargs):
-        print(len(list(ParameterGrid(self.params))))
         pool = multiprocessing.Pool(6)
         self.param_list, self.results = zip(
             *pool.map(
@@ -168,6 +166,5 @@ class GeneticAlgorithmFeatureSelection:
             if max(fitness) > optimal_value:
                 optimal_value = max(fitness)
                 optimal_solution = population[np.where(fitness == optimal_value)][0]
-                print(optimal_solution, optimal_value)
 
         return optimal_solution, optimal_value
