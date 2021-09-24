@@ -36,7 +36,7 @@ class KerasTrainableModel(TrainableModel):
         Loss to use at moment of training, by default 'mse'
     prefetch_size : Optional[int], optional
         Prefetch size of the tensorflow iterator, by default None
-    batcher_generator : [type], optional
+    batcher_generator : Betcher, optional
         Function that generate the keras iterators, by default keras_regression_batcher.
         Possible values are keras_autoencoder_batcher or keras_regression_batcher
     """
@@ -54,12 +54,14 @@ class KerasTrainableModel(TrainableModel):
         self.compiled = False
         self.learning_rate = learning_rate
         self.metrics = metrics
+        self.loss_name = loss
         if loss == 'relative_mae':
             self.loss = relative_mae()
         elif loss == 'relative_mse':
             self.loss = relative_mse()
         else:
             self.loss = loss
+
         self.prefetch_size = prefetch_size
         self.batcher_generator = batcher_generator
 
