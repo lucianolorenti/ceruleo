@@ -1,13 +1,12 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.models.model import TrainableModel
 from rul_pm.results.results import FittedLife
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 from temporis.iterators.iterators import TimeSeriesDatasetIterator
 
 
-class BaselineModel(TrainableModel):
+class BaselineModel:
     """Predict the RUL using the mean of the median value of the duration
        of the dataset
 
@@ -66,7 +65,7 @@ class BaselineModel(TrainableModel):
         return np.concatenate(output)
 
 
-class FixedValueBaselineModel(TrainableModel):
+class FixedValueBaselineModel:
     """[summary]
 
     Parameters

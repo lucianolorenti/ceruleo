@@ -48,7 +48,6 @@ import numpy as np
 import pandas as pd
 
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.model_selection import KFold
@@ -77,50 +76,6 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
             break
     return z
 
-
-def cv_predictions(
-    model: TrainableModel,
-    dataset: AbstractTimeSeriesDataset,
-    cv=KFold(n_splits=5),
-    fit_params={},
-    progress_bar=False,
-) -> Tuple[List[List], List[List]]:
-    """
-    Train a model using cross validation and return the predictions of each fold
-
-    Parameters
-    ----------
-    model: TrainableModel
-           The model to train
-
-    dataset: AbstractTimeSeriesDataset
-             The dataset from which obtain the folds
-
-    cv:  default  sklearn.model_selection.KFold(n_splits=5)
-        The dataset splitter
-
-    Return
-    ------
-    Tuple[List, List]:
-
-    Then length of the lists is equal to the nomber of folds. The first element
-    of the tuple contains the true values of the hold-out set and the second
-    element contains the predictions values of the hold-out set
-    """
-    progress_bar_fun = iter
-    if progress_bar:
-        progress_bar_fun = tqdm
-
-    predictions = []
-    true_values = []
-    for train_index, test_index in progress_bar_fun(cv.split(dataset)):
-        model.fit(dataset[train_index], **fit_params)
-        y_pred = model.predict(dataset[test_index])
-        y_true = model.true_values(dataset[test_index])
-        predictions.append(y_pred)
-        true_values.append(y_true)
-
-    return (true_values, predictions)
 
 
 class CVResults:
