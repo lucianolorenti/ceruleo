@@ -26,7 +26,6 @@ setup(
         "gwpy",
         "mlflow",
         "emd",
-        "numba",        
         "dill",
         "mmh3",
         "temporis",
