@@ -1,4 +1,5 @@
 import React from 'react';
+import urlcat from 'urlcat';
 
 export class API {
     url: string;
@@ -10,8 +11,22 @@ export class API {
         this.port = port
         this.endpoint = url + ':' + port + '/api'
     }
-    features_histogram(feature: string) {
-        return null;
+    features_histogram(features: Array<string>, callback) {
+
+        const url = urlcat(this.endpoint, '/dataset/histogram', { features: features, align_histograms: false })
+    
+        fetch(url)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (response: Array<string>) {
+
+                callback(response);
+            })
+            .catch(function (data) {
+
+                callback(data);
+            });
 
     }
     numerical_features(callback: (a: Array<string>) => void) {
@@ -20,9 +35,11 @@ export class API {
                 return response.json();
             })
             .then(function (response: Array<string>) {
+
                 callback(response);
             })
             .catch(function (data) {
+
                 callback(data);
             });
 

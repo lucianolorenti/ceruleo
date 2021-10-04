@@ -6,14 +6,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.results.results import (
-    FittedLife,
-    compute_sample_weight,
-    models_cv_results,
-    split_lives,
-    unexpected_breaks,
-    unexploited_lifetime,
-)
+from rul_pm.results.results import (FittedLife, compute_sample_weight,
+                                    models_cv_results, split_lives,
+                                    unexpected_breaks, unexploited_lifetime)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
