@@ -1,0 +1,23 @@
+{
+  "name": "rulpm_analysis_dashboard",
+  "version": "1.0.0",
+  "description": "EDA dashboard",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luciano Lorenti",
+  "license": "MTI",
+  "dependencies": {
+    "@emotion/react": "^11.4.1",
+    "@emotion/styled": "^11.3.0",
+    "@material-ui/core": "^5.0.0-beta.5",
+    "@mui/material": "^5.0.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "webpack": "^5.56.1"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.2.6"
+  }
+}
