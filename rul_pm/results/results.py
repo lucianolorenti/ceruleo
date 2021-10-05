@@ -354,7 +354,7 @@ class FittedLife:
         else:
             return 0
 
-    def unexpected_break(self, m: float = 0):
+    def unexpected_break(self, m: float = 0, tolerance:float = 3):
         """Compute wether an unexpected break will produce using a fault horizon window of size m
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
@@ -370,13 +370,13 @@ class FittedLife:
             bool
                 Unexploited lifetime
         """
-        if self.maintenance_point(m) < self.end_of_life():
+        if self.maintenance_point(m) - tolerance < self.end_of_life():
             return False
         else:
             return True
 
 
-def split_lives_indices( y_true: np.array):
+def split_lives_indices(y_true: np.array):
     """Obtain a list of indices for each life
 
     Parameters
@@ -427,7 +427,7 @@ def split_lives(
         FittedLife list
     """
     lives = []
-    for r in split_lives_indices(y_true):        
+    for r in split_lives_indices(y_true):
         if np.any(np.isnan(y_pred[r])):
             continue
         # try:
@@ -473,12 +473,51 @@ def unexploited_lifetime_from_cv(
     return windows, qq
 
 
-def unexpected_breaks(d, window_size: int, step: int):
+def unexpected_breaks(d: dict, window_size: int, step: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the risk of unexpected breaks with respect to the maintenance window size
+
+    Parameters
+    ----------
+    d : dict
+        Dictionary with the results
+    window_size : int
+        Maximum size of the maintenance windows
+    step : int
+        Number of points in which compute the risks.
+        step different maintenance windows will be used.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        * Maintenance window size evaluated
+        * Risk computed for every window size used
+    """
+
     bb = [split_lives_from_results(cv) for cv in d]
     return unexpected_breaks_from_cv(bb, window_size, step)
 
 
-def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
+def unexpected_breaks_from_cv(
+    lives: List[List[FittedLife]], window_size: int, n: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the risk of unexpected breaks given a Cross-Validation results
+
+    Parameters
+    ----------
+    lives : List[List[FittedLife]]
+        Cross validation results.        
+    window_size : int
+        Maximum size of the maintenance window
+    n : int
+        Number of points to evaluate the risk of unexpected breaks
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        * Maintenance window size evaluated
+        * Risk computed for every window size used
+    """
+
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
@@ -489,7 +528,7 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
         qq.append(np.mean(jj))
-    return windows, qq
+    return windows, np.array(qq)
 
 
 def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1, q2):
