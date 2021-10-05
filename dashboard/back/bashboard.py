@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 
@@ -14,11 +15,13 @@ import logging
 from temporis.dataset.analysis.distribution import histogram_per_life, features_divergeces
 import numpy as np
 import pickle 
+from back.ds import generate_data, load_dataset
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-CACHE_FILE = Path('/home/luciano/cache')
+
  
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
@@ -92,36 +95,7 @@ def main():
     tornado.ioloop.IOLoop.current().start()
  
 
-def load_dataset(dataset_path: Path):
-    from infineonPM.data.dataset import DataSet
-    from datetime import datetime
-    def filter(X):
-        X = X[
-            (X["number_of_samples"] >= 1000.0)
-            & (X["life_start"] < datetime(2020, 8, 1))
-        ]
-        X = X[X["duration"] < 6487106]
-        X = X[X["equipment"] == "IMPP08-01"]
-        X = X[X['next_maintenance_type'] == 'UD']
-        return X.copy()
-    return DataSet(dataset_path, filter=filter, only_productions_rows=True)
 
-
-def generate_data():
-    ds = load_dataset()
-        
-    
-    data = {}
-    if CACHE_FILE.is_file():
-        with open(CACHE_FILE, 'rb') as file:
-            data = pickle.load(file)
-
-    if 'feature_kl_divergence' not in data:
-        df, _ = features_divergeces(ds)
-        data['feature_kl_divergence'] = df.to_json(orient="split")
-
-    with open(CACHE_FILE, 'wb') as file:
-        pickle.dump(data, file)
 
 if __name__ == "__main__":
     generate_data()
