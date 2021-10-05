@@ -1,4 +1,4 @@
-import { AppBar, Container } from '@material-ui/core';
+import { AppBar, Container, Divider, List } from '@material-ui/core';
 import MenuIcon from '@mui/icons-material/Menu';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,60 +14,22 @@ import Typography from '@mui/material/Typography';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { API, APIContext } from './API';
-import FeatureDistribution from './feature_distribution';
+import FeatureDistribution from './FeatureDistribution';
 import ListItemText from '@mui/material/ListItemText';
-
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
+import DistributionAnalysis from './DistributionAnalysis';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 
-
-
-
+import MuiDrawer from '@mui/material/Drawer';
 interface DashboardProps {
 
 }
-interface FeatureSelectorProps {
-  setCurrentFeatures: (a: Array<string>) => void
-  features: Array<string>
-  api: API
-}
-function FeatureSelector(props: FeatureSelectorProps) {
-  const [featureList, setFeatureList] = React.useState<Array<String>>(null);
-  if (featureList == null) {
-    props.api.numerical_features(setFeatureList)
-  }
-  const handleChange = (event) => {    
-    const value = event.target.value;
-    console.log(value)
-    props.setCurrentFeatures(
-      typeof value === 'string' ? value.split(',') : value,
-    );
-  };
 
-
-  return (
-    <FormControl fullWidth>
-      <InputLabel id="select-features">Features to visualize</InputLabel>
-      <Select
-        value={props.features}
-        label="Features to visualize"
-        multiple
-        renderValue={(selected) => selected.join(', ')}
-        onChange={handleChange}
-      >
-        {featureList?.map((elem: string, id: number) => {
-          return <MenuItem value={elem} key={id}>
-            <Checkbox checked={props.features.indexOf(elem) > -1} />
-            <ListItemText primary={elem} />
-          </MenuItem>
-
-        })}
-
-      </Select>
-    </FormControl>
-  )
-}
 function Dashboard(props: DashboardProps) {
-  const [features, setCurrentFeatures] = React.useState<Array<string>>([]);
+
   const [open, setOpen] = React.useState<boolean>(true);
   const toggleDrawer = () => {
     setOpen(!open);
@@ -108,6 +70,48 @@ function Dashboard(props: DashboardProps) {
 
             </Toolbar>
           </AppBar>
+          <MuiDrawer variant="permanent" open={open}>
+            <Toolbar
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                px: [1],
+              }}
+            >
+              <IconButton onClick={toggleDrawer}>
+                <ChevronLeftIcon />
+              </IconButton>
+            </Toolbar>
+            <Divider />
+            <List> <ListItem button>
+              <ListItemIcon>
+                <DashboardIcon />
+              </ListItemIcon>
+              <ListItemText primary="Missing proportion" />
+            </ListItem>
+            <ListItem button>
+                <ListItemIcon>
+                  <DashboardIcon />
+                </ListItemIcon>
+                <ListItemText primary="Correlation" />
+              </ListItem>
+              <ListItem button>
+                <ListItemIcon>
+                  <DashboardIcon />
+                </ListItemIcon>
+                <ListItemText primary="Features values distribution" />
+              </ListItem>
+              <ListItem button>
+                <ListItemIcon>
+                  <DashboardIcon />
+                </ListItemIcon>
+                <ListItemText primary="Live duration" />
+              </ListItem>
+            </List>
+            <Divider />
+
+          </MuiDrawer>
           <Box
             component="main"
             sx={{
@@ -122,31 +126,7 @@ function Dashboard(props: DashboardProps) {
           >
             <Toolbar />
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-              <Grid container spacing={3}>
-        
-                <Grid item xs={12} md={12} lg={12}>
-                  <Paper
-                    sx={{
-                      p: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: 600,
-                    }}
-                  >
-                    <FeatureSelector api={api} features={features} setCurrentFeatures={setCurrentFeatures} />
-                    <FeatureDistribution api={api} features={features} />
-                  </Paper>
-                </Grid>
-       
-
-                {/* Recent Orders */}
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-
-                  </Paper>
-                </Grid>
-              </Grid>
-
+              <DistributionAnalysis api={api} />
             </Container>
           </Box>
 

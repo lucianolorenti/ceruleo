@@ -11,13 +11,14 @@ import json
 from front import TEMPLATES_PATH
 from back import STATIC_PATH
 import logging 
-from temporis.dataset.analysis.distribution import histogram_per_life
+from temporis.dataset.analysis.distribution import histogram_per_life, features_divergeces
 import numpy as np
+import pickle 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-
+CACHE_FILE = Path('/home/luciano/cache')
  
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
@@ -39,7 +40,6 @@ class DatasetHandler(tornado.web.RequestHandler):
         self.dataset = dataset
 
     def get(self, name):
-        print(name)
         if name == 'numerical_features':
             self.write(json.dumps(list(self.dataset.common_features())))
         elif name == 'histogram':
@@ -47,10 +47,8 @@ class DatasetHandler(tornado.web.RequestHandler):
             align_histograms = self.get_argument("align_histograms", False, True)
             data = {}
             features = [f for f in features if len(f) > 0]
-            print(features)
             if len(features) == 0:
-
-                self.write(json.dumps({}))
+                self.write("")
             for f in features:
                 histograms = histogram_per_life(self.dataset, features, share_bins=align_histograms)
         
@@ -62,14 +60,22 @@ class DatasetHandler(tornado.web.RequestHandler):
                  } for h in histograms]
 
             self.write(json.dumps(data))
+        elif name == 'feature_kl_divergence':
+            df, _ = features_divergeces(self.dataset)
+            print( df.to_json(orient="split"))
+            self.write( df.to_json(orient="split"))
+            #with open(CACHE_FILE, 'rb') as file:
+            #    data = pickle.load(file)
+            #self.write(data['feature_kl_divergence'])
             
             
 
  
-def make_app(ds):
+def make_app(ds, debug:bool =True):
     settings = {
     "static_path":str(STATIC_PATH),
     "static_url_prefix": "/static/",
+    "debug": debug
 }
     return tornado.web.Application([
         (r"/", HelloHandler),
@@ -79,7 +85,7 @@ def make_app(ds):
  
  
 def main():
-    ds = load_dataset(Path('/home/luciano/infineon/data/dataset_3'))
+    ds = load_dataset(Path('/home/luciano/fuentes/infineon/data/dataset_3'))
     app = make_app(ds)
     logger.info('App running on 7575')
     app.listen(7575)
@@ -101,7 +107,22 @@ def load_dataset(dataset_path: Path):
     return DataSet(dataset_path, filter=filter, only_productions_rows=True)
 
 
+def generate_data():
+    ds = load_dataset(Path('/home/luciano/fuentes/infineon/data/dataset_3'))
+        
+    
+    data = {}
+    if CACHE_FILE.is_file():
+        with open(CACHE_FILE, 'rb') as file:
+            data = pickle.load(file)
+
+    if 'feature_kl_divergence' not in data:
+        df, _ = features_divergeces(ds)
+        data['feature_kl_divergence'] = df.to_json(orient="split")
+
+    with open(CACHE_FILE, 'wb') as file:
+        pickle.dump(data, file)
 
 if __name__ == "__main__":
-   
+    generate_data()
     main()

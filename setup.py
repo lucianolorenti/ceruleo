@@ -24,7 +24,6 @@ setup(
         "seaborn",
         "xgboost",
         "gwpy",
-        "mlflow",
         "emd",
         "numba",        
         "dill",

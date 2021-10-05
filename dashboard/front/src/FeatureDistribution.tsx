@@ -9,23 +9,22 @@ interface FeatureDistributionProps {
     features: Array<string>
 }
 export default function FeatureDistribution(props: FeatureDistributionProps) {
-    const [data, setData] = React.useState(null)
-    const [loading, setLoading] = React.useState(false)
-    const dataReady = (d) => {
-        setLoading(false)
-        setData(d)
-    }
+    const [data, setData] = React.useState([])
+    const [loading, setLoading] = React.useState(true)
     let histograms = []
+    const dataReady = (data) => {
+        setData(data)
+        setLoading(false)
+    }
     useEffect(() => {
-        setData(null)
-        setLoading(true)
-        props.api.features_histogram(props.features, dataReady)
+        
+        props.api.featuresHistogram(props.features, dataReady)
+     
     }, [props.features]);
 
-    if ((data == null) && (!loading)) {
-        return null;
-    }
-    if ((data == null) && (loading)) {
+
+
+    if (loading) {
         return <CircularProgress />
     }
     if (isEmpty(data)) {

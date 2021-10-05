@@ -1,6 +1,11 @@
 import React from 'react';
 import urlcat from 'urlcat';
+import { DataFrameInterface } from './utils';
 
+interface KLDivergenceTableRow {
+    feature: string
+    mean_divergence: Number
+}
 export class API {
     url: string;
     port: Number;
@@ -11,7 +16,7 @@ export class API {
         this.port = port
         this.endpoint = url + ':' + port + '/api'
     }
-    features_histogram(features: Array<string>, callback) {
+    featuresHistogram(features: Array<string>, callback) {
 
         const url = urlcat(this.endpoint, '/dataset/histogram', { features: features, align_histograms: false })
     
@@ -23,13 +28,12 @@ export class API {
 
                 callback(response);
             })
-            .catch(function (data) {
-
-                callback(data);
+            .catch(function (data) {    
+                console.log(data)
             });
 
     }
-    numerical_features(callback: (a: Array<string>) => void) {
+    numericalFeatures(callback: (a: Array<string>) => void) {
         fetch(this.endpoint + '/dataset/' + 'numerical_features')
             .then(function (response) {
                 return response.json();
@@ -39,10 +43,23 @@ export class API {
                 callback(response);
             })
             .catch(function (data) {
-
-                callback(data);
+                console.log(data)
             });
 
+    }
+    KLDivergenceTable(callback: (d:DataFrameInterface)=> void) {
+
+        fetch(this.endpoint + '/dataset/' + 'feature_kl_divergence')
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (response: DataFrameInterface) {
+            callback(response);
+        })
+        .catch(function (data) {
+
+            callback(data);
+        });
     }
 
 
