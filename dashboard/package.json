@@ -11,19 +11,17 @@
   "dependencies": {
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
-    "@material-ui/core": "^5.0.0-beta.5",
     "@mui/icons-material": "^5.0.1",
     "@mui/material": "^5.0.2",
+    "@mui/x-data-grid": "^5.0.0-beta.2",
     "@nivo/bar": "^0.73.1",
     "@nivo/core": "^0.73.0",
     "@nivo/line": "^0.73.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "urlcat": "^2.0.4",
-    "webpack": "^5.56.1"
+    "urlcat": "^2.0.4"
   },
   "devDependencies": {
-    "ts-loader": "^9.2.6",
-    "webpack-cli": "^4.8.0"
+    "ts-loader": "^9.2.6"
   }
 }

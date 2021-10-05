@@ -2,7 +2,6 @@ import React from "react";
 import urlcat from "urlcat";
 import { DataFrameInterface } from "./DataTable";
 
-
 interface KLDivergenceTableRow {
   feature: string;
   mean_divergence: Number;
@@ -17,11 +16,11 @@ export class API {
     this.port = port;
     this.endpoint = url + ":" + port + "/api";
   }
-  private callDatasetEndPoint(
+  private callDatasetEndPoint = (
     what: string,
     callback: (d: any) => void,
     params: Object = {}
-  ) {
+  ) => {
     const url = urlcat(this.endpoint, "/dataset/" + what, params);
     fetch(this.endpoint + "/dataset/" + what)
       .then(function (response) {
@@ -31,24 +30,34 @@ export class API {
       .catch(function (data) {
         console.log(data);
       });
-  }
+  };
 
-  featuresHistogram(features: Array<string>, callback) {
+  featuresHistogram = (features: Array<string>, callback) => {
     this.callDatasetEndPoint("histogram", callback, {
       features: features,
       align_histograms: false,
     });
-  }
-  numericalFeatures(callback: (a: Array<string>) => void) {
-    this.callDatasetEndPoint("numerical_features", callback);
-  }
-  KLDivergenceTable(callback: (d: DataFrameInterface) => void) {
+  };
+  numericalFeaturesDistribution = (callback: (a: Array<string>) => void) => {
+    this.callDatasetEndPoint("numerical_features_distribution", callback);
+  };
+  KLDivergenceTable = (callback: (d: DataFrameInterface) => void) => {
     this.callDatasetEndPoint("feature_kl_divergence", callback);
-  }
+  };
 
-  basicStatistics(callback: (d: DataFrameInterface) => void) {
-    this.callDatasetEndPoint("statistics", callback);
-  }
+  basicStatistics = (callback: (d: DataFrameInterface) => void) => {
+    this.callDatasetEndPoint("basic", callback);
+  };
+  numericalFeatures = (callback: (d: DataFrameInterface) => void) => {
+    this.callDatasetEndPoint("numerical_features", callback);
+  };
+  categoricalFeatures = (callback: (d: DataFrameInterface) => void) => {
+    this.callDatasetEndPoint("categorical_features", callback);
+  };
+  correlation = (callback: (d: DataFrameInterface) => void) => {
+    this.callDatasetEndPoint("correlation", callback);
+  };
+    
 }
 
 export const APIContext = React.createContext(new API("localhost", 0));

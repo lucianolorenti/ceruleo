@@ -16,8 +16,9 @@ import ListItemText from '@mui/material/ListItemText';
 
 
 import Checkbox from '@mui/material/Checkbox';
+import LoadableComponent from './LoadableComponent';
+import { DataFrame } from './DataTable';
 
-import DataTable from './DataTable';
 
 
 interface FeatureSelectorProps {
@@ -29,7 +30,7 @@ function FeatureSelector(props: FeatureSelectorProps) {
     const [featureList, setFeatureList] = React.useState<Array<String>>(null);
     
     useEffect(() => {
-       props.api.numericalFeatures(setFeatureList)
+       props.api.numericalFeaturesDistribution(setFeatureList)
    
     }, [])
 
@@ -70,12 +71,13 @@ interface DistributionAnalysisProps {
 }
 export default function DistributionAnalysis(props: DistributionAnalysisProps) {
     const [features, setCurrentFeatures] = React.useState<Array<string>>([]);
+    const StatisticsTable = LoadableComponent("Divergence", props.api.KLDivergenceTable, DataFrame)
 
     return <>
         <Grid container spacing={3}>
             <Grid item xs={12}>
                 <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                <DataTable title={'Divergence'} fetcher={props.api.KLDivergenceTable} />
+                
                 </Paper>
             </Grid>
             <Grid item xs={12} md={12} lg={12}>

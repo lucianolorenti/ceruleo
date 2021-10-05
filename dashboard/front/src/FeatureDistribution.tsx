@@ -30,7 +30,7 @@ export default function FeatureDistribution(props: FeatureDistributionProps) {
     if (isEmpty(data)) {
         return null;
     }
-    console.log(data)
+
     for (var feature in props.features) {
         if (!(props.features[feature] in data)) {
             continue;
@@ -55,7 +55,7 @@ export default function FeatureDistribution(props: FeatureDistributionProps) {
     }
 
 
-    console.log(histograms)
+
       return (
           <div  style={{height: '600px'}} >
            <ResponsiveLine

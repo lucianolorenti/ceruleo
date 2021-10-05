@@ -1,83 +1,51 @@
-import Paper from "@mui/material/Paper";
-
+import { DataGrid } from "@mui/x-data-grid";
 import React, { useState, useEffect } from "react";
 
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import { CircularProgress } from "@material-ui/core";
-import { API } from "./API";
+
+import { isEmpty } from "./utils";
+
+interface DataFrameField {
+  name: string;
+  type: string;
+}
+
+interface DataFrameSchema {
+  fields: Array<DataFrameField>;
+  primaryKey: Array<string>;
+  pandas_version: string;
+}
 
 export interface DataFrameInterface {
-  columns: Array<string>;
-  index: Array<string>;
-  data: Array<Array<any>>;
+  schema: DataFrameSchema;
+  data: Array<Object>;
 }
 
 interface DataFrameProps {
-  table: DataFrameInterface;
-}
-function DataFrame(props: DataFrameProps) {
-  return (
-    <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
-        <TableHead>
-          <TableRow>
-            {props.table.columns.map((elem, k) => (
-              <TableCell key={k}>{elem}</TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {props.table.data.map((row, i) => (
-            <TableRow
-              key={i}
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-            >
-              {row.map((elem, j) => (
-                <TableCell key={j} component="th" scope="row">
-                  {elem}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+  data: DataFrameInterface;
 }
 
-export interface DataTableProps {
-  title: string;
-  fetcher: (a: (a: DataFrameInterface) => void) => void;
-}
-export default function DataTable(props: DataTableProps) {
-  const [dataTable, setDataTable] = useState<DataFrameInterface>({
-    columns: [],
-    index: [],
-    data: [],
-  });
-  const [loading, setLoading] = useState(false);
-  const setDataReady = (data: DataFrameInterface) => {
-    setLoading(false);
-    setDataTable(data);
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    props.fetcher(setDataReady);
-  }, []);
-  if (loading) {
-    return <CircularProgress />;
+export function DataFrame(props: DataFrameProps) {
+  if (isEmpty(props.data)) {
+    return null;
   }
-
-  return (
-    <div>
-      <h1> props.title </h1>
-      <DataFrame table={dataTable} />
-    </div>
-  );
+  const columns = props.data.schema.fields.map((elem) => {
+    return {
+      Title: elem.name,
+      field: elem.name,
+    };
+  });
+  const data = props.data.data.map((elem, i) => {
+    elem["id"] = elem["index"];
+    return elem;
+  });
+  return (<DataGrid
+      rows={data}
+      columns={columns}
+      pageSize={5}
+      rowsPerPageOptions={[5]}
+      
+      disableSelectionOnClick
+    />
+  )
 }
+

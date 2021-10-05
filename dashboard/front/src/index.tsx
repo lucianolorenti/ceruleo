@@ -20,14 +20,15 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 
 import MuiDrawer from "@mui/material/Drawer";
-import BasicStatistics from "./BasicStatistics"
+import BasicStatistics from "./BasicStatistics";
+import Correlation from "./Correlation";
 
 enum Sections {
-  FeatureDistribution,
-  BasicStatistics,
-  MissingValues,
-  Correlations,
-  Durations,
+  BasicStatistics = "Basic Statistics",
+  MissingValues = "Missing Values",
+  Correlations = "Correlations",
+  Durations = "Durations",
+  FeatureDistribution = "Feature Distribution",
 }
 
 interface DashboardProps {}
@@ -47,44 +48,23 @@ function Dashboard(props: DashboardProps) {
         return <BasicStatistics api={api} />;
       case Sections.FeatureDistribution:
         return <DistributionAnalysis api={api} />;
+      case Sections.Correlations:
+        return <Correlation api={api} />;
     }
   };
 
+  const panels = [
+    Sections.BasicStatistics,
+    Sections.MissingValues,
+    Sections.Correlations,
+    Sections.FeatureDistribution,
+  ];
   return (
     <div>
       <APIContext.Consumer>
         {(api) => (
           <Box sx={{ display: "flex" }}>
-            <CssBaseline />
-            <AppBar>
-              <Toolbar
-                sx={{
-                  pr: "24px", // keep right padding when drawer closed
-                }}
-              >
-                <IconButton
-                  edge="start"
-                  color="inherit"
-                  aria-label="open drawer"
-                  onClick={toggleDrawer}
-                  sx={{
-                    marginRight: "36px",
-                    ...(open && { display: "none" }),
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Typography
-                  component="h1"
-                  variant="h6"
-                  color="inherit"
-                  noWrap
-                  sx={{ flexGrow: 1 }}
-                >
-                  Dashboard
-                </Typography>
-              </Toolbar>
-            </AppBar>
+
             <MuiDrawer variant="permanent" open={open}>
               <Toolbar
                 sx={{
@@ -100,44 +80,20 @@ function Dashboard(props: DashboardProps) {
               </Toolbar>
               <Divider />
               <List>
-                <ListItem
-                  button
-                  onClick={(event) => setCurrentSection(Sections.MissingValues)}
-                >
-                  <ListItemIcon>
-                    <DashboardIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Missing proportion" />
-                </ListItem>
-                <ListItem
-                  button
-                  onClick={(event) => setCurrentSection(Sections.Correlations)}
-                >
-                  <ListItemIcon>
-                    <DashboardIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Correlation" />
-                </ListItem>
-                <ListItem
-                  button
-                  onClick={(event) =>
-                    setCurrentSection(Sections.FeatureDistribution)
-                  }
-                >
-                  <ListItemIcon>
-                    <DashboardIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Features values distribution" />
-                </ListItem>
-                <ListItem
-                  button
-                  onClick={(event) => setCurrentSection(Sections.Durations)}
-                >
-                  <ListItemIcon>
-                    <DashboardIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Live duration" />
-                </ListItem>
+                {Object.keys(Sections).map((section: Sections, i:number) => {
+                  return (
+                    <ListItem
+                      key={i}
+                      button
+                      onClick={(event) => setCurrentSection(section)}
+                    >
+                      <ListItemIcon>
+                        <DashboardIcon />
+                      </ListItemIcon>
+                      <ListItemText primary={Sections[section]} />
+                    </ListItem>
+                  );
+                })}
               </List>
               <Divider />
             </MuiDrawer>
@@ -154,7 +110,7 @@ function Dashboard(props: DashboardProps) {
               }}
             >
               <Toolbar />
-              <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+              <Container maxWidth="lg">
                 {mainComponent(currentSection, api)}
               </Container>
             </Box>
@@ -168,6 +124,7 @@ function Dashboard(props: DashboardProps) {
 ReactDOM.render(
   <APIContext.Provider value={new API("http://localhost", 7575)}>
     <Dashboard />
+
   </APIContext.Provider>,
   document.getElementById("root")
 );
