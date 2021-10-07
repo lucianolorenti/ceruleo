@@ -1,8 +1,9 @@
 import { API } from './API'
 import { ResponsiveLine } from '@nivo/line'
 import React, { useEffect } from 'react'
-import { CircularProgress } from '@material-ui/core'
+
 import { isEmpty, zip } from './utils'
+import { CircularProgress } from '@mui/material'
 interface FeatureDistributionProps {
 
     api: API;
@@ -30,7 +31,6 @@ export default function FeatureDistribution(props: FeatureDistributionProps) {
     if (isEmpty(data)) {
         return null;
     }
-    console.log(data)
     for (var feature in props.features) {
         if (!(props.features[feature] in data)) {
             continue;
@@ -55,7 +55,6 @@ export default function FeatureDistribution(props: FeatureDistributionProps) {
     }
 
 
-    console.log(histograms)
       return (
           <div  style={{height: '600px'}} >
            <ResponsiveLine

@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+from typing import List
+
 
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -12,13 +14,16 @@ from front import TEMPLATES_PATH
 from back import STATIC_PATH
 import logging 
 from temporis.dataset.analysis.distribution import histogram_per_life, features_divergeces
+from temporis.dataset.analysis.general import numerical_features
+from temporis.dataset.analysis.correlation import correlation_analysis
 import numpy as np
 import pickle 
+from back.ds import generate_data, load_dataset
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-CACHE_FILE = Path('/home/luciano/cache')
  
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
@@ -35,35 +40,66 @@ class ApiHandler(tornado.web.RequestHandler):
         self.write(json.dumps(response))
 
 
+
+def feature_distribution(dataset, features:List[str], share_bins:bool):
+
+    data = {}
+    features = [f for f in features if len(f) > 0]
+    if len(features) == 0:
+        return ""
+
+    for f in features:
+        histograms = histogram_per_life(dataset, features, share_bins=share_bins)
+
+        print(histograms[0].shape)
+        data[f] = [
+            {
+            'bins': np.squeeze(h[0, :]).tolist(),
+            'values': np.squeeze(h[1, :]).tolist()
+        } for h in histograms]
+
+    return json.dumps(data)
+
+def feature_divergences(dataset):
+    df, _ = features_divergeces(dataset)
+    return df.to_json(orient="table")
+
+
+def dataset_statistics(dataset):
+    df = pd.DataFrame([
+        (15, 5),
+        (25, 3)
+    ],
+    columns=['Ah', 'B'])
+    return df.to_json(orient="table")
+
 class DatasetHandler(tornado.web.RequestHandler):
     def initialize(self, dataset):
         self.dataset = dataset
 
     def get(self, name):
-        if name == 'numerical_features':
+        if name == 'numerical_features_distribution':
             self.write(json.dumps(list(self.dataset.common_features())))
+        elif name == 'numerical_features':
+            self.write(numerical_features(self.dataset).to_json(orient="table"))
+        elif name == 'categorical_features':
+            self.write(dataset_statistics(self.dataset))
         elif name == 'histogram':
             features = self.get_argument("features", [], True).split(',')
             align_histograms = self.get_argument("align_histograms", False, True)
-            data = {}
-            features = [f for f in features if len(f) > 0]
-            if len(features) == 0:
-                self.write("")
-            for f in features:
-                histograms = histogram_per_life(self.dataset, features, share_bins=align_histograms)
-        
-                print(histograms[0].shape)
-                data[f] = [
-                    {
-                    'bins': np.squeeze(h[0, :]).tolist(),
-                    'values': np.squeeze(h[1, :]).tolist()
-                 } for h in histograms]
-
-            self.write(json.dumps(data))
+            feature_distribution(self.dataset, features, align_histograms)
         elif name == 'feature_kl_divergence':
-            df, _ = features_divergeces(self.dataset)
-            print( df.to_json(orient="split"))
-            self.write( df.to_json(orient="split"))
+            self.write(feature_divergences(self.dataset))
+        elif name == 'basic':
+            self.write(dataset_statistics(self.dataset))
+        elif name == 'correlation':
+            self.write(correlation_analysis(self.dataset).to_json(orient="table"))
+        elif name == 'number_of_lives':
+            self.write(str(len(self.dataset)))
+        elif name == 'feature_data':
+            life = int(self.get_argument("life"))
+            feature = self.get_argument("feature")
+            self.write(json.dumps(self.dataset[life][feature].values.tolist()))
             #with open(CACHE_FILE, 'rb') as file:
             #    data = pickle.load(file)
             #self.write(data['feature_kl_divergence'])
@@ -71,6 +107,11 @@ class DatasetHandler(tornado.web.RequestHandler):
             
 
  
+class StaticFileHandler(tornado.web.StaticFileHandler):
+    def set_extra_headers(self, path):
+        # Disable cache
+        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+
 def make_app(ds, debug:bool =True):
     settings = {
     "static_path":str(STATIC_PATH),
@@ -81,47 +122,18 @@ def make_app(ds, debug:bool =True):
         (r"/", HelloHandler),
         (r"/api", ApiHandler),
         (r"/api/dataset/(\w+)", DatasetHandler, dict(dataset=ds)),
+        (r"/static/(.*)", StaticFileHandler, {"path": str(STATIC_PATH)}),
     ], **settings)
  
  
 def main():
-    ds = load_dataset(Path('/home/luciano/fuentes/infineon/data/dataset_3'))
+    ds = load_dataset()
     app = make_app(ds)
     logger.info('App running on 7575')
     app.listen(7575)
     tornado.ioloop.IOLoop.current().start()
  
 
-def load_dataset(dataset_path: Path):
-    from infineonPM.data.dataset import DataSet
-    from datetime import datetime
-    def filter(X):
-        X = X[
-            (X["number_of_samples"] >= 1000.0)
-            & (X["life_start"] < datetime(2020, 8, 1))
-        ]
-        X = X[X["duration"] < 6487106]
-        X = X[X["equipment"] == "IMPP08-01"]
-        X = X[X['next_maintenance_type'] == 'UD']
-        return X.copy()
-    return DataSet(dataset_path, filter=filter, only_productions_rows=True)
-
-
-def generate_data():
-    ds = load_dataset(Path('/home/luciano/fuentes/infineon/data/dataset_3'))
-        
-    
-    data = {}
-    if CACHE_FILE.is_file():
-        with open(CACHE_FILE, 'rb') as file:
-            data = pickle.load(file)
-
-    if 'feature_kl_divergence' not in data:
-        df, _ = features_divergeces(ds)
-        data['feature_kl_divergence'] = df.to_json(orient="split")
-
-    with open(CACHE_FILE, 'wb') as file:
-        pickle.dump(data, file)
 
 if __name__ == "__main__":
     generate_data()
