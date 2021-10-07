@@ -341,24 +341,26 @@ class FittedLife:
         return line
 
     def rmse(self, sample_weight=None) -> float:
-        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
-        return np.sqrt(np.mean(sw * (self.y_true - self.y_pred) ** 2))
+        N = len(self.y_pred)
+        sw = compute_sample_weight(sample_weight, self.y_true[:N], self.y_pred)
+        return np.sqrt(np.mean(sw * (self.y_true[:N]- self.y_pred) ** 2))
 
     def mae(self, sample_weight=None) -> float:
-        sw = compute_sample_weight(sample_weight, self.y_true, self.y_pred)
-        return np.mean(sw * np.abs(self.y_true - self.y_pred))
+        N = len(self.y_pred)
+        sw = compute_sample_weight(sample_weight, self.y_true[:N], self.y_pred)
+        return np.mean(sw * np.abs(self.y_true[:N] - self.y_pred))
 
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
         if len(z) == 0:
-            return self.time[-1] + self.y_pred[-1]
+            return self.time[len(self.y_pred)-1] + self.y_pred[-1]
         else:
             return self.time[z[0]]
 
     def end_of_life(self):
         z = np.where(self.y_true == 0)[0]
         if len(z) == 0:
-            return self.time[-1] + self.y_true[-1]
+            return self.time[len(self.y_pred)-1] + self.y_true[-1]
         else:
             return self.time[z[0]]
 
@@ -399,7 +401,7 @@ class FittedLife:
         else:
             return 0
 
-    def unexpected_break(self, m: float = 0):
+    def unexpected_break(self, m: float = 0, tolerance:float = 0):
         """Compute wether an unexpected break will produce using a fault horizon window of size m
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
@@ -415,7 +417,7 @@ class FittedLife:
             bool
                 Unexploited lifetime
         """
-        if self.maintenance_point(m) < self.end_of_life():
+        if self.maintenance_point(m) - tolerance < self.end_of_life():
             return False
         else:
             return True
