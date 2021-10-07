@@ -648,19 +648,28 @@ def plot_life(
         _, ax = plt.subplots(1, 1, **kwargs)
 
     time = life.time
-    ax.plot(life.time, life.y_pred, "o", label="Predicted", markersize=markersize)
+
+    ax.plot(
+        life.time[: len(life.y_pred)],
+        life.y_pred,
+        "o",
+        label="Predicted",
+        markersize=markersize,
+    )
     ax.plot(life.time, life.y_true, label="True")
-    if life.y_true[0] > 0:
+    if life.y_true[-1] > 0:
         time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
         ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
-        time1 = np.hstack((time[-1], time[-1] + life.y_pred[-1]))
-        ax.plot(time1, [life.y_pred[-1], 0], label="Fitted")
-        ax.plot(
-            life.time,
-            life.y_pred_fitted.predict_line(life.time),
-            label="Picewise fitted",
+        time1 = np.hstack(
+            (time[len(life.y_pred) - 1], time[len(life.y_pred) - 1] + life.y_pred[-1])
         )
+        ax.plot(time1, [life.y_pred[-1], 0], label="Projected end")
+        # ax.plot(
+        #    life.time,
+        #    life.y_pred_fitted.predict_line(life.time),
+        #    label="Picewise fitted",
+        # )
 
     ax.set_ylabel(units)
     ax.set_xlabel(units)
