@@ -681,8 +681,12 @@ def plot_life(
 
 
 def plot_test_set_predictions(
-    results: dict, ncols: int = 3, CV: int = 0, alpha=1.0, xlabel: Optional[str] = None,
-    ylabel:Optional[str] = None
+    results: dict,
+    ncols: int = 3,
+    CV: int = 0,
+    alpha=1.0,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
 ):
     """Plot a matrix of predictions
 
@@ -705,12 +709,13 @@ def plot_test_set_predictions(
     ------
     fig, ax:
         Figure and axis
-    """    
+    """
 
     def linear_to_subindices(i, ncols):
         row = int(i / ncols)
         col = i % ncols
-        return row, col 
+        return row, col
+
     init = False
     for model_name in results.keys():
 
@@ -731,7 +736,7 @@ def plot_test_set_predictions(
             if ylabel is not None:
                 ax[row, col].set_ylabel(ylabel)
         init = True
-    for j in range(len(lives_model), NROW*ncols):
+    for j in range(len(lives_model), NROW * ncols):
         row, col = linear_to_subindices(j, ncols)
         fig.delaxes(ax[row, col])
 
