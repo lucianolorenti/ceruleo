@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from rul_pm.graphics.plots import plot_true_and_predicted
-from rul_pm.models.keras.keras import KerasTrainableModel
+
 from tensorflow.keras.callbacks import Callback
 from temporis.iterators.utils import true_values
-
+import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class PredictionCallback(Callback):
 
     Parameters
     ----------
-    model : KerasTrainableModel
+    model : tf.keras.Model
         The model used predict
     output_path : Path
         Path of the output image
@@ -26,7 +26,7 @@ class PredictionCallback(Callback):
         The dataset that want to be plotted
     """
 
-    def __init__(self, model: KerasTrainableModel, output_path: Path, batcher, units:str):
+    def __init__(self, model: tf.keras.Model, output_path: Path, batcher, units:str):
 
         super().__init__()
         self.output_path = output_path
