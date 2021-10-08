@@ -550,7 +550,7 @@ def plot_true_and_predicted(
     markersize: float = 0.7,
     **kwargs,
 ):
-    """Plots the predicted and the true remaining useful lifes
+    """Plots the predicted and the true remaining useful lives
 
     Parameters
     ----------
@@ -584,6 +584,53 @@ def plot_true_and_predicted(
     return ax
 
 
+def plot_J_Cost(
+    results: dict,
+    window: int,
+    step: int,
+    ax=None,
+    ratio_min: float = 1 / 120,
+    ratio_max: float = 1 / 5,
+    ratio_n_points: int = 50,
+):
+    def label_formatter(x):
+        UB_c = 1 / x
+        UL_c = 1
+        if x == 0:
+            return ""
+        return f"{int(UB_c)}:{int(UL_c)}"
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(17, 5))
+
+    ratio = np.linspace(ratio_min, ratio_max, ratio_n_points)
+    n_models = len(results)
+    colors = sns.color_palette("hls", n_models)
+    for i, model_name in enumerate(results.keys()):
+        a, b = unexpected_breaks(results[model_name], window_size=window, step=step)
+        c, d = unexploited_lifetime(results[model_name], window_size=window, step=step)
+
+        v = []
+        labels = []
+        for r in ratio:
+            UB_c = 1.0
+            UL_c = UB_c * r
+            v.append(np.min(np.array(b) * UB_c + np.array(d) * UL_c))
+            labels.append(f"{int(UB_c)}:{UL_c}")
+
+        ax.plot(ratio, v, "-o", label=model_name, color=colors[i])
+
+    ticks = ax.get_xticks().tolist()
+    ticks.append(ratio[0])
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([label_formatter(x) for x in ax.get_xticks()])
+    ax.set_xlabel(
+        "Ratio between UL and UB. How many minutes of UL are equal to 1 breakage"
+    )
+    ax.set_ylabel("J")
+    return ax
+
+
 def plot_life(
     life: FittedLife,
     ax=None,
@@ -596,19 +643,28 @@ def plot_life(
         _, ax = plt.subplots(1, 1, **kwargs)
 
     time = life.time
-    ax.plot(life.time, life.y_pred, "o", label="Predicted", markersize=markersize)
+
+    ax.plot(
+        life.time[: len(life.y_pred)],
+        life.y_pred,
+        "o",
+        label="Predicted",
+        markersize=markersize,
+    )
     ax.plot(life.time, life.y_true, label="True")
-    if life.y_true[0] > 0:
+    if life.y_true[-1] > 0:
         time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
         ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
-        time1 = np.hstack((time[-1], time[-1] + life.y_pred[-1]))
-        ax.plot(time1, [life.y_pred[-1], 0], label="Fitted")
-        ax.plot(
-            life.time,
-            life.y_pred_fitted.predict_line(life.time),
-            label="Picewise fitted",
+        time1 = np.hstack(
+            (time[len(life.y_pred) - 1], time[len(life.y_pred) - 1] + life.y_pred[-1])
         )
+        ax.plot(time1, [life.y_pred[-1], 0], label="Projected end")
+        # ax.plot(
+        #    life.time,
+        #    life.y_pred_fitted.predict_line(life.time),
+        #    label="Picewise fitted",
+        # )
 
     ax.set_ylabel(units)
     ax.set_xlabel(units)
@@ -620,8 +676,12 @@ def plot_life(
 
 
 def plot_test_set_predictions(
-    results: dict, ncols: int = 3, CV: int = 0, alpha=1.0, xlabel: Optional[str] = None,
-    ylabel:Optional[str] = None
+    results: dict,
+    ncols: int = 3,
+    CV: int = 0,
+    alpha=1.0,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
 ):
     """Plot a matrix of predictions
 
@@ -644,12 +704,13 @@ def plot_test_set_predictions(
     ------
     fig, ax:
         Figure and axis
-    """    
+    """
 
     def linear_to_subindices(i, ncols):
         row = int(i / ncols)
         col = i % ncols
-        return row, col 
+        return row, col
+
     init = False
     for model_name in results.keys():
 
@@ -670,7 +731,7 @@ def plot_test_set_predictions(
             if ylabel is not None:
                 ax[row, col].set_ylabel(ylabel)
         init = True
-    for j in range(len(lives_model), NROW*ncols):
+    for j in range(len(lives_model), NROW * ncols):
         row, col = linear_to_subindices(j, ncols)
         fig.delaxes(ax[row, col])
 
