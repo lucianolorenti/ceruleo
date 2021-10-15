@@ -1,176 +1,112 @@
 from pathlib import Path
+from typing import Optional
 import numpy as np
 import pandas as pd
 from temporis.iterators.batcher import Batcher
 from temporis.iterators.iterators import WindowedDatasetIterator
-from rul_pm.models.model import TrainableModel
 from tqdm.auto import tqdm
-
+from xgboost import XGBRegressor
 from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_squared_error
 import pickle
 
-class SKLearnModel(TrainableModel):
-    """Wrapper around scikit-learn models
+
+def train_model(model, train_iterator: WindowedDatasetIterator, val_windowed_iterator: Optional[WindowedDatasetIterator] = None, **fit_kwargs):
+    """Fit the model with the given dataset iterator
 
     Parameters
     ----------
-    model: BaseEstimator
-        A scikit-learn model
+    train_iterator : WindowedDatasetIterator
+        Dataset iterator from which obtain data to fit
+
+    Keyword arguments
+    -----------------
+    fit_kwargs:
+        Arguments for the fit method
+
+    Returns
+    -------
+    SKLearn model
+        self
     """
+    X, y, sample_weight = train_iterator.get_data()
 
-    def __init__(self, model: BaseEstimator, **kwargs):
-        super().__init__(**kwargs)
-        self._model = model
-        if not hasattr(self.model, "fit"):
-            raise ValueError("Model must allow to fit")
+    params = {}
+    if val_windowed_iterator is not None and isinstance(model, XGBRegressor):
+        X_val, y_val, _ = val_windowed_iterator.get_data()
+        fit_kwargs.update({'eval_set': [(X_val, y_val)]})
 
-    def build_model(self):
-        return self._model
-
-    def fit(self, train_iterator: WindowedDatasetIterator, **kwargs):
-        """Fit the model with the given dataset iterator
-
-        Parameters
-        ----------
-        train_iterator : WindowedDatasetIterator
-            Dataset iterator from which obtain data to fit
-
-        Keyword arguments
-        -----------------
-        kwargs:
-            Arguments for the fit method
-
-        Returns
-        -------
-        SKLearnModel
-            self
-        """
-        X, y, sample_weight = train_iterator.get_data()
-        self.model.fit(X, y.ravel(), **kwargs, sample_weight=sample_weight)
-        return self
-
-    def predict(self, dataset_iterator: WindowedDatasetIterator):
-        """Get the predictions for the given iterator
-
-        Parameters
-        ----------
-        dataset_iterator : WindowedDatasetIterator
-            Dataset iterator from which obtain data to predict
-
-        Returns
-        -------
-        np.array
-            Array with the predictiosn
-        """
-        X, _, _ = dataset_iterator.get_data()
-        return self.model.predict(X)
-
-    def get_params(self, deep: bool = False) -> dict:
-        """Obtain the model parameters
-
-        Parameters
-        ----------
-        deep : bool, optional
-            Wether to obtain the parameters for each element, by default False
-
-        Returns
-        -------
-        dict
-            Model parameters
-        """
-        out = super().get_params(deep=deep)
-        out["model"] = self.model
-        if deep and hasattr(self.model, "get_params"):
-            for key, value in self.model.get_params(deep=True).items():
-                out["model__%s" % key] = value
-        return out
-
-    def set_params(self, **params):
-        ## TODO Check invalid parameters
-        model_params = {}
-        for name, value in params.items():
-            if "__" in name:
-                model_params[name.split("__")[1]] = value
-        for name in model_params.keys():
-            params.pop(f"model__{name}")
-
-        super().set_params(**params)
-        self.model.set_params(**model_params)
-        return self
-
-    def save(self, file: Path):
-        with open(file, 'wb') as file:
-            pickle.dump(self, file)
-        
+    return model.fit(X, y.ravel(), **fit_kwargs, sample_weight=sample_weight)
 
 
-class BatchSKLearnModel(TrainableModel):
-    """A wrapper around scikit-learn models that allows partial_fit
+def predict(model, dataset_iterator: WindowedDatasetIterator):
+    """Get the predictions for the given iterator
 
     Parameters
     ----------
-    model : sklearn.base.BaseEstimator
-        The keras model
+    dataset_iterator : WindowedDatasetIterator
+        Dataset iterator from which obtain data to predict
+
+    Returns
+    -------
+    np.array
+        Array with the predictiosn
+    """
+    X, _, _ = dataset_iterator.get_data()
+    return model.predict(X)
+
+
+def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
+    """Fit the model using the given batcher
+
+    Parameters
+    ----------
+    model: SKLearn Model
+    train_batcher : Batcher
+        Train dataset batcher
+    val_batcher : Batcher
+        Validation dataset batcher
+    n_epochs : int, optional
+        Number of epochs, by default 15
+
+    Returns
+    -------
+    SKLearn model
+        self
     """
 
-    def __init__(self, model: BaseEstimator):
-        super().__init__()
-        self._model = model
-        if not hasattr(self.model, "partial_fit"):
-            raise ValueError("Model must allow to partial_fit")
-
-    def build_model(self):
-        return self._model
-
-    def fit(self, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
-        """Fit the model using the given batcher
-
-        Parameters
-        ----------
-        train_batcher : Batcher
-            Train dataset batcher
-        val_batcher : Batcher
-            Validation dataset batcher
-        n_epochs : int, optional
-            Number of epochs, by default 15
-
-        Returns
-        -------
-        BatchSKLearnModel
-            self
-        """
-
-        self.history = []
-        for r in range(n_epochs):
-            for X, y in train_batcher:
-                self.model.partial_fit(
-                    np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2])), y
-                )
-            y_true, y_pred = self.predict(val_batcher)
-            self.histroy.append(mean_squared_error(y_true, y_pred))
-        return self
-
-    def predict(self, dataset_batcher: Batcher):
-        """Predict the values using the given batcher
-
-        Parameters
-        ----------
-        dataset_batcher : Batcher
+    history = []
+    for r in range(n_epochs):
+        for X, y in train_batcher:
+            model.partial_fit(
+                np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2])), y
+            )
+        y_true, y_pred = predict(val_batcher)
+        history.append(mean_squared_error(y_true, y_pred))
+    return model, history
 
 
-        Returns
-        -------
-        np.array
-            Predictions array
-        """
-        y_pred = []
-        for X, y in dataset_batcher:
-            y_pred.extend(
-                np.squeeze(
-                    self.model.predict(
-                        np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2]))
-                    )
+def predict_batch(model, dataset_batcher: Batcher):
+    """Predict the values using the given batcher
+
+    Parameters
+    ----------
+    model: SKLearn model
+    dataset_batcher : Batcher
+
+
+    Returns
+    -------
+    np.array
+        Predictions array
+    """
+    y_pred = []
+    for X, y in dataset_batcher:
+        y_pred.extend(
+            np.squeeze(
+                model.predict(
+                    np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2]))
                 )
             )
-        return y_pred
+        )
+    return np.squeeze(np.array(y_pred))

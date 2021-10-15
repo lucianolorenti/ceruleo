@@ -45,7 +45,9 @@ export default function LoadableComponent(WrappedComponent) {
     return (
       <div>
         <h1>{props.title}</h1>
+        <div>
         <WrappedComponent data={data} {...otherProps} />
+        </div>
       </div>
     );
   };

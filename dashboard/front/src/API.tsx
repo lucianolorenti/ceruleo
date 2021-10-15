@@ -1,6 +1,16 @@
 import React from "react";
 import urlcat from "urlcat";
 import { DataFrameInterface } from "./DataTable";
+import { Stats } from '@visx/mock-data/lib/generators/genStats';
+
+export interface Point {
+  x: number
+  y:number
+}
+export interface LineData {
+  id: string
+  data: Array<Point>
+}
 
 interface KLDivergenceTableRow {
   feature: string;
@@ -21,9 +31,10 @@ export class API {
     callback: (d: any) => void,
     params: Object = {}
   ) => {
+
     const url = urlcat(this.endpoint, "/dataset/" + what, params);
-    console.log(url)
-    fetch(this.endpoint + "/dataset/" + what)
+
+    fetch(url)
       .then(function (response) {
         return response.json();
       })
@@ -39,8 +50,8 @@ export class API {
       align_histograms: false,
     });
   };
-  numericalFeaturesDistribution = (callback: (a: Array<string>) => void) => {
-    this.callDatasetEndPoint("numerical_features_distribution", callback);
+  numericalFeaturesList = (callback: (a: Array<string>) => void) => {
+    this.callDatasetEndPoint("numerical_features_list", callback);
   };
   KLDivergenceTable = (callback: (d: DataFrameInterface) => void) => {
     this.callDatasetEndPoint("feature_kl_divergence", callback);
@@ -61,8 +72,12 @@ export class API {
   numberOfLives = (callback: (d: number)=> void) => {
     this.callDatasetEndPoint("number_of_lives", callback);
   };
-  getFeatureData = (feature:string, life:number, callback:(d:number[]) =>void) => {
+  getFeatureData = (feature:string, life:number, callback:(d:LineData) =>void) => {
     this.callDatasetEndPoint("feature_data", callback, {life: life, feature:feature});
+  }
+  durationDistribution = (callback: (d:Array<Stats>) => void) => {
+    this.callDatasetEndPoint("duration_distribution", callback)
+
   }
     
 }

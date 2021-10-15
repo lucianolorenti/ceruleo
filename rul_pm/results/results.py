@@ -48,7 +48,6 @@ import numpy as np
 import pandas as pd
 
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from rul_pm.models.model import TrainableModel
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.model_selection import KFold
@@ -77,50 +76,6 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
             break
     return z
 
-
-def cv_predictions(
-    model: TrainableModel,
-    dataset: AbstractTimeSeriesDataset,
-    cv=KFold(n_splits=5),
-    fit_params={},
-    progress_bar=False,
-) -> Tuple[List[List], List[List]]:
-    """
-    Train a model using cross validation and return the predictions of each fold
-
-    Parameters
-    ----------
-    model: TrainableModel
-           The model to train
-
-    dataset: AbstractTimeSeriesDataset
-             The dataset from which obtain the folds
-
-    cv:  default  sklearn.model_selection.KFold(n_splits=5)
-        The dataset splitter
-
-    Return
-    ------
-    Tuple[List, List]:
-
-    Then length of the lists is equal to the nomber of folds. The first element
-    of the tuple contains the true values of the hold-out set and the second
-    element contains the predictions values of the hold-out set
-    """
-    progress_bar_fun = iter
-    if progress_bar:
-        progress_bar_fun = tqdm
-
-    predictions = []
-    true_values = []
-    for train_index, test_index in progress_bar_fun(cv.split(dataset)):
-        model.fit(dataset[train_index], **fit_params)
-        y_pred = model.predict(dataset[test_index])
-        y_true = model.true_values(dataset[test_index])
-        predictions.append(y_pred)
-        true_values.append(y_true)
-
-    return (true_values, predictions)
 
 
 class CVResults:
@@ -423,7 +378,7 @@ class FittedLife:
             return True
 
 
-def split_lives_indices( y_true: np.array):
+def split_lives_indices(y_true: np.array):
     """Obtain a list of indices for each life
 
     Parameters
@@ -474,7 +429,7 @@ def split_lives(
         FittedLife list
     """
     lives = []
-    for r in split_lives_indices(y_true):        
+    for r in split_lives_indices(y_true):
         if np.any(np.isnan(y_pred[r])):
             continue
         # try:
@@ -520,12 +475,51 @@ def unexploited_lifetime_from_cv(
     return windows, qq
 
 
-def unexpected_breaks(d, window_size: int, step: int):
+def unexpected_breaks(d: dict, window_size: int, step: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the risk of unexpected breaks with respect to the maintenance window size
+
+    Parameters
+    ----------
+    d : dict
+        Dictionary with the results
+    window_size : int
+        Maximum size of the maintenance windows
+    step : int
+        Number of points in which compute the risks.
+        step different maintenance windows will be used.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        * Maintenance window size evaluated
+        * Risk computed for every window size used
+    """
+
     bb = [split_lives_from_results(cv) for cv in d]
     return unexpected_breaks_from_cv(bb, window_size, step)
 
 
-def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n: int):
+def unexpected_breaks_from_cv(
+    lives: List[List[FittedLife]], window_size: int, n: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the risk of unexpected breaks given a Cross-Validation results
+
+    Parameters
+    ----------
+    lives : List[List[FittedLife]]
+        Cross validation results.        
+    window_size : int
+        Maximum size of the maintenance window
+    n : int
+        Number of points to evaluate the risk of unexpected breaks
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        * Maintenance window size evaluated
+        * Risk computed for every window size used
+    """
+
     qq = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
@@ -536,7 +530,7 @@ def unexpected_breaks_from_cv(lives: List[List[FittedLife]], window_size: int, n
             std_ul_cv = np.std(ul_cv_list)
             jj.append(mean_ul_cv)
         qq.append(np.mean(jj))
-    return windows, qq
+    return windows, np.array(qq)
 
 
 def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1, q2):

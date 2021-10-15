@@ -1,26 +1,31 @@
 import math
 from typing import Optional
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from temporis.dataset.transformed import TransformedDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.results.results import (FittedLife, compute_sample_weight,
-                                    models_cv_results, split_lives,
-                                    unexpected_breaks, unexploited_lifetime)
-from sklearn.metrics import mean_absolute_error as mae
-from sklearn.metrics import mean_squared_error as mse
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.iterators import TimeSeriesDatasetIterator
+from rul_pm.results.results import (
+    FittedLife,
+    models_cv_results,
+    split_lives,
+    unexpected_breaks,
+    unexploited_lifetime,
+)
 
 
-def plot_lives(ds: AbstractTimeSeriesDataset):
+
+
+
+def plot_lives(ds: TransformedDataset):
     """
     Plot each life
     """
     fig, ax = plt.subplots()
-    it = TimeSeriesDatasetIterator(ds)
+    it = ds
     for _, y in it:
         ax.plot(y)
     return fig, ax
@@ -524,10 +529,30 @@ def plot_unexpected_breaks(
     results_dict: dict,
     max_window: int,
     n: int,
-    ax=None,
+    ax: Optional[matplotlib.axes.Axes] = None,
     units: Optional[str] = "",
     **kwargs,
-):
+) -> matplotlib.axes.Axes:
+    """Plot the risk of unexpected breaks with respect to the maintenance window
+
+    Parameters
+    ----------
+    results_dict : dict
+        Dictionary with the results
+    max_window : int
+        Maximum size of the maintenance windows
+    n : int
+        Number of points used to evaluate the window size
+    ax : Optional[matplotlib.axes.Axes], optional
+        axis on which to draw, by default None
+    units : Optional[str], optional
+        Units to use in the xlabel, by default ""
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The axis in which the plot was made
+    """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     n_models = len(results_dict)
@@ -539,6 +564,48 @@ def plot_unexpected_breaks(
     ax.set_xlabel("Fault window size" + units)
     ax.set_ylabel("Risk of breakage")
     ax.legend()
+    return ax
+
+
+def plot_J_Cost(
+    results: dict,
+    window: int,
+    step: int,
+    ax=None,
+    ratio_min: float = 1 / 120,
+    ration_max: float = 1 / 5,
+    ratio_n_points: int = 50,
+    label: str = "",
+):
+    a, b = unexpected_breaks(results, window_size=window, step=step)
+    c, d = unexploited_lifetime(results, window_size=window, step=step)
+
+    ratio = np.linspace(ratio_min, ration_max, ratio_n_points)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(17, 5))
+    v = []
+    q = []
+    labels = []
+    for r in ratio:
+        UB_c = 1.0
+        UL_c = UB_c * r
+        v.append(np.min(np.array(b) * UB_c + np.array(d) * UL_c))
+        labels.append(f"{int(UB_c)}:{UL_c}")
+
+    def f(x):
+        UB_c = 1 / x
+        UL_c = 1
+        if x == 0:
+            return ""
+        return f"{int(UB_c)}:{int(UL_c)}"
+
+    ax.plot(ratio, v, label=label)
+    ax.set_xticks([1 / 120, 1 / 30, 1 / 20, 1 / 15, 1 / 10, 1 / 7, 1 / 5])
+    ax.set_xticklabels([f(x) for x in ax.get_xticks()])
+    ax.set_xlabel(
+        "Ratio between UL and UB. How many minutes of UL are equal to 1 breakage"
+    )
+    ax.set_ylabel("J")
     return ax
 
 

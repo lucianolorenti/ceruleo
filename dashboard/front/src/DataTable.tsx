@@ -33,6 +33,7 @@ export function DataFrame(props: DataFrameProps) {
     return {
       Title: elem.name,
       field: elem.name,
+      flex: 1
     };
   });
   const data = props.data.data.map((elem, i) => {
@@ -41,8 +42,9 @@ export function DataFrame(props: DataFrameProps) {
     return new_elem;
   });
   return (<DataGrid
- 
       rows={data}
+      autoHeight={true}
+      disableExtendRowFullWidth={true}
       columns={columns}
       pageSize={5}
       rowsPerPageOptions={[5]}

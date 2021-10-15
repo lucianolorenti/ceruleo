@@ -16,18 +16,21 @@ interface FeatureSelectorProps {
     multiple: boolean
 }
 
+const DefaultFeatureSelectorProps = {
+    multiple: false,
+};
 
 export default function FeatureSelector(props: FeatureSelectorProps) {
     const [featureList, setFeatureList] = React.useState<Array<String>>(null);
-    
+
     useEffect(() => {
-       props.api.numericalFeaturesDistribution(setFeatureList)
-   
+        props.api.numericalFeaturesList(setFeatureList)
+
     }, [])
 
     const handleChange = (event) => {
         const value = event.target.value;
-      
+
         props.setCurrentFeatures(
             typeof value === 'string' ? value.split(',') : value,
         );
@@ -46,7 +49,10 @@ export default function FeatureSelector(props: FeatureSelectorProps) {
             >
                 {featureList?.map((elem: string, id: number) => {
                     return <MenuItem value={elem} key={id}>
-                        <Checkbox checked={props.features.indexOf(elem) > -1} />
+                        {props.multiple ?
+                            <Checkbox checked={props.features.indexOf(elem) > -1} />
+                            : null
+                        }
                         <ListItemText primary={elem} />
                     </MenuItem>
 
@@ -56,3 +62,5 @@ export default function FeatureSelector(props: FeatureSelectorProps) {
         </FormControl>
     )
 }
+
+FeatureSelector.defaultProps = DefaultFeatureSelectorProps

@@ -17,6 +17,8 @@
     "@nivo/bar": "^0.73.1",
     "@nivo/core": "^0.73.0",
     "@nivo/line": "^0.73.0",
+    "@visx/stats": "^2.1.2",
+    "@visx/visx": "^2.2.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "urlcat": "^2.0.4"

@@ -1,13 +1,12 @@
 from typing import Optional
 
 import numpy as np
-from rul_pm.models.model import TrainableModel
 from rul_pm.results.results import FittedLife
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.iterators import TimeSeriesDatasetIterator
+
+from temporis.dataset.transformed import TransformedDataset
 
 
-class BaselineModel(TrainableModel):
+class BaselineModel:
     """Predict the RUL using the mean of the median value of the duration
        of the dataset
 
@@ -22,13 +21,13 @@ class BaselineModel(TrainableModel):
         self.mode = mode
         self.RUL_threshold = RUL_threshold
 
-    def fit(self, ds: TimeSeriesDatasetIterator):
+    def fit(self, ds: TransformedDataset):
         """Compute the mean or median RUL using the given dataset
 
         Parameters
         ----------
-        ds : TimeSeriesDatasetIterator
-            Dataset iterator from which obtain the true RUL
+        ds : AbstractTimeSeriesDataset
+            Dataset  from which obtain the true RUL
         """
         true = []
         for _, y, _ in ds:
@@ -43,12 +42,12 @@ class BaselineModel(TrainableModel):
         elif self.mode == "median":
             self.fitted_RUL = np.median(true)
 
-    def predict(self, ds: TimeSeriesDatasetIterator):
+    def predict(self, ds: TransformedDataset):
         """Predict the whole life using the fitted values
 
         Parameters
         ----------
-        ds : TimeSeriesDatasetIterator
+        ds : AbstractTimeSeriesDataset
             Dataset iterator from which obtain the true RUL
 
         Returns
@@ -66,7 +65,7 @@ class BaselineModel(TrainableModel):
         return np.concatenate(output)
 
 
-class FixedValueBaselineModel(TrainableModel):
+class FixedValueBaselineModel:
     """[summary]
 
     Parameters
@@ -79,7 +78,7 @@ class FixedValueBaselineModel(TrainableModel):
         self.value = value
 
     def predict(
-        self, ds: TimeSeriesDatasetIterator, RUL_threshold: Optional[float] = None
+        self, ds: TransformedDataset, RUL_threshold: Optional[float] = None
     ):
         """Predict the whole life using the fixed values
 
