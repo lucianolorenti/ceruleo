@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from typing import List
 from numpy.lib.function_base import quantile
+from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
 
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -82,13 +83,16 @@ def feature_divergences(dataset):
     return df.to_json(orient="table")
 
 
-def dataset_statistics(dataset):
+def dataset_statistics(dataset:AbstractTimeSeriesDataset):
     d = {"Number of lives": [len(dataset)]}
 
     samples = [life.shape[0] for life in dataset]
     m = np.round(np.mean(samples), 2)
     s = np.round(np.std(samples), 2)
     d["Number of samples"] = [f"{m} +- {s}"]
+    d["Number of Categorical features"] = [len(dataset.categorical_features())]
+    d["Number of Numerical features"] = [len(dataset.numeric_features())]
+    
     return pd.DataFrame(d).to_json(orient="table")
 
 

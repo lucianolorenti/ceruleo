@@ -33,7 +33,7 @@ enum Sections {
 
 export default function Dashboard() {
   const [currentSection, setCurrentSection] = React.useState<Sections>(
-    Sections.BasicStatistics
+    Sections[Sections.BasicStatistics]
   );
   const mainComponent = (section: Sections, api: API) => {
     switch (section as Sections) {
@@ -89,7 +89,7 @@ export default function Dashboard() {
           </List>
         </Box>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: '3em' }}>
         <Toolbar />
 
         <APIContext.Consumer>
