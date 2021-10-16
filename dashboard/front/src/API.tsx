@@ -16,6 +16,11 @@ interface KLDivergenceTableRow {
   feature: string;
   mean_divergence: Number;
 }
+export interface BoxPlotData {
+  x: any
+  y: Array<number>
+}
+
 export class API {
   url: string;
   port: Number;
@@ -77,7 +82,9 @@ export class API {
   }
   durationDistribution = (callback: (d:Array<Stats>) => void) => {
     this.callDatasetEndPoint("duration_distribution", callback)
-
+  }
+  samplingRate = (callback: (d:Array<BoxPlotData>) => void) => {
+    this.callDatasetEndPoint('sampling_rate', callback)
   }
     
 }

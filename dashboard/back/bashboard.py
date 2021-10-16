@@ -100,61 +100,79 @@ class DatasetHandler(tornado.web.RequestHandler):
     def initialize(self, dataset):
         self.dataset = dataset
 
+    def numerical_features_list(self):
+        self.write(json.dumps(sorted(list(self.dataset.numeric_features()))))
+
+    def numerical_features(self):
+        self.write(numerical_features(self.dataset).round(2).to_json(orient="table"))
+
+    def categorical_features(self):
+        self.write(dataset_statistics(self.dataset))
+    
+    def histogram(self):
+        features = self.get_argument("features", [], True).split(",")
+        align_histograms = self.get_argument("align_histograms", False, True)
+        feature_distribution(self.dataset, features, align_histograms)
+
+    def feature_kl_divergence(self):
+        self.write(feature_divergences(self.dataset))
+
+    def basic(self):
+        self.write(dataset_statistics(self.dataset))
+
+    def correlation(self):
+        self.write(data["correlation"])
+
+    def number_of_lives(self):
+        self.write(str(len(self.dataset)))
+
+    def sampling_rate(self):
+        values = []
+        for life in self.dataset:
+            values.extend(np.diff(life.index).tolist())
+        self.write(json.dumps({
+            'x': 'Sampling rate',
+            'y': values,
+        }))
+
+    def duration_distribution(self):
+        samples = [life.shape[0] for life in self.dataset]
+        hist, bin_edges = np.histogram(samples, bins=15)
+        bin_edges = (bin_edges[0:-1] + bin_edges[1:]) / 2
+
+        d = {
+            "boxPlot": {
+                "x": "Duration",
+                "min": np.min(samples),
+                "firstQuantile": np.quantile(samples, 0.25),
+                "median": np.median(samples),
+                "thirdQuartile": np.quantile(samples, 0.75),
+                "max": np.max(samples),
+                "outliers": [],
+            },
+            "binData": [{"value": v, "count": c} for v, c in zip(bin_edges, hist)],
+        }
+        self.write(json.dumps([d], cls=NpEncoder))
+
+    def feature_data(self):
+        life = int(self.get_argument("life"))
+        feature = self.get_argument("feature")
+        feature_values = self.dataset[life][feature]
+        N = len(feature_values)
+        d = {
+            "id": feature,
+            "data": [
+                {"x": i, "y": feature_values.values[i]} for i in range(0, N, 2)
+            ],
+        }
+        self.write(json.dumps(d))
+
+
     def get(self, name):
-        if name == "numerical_features_list":
-            self.write(json.dumps(sorted(list(self.dataset.numeric_features()))))
-        elif name == "numerical_features":
-            self.write(numerical_features(self.dataset).round(2).to_json(orient="table"))
-        elif name == "categorical_features":
-            self.write(dataset_statistics(self.dataset))
-        elif name == "histogram":
-            features = self.get_argument("features", [], True).split(",")
-            align_histograms = self.get_argument("align_histograms", False, True)
-            feature_distribution(self.dataset, features, align_histograms)
-        elif name == "feature_kl_divergence":
-            self.write(feature_divergences(self.dataset))
-        elif name == "basic":
-            self.write(dataset_statistics(self.dataset))
-        elif name == "correlation":
-            self.write(data["correlation"])
-
-        elif name == "number_of_lives":
-            self.write(str(len(self.dataset)))
-        elif name == "duration_distribution":
-            samples = [life.shape[0] for life in self.dataset]
-            hist, bin_edges = np.histogram(samples, bins=15)
-            bin_edges = (bin_edges[0:-1] + bin_edges[1:]) / 2
-
-            d = {
-                "boxPlot": {
-                    "x": "Duration",
-                    "min": np.min(samples),
-                    "firstQuantile": np.quantile(samples, 0.25),
-                    "median": np.median(samples),
-                    "thirdQuartile": np.quantile(samples, 0.75),
-                    "max": np.max(samples),
-                    "outliers": [],
-                },
-                "binData": [{"value": v, "count": c} for v, c in zip(bin_edges, hist)],
-            }
-            self.write(json.dumps([d], cls=NpEncoder))
-        elif name == "feature_data":
-
-            life = int(self.get_argument("life"))
-            feature = self.get_argument("feature")
-            feature_values = self.dataset[life][feature]
-            N = len(feature_values)
-            d = {
-                "id": feature,
-                "data": [
-                    {"x": i, "y": feature_values.values[i]} for i in range(0, N, 2)
-                ],
-            }
-            self.write(json.dumps(d))
-            # with open(CACHE_FILE, 'rb') as file:
-            #    data = pickle.load(file)
-            # self.write(data['feature_kl_divergence'])
-
+        fun = getattr(self, name)
+        fun()
+        
+        
 
 class StaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):

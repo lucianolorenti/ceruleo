@@ -1,16 +1,10 @@
 
-import { CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
-import { GridCallbackDetails, GridRowParams, MuiEvent } from "@mui/x-data-grid";
-import { alignBox } from "@nivo/core";
+import { Card, CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
+
 import React, { ReactNode, useEffect, useState } from "react";
-import { API, LineData } from "./API";
+import { API, BoxPlotData } from "./API";
 import LoadableDataFrame, { DataFrame, DataFrameInterface } from "./DataTable";
-import LinePlot from "./LinePlot";
-import LoadableComponent from "./LoadableComponent";
-
-import ReactApexChart from "react-apexcharts";
-import { ApexOptions } from "apexcharts";
-
+import SamplingRate from './SamplingRate'
 
 interface BasicStatisticsProps {
     api: API
@@ -52,6 +46,7 @@ const FancyCard = (props: FancyCardProps) => {
 
 
 
+
 const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
     const [basicData, setBasicData] = useState<DataFrameInterface>(null)
     useEffect(() => {
@@ -67,129 +62,45 @@ const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
         'paddingBottom': '0.5em'
     }
 
-    const data = {
-
-        series: [
-            {
-                name: 'box',
-                type: 'boxPlot',
-                data: [
-                    {
-                        x: new Date('2017-01-01').getTime(),
-                        y: [54, 66, 69, 75, 88]
-                    },
-                    {
-                        x: new Date('2018-01-01').getTime(),
-                        y: [43, 65, 69, 76, 81]
-                    },
-                    {
-                        x: new Date('2019-01-01').getTime(),
-                        y: [31, 39, 45, 51, 59]
-                    },
-                    {
-                        x: new Date('2020-01-01').getTime(),
-                        y: [39, 46, 55, 65, 71]
-                    },
-                    {
-                        x: new Date('2021-01-01').getTime(),
-                        y: [29, 31, 35, 39, 44]
-                    }
-                ]
-            },
-            {
-                name: 'outliers',
-                type: 'scatter',
-                data: [
-                    {
-                        x: new Date('2017-01-01').getTime(),
-                        y: 32
-                    },
-                    {
-                        x: new Date('2018-01-01').getTime(),
-                        y: 25
-                    },
-                    {
-                        x: new Date('2019-01-01').getTime(),
-                        y: 64
-                    },
-                    {
-                        x: new Date('2020-01-01').getTime(),
-                        y: 27
-                    },
-                    {
-                        x: new Date('2020-01-01').getTime(),
-                        y: 78
-                    },
-                    {
-                        x: new Date('2021-01-01').getTime(),
-                        y: 15
-                    }
-                ]
-            }
-        ]
-    }
-    const chart_options :ApexOptions = {
-            chart: {
-                type: 'boxPlot',
-                height: 350
-            },
-            colors: ['#008FFB', '#FEB019'],
-            title: {
-                text: 'BoxPlot - Scatter Chart',
-                align: 'left'
-            },
-
-            tooltip: {
-                shared: false,
-                intersect: true
-            }
-        }
-
-
-    
 
 
 
 
-return (
-    <>
-        <Grid item xs={size} md={size} lg={size}>
-            <FancyCard title="Number of lives">
-                <CardContent variant="h4">
-                    {basicData.data[0]['Number of lives']}
-                </CardContent>
-            </FancyCard>
-        </Grid>
-        <Grid item xs={size} md={size} lg={size}>
-            <FancyCard title="Samples per life">
-                <CardContent variant="h4">
-                    {basicData.data[0]['Number of samples']}
-                </CardContent>
-            </FancyCard>
-        </Grid>
-        <Grid item xs={size} md={size} lg={size}>
-            <FancyCard title="Number of categorical fetures">
-                <CardContent variant="h4">
-                    {basicData.data[0]['Number of Categorical features']}
-                </CardContent>
 
-            </FancyCard>
-        </Grid>
-        <Grid item xs={size} md={size} lg={size}>
-            <FancyCard title="Numerical features">
-                <CardContent variant="h4">
-                    {basicData.data[0]['Number of Numerical features']}
-                </CardContent>
-            </FancyCard>
-        </Grid>
-        <Grid item xs={12}>
-            Sampling rate
-            <div id="chart">
-                <ReactApexChart options={chart_options} series={data.series} type="boxPlot" height={350} />
-            </div>
 
-        </Grid>
-    </>)
+    return (
+        <>
+            <Grid item xs={size} md={size} lg={size}>
+                <FancyCard title="Number of lives">
+                    <CardContent variant="h4">
+                        {basicData.data[0]['Number of lives']}
+                    </CardContent>
+                </FancyCard>
+            </Grid>
+            <Grid item xs={size} md={size} lg={size}>
+                <FancyCard title="Samples per life">
+                    <CardContent variant="h4">
+                        {basicData.data[0]['Number of samples']}
+                    </CardContent>
+                </FancyCard>
+            </Grid>
+            <Grid item xs={size} md={size} lg={size}>
+                <FancyCard title="Number of categorical fetures">
+                    <CardContent variant="h4">
+                        {basicData.data[0]['Number of Categorical features']}
+                    </CardContent>
+
+                </FancyCard>
+            </Grid>
+            <Grid item xs={size} md={size} lg={size}>
+                <FancyCard title="Numerical features">
+                    <CardContent variant="h4">
+                        {basicData.data[0]['Number of Numerical features']}
+                    </CardContent>
+                </FancyCard>
+            </Grid>
+
+        </>)
 
 }
 
@@ -199,6 +110,12 @@ export default function BasicStatistics(props: BasicStatisticsProps) {
 
         <Grid container spacing={3}>
             <BasicStatisticsCards api={props.api} />
+            <Grid item xs={6}>
+                <FancyCard title='Sampling rate'>
+                    <SamplingRate api={props.api} />
+                </FancyCard>
+
+            </Grid>
         </Grid>
     )
 
