@@ -16,9 +16,16 @@ interface KLDivergenceTableRow {
   feature: string;
   mean_divergence: Number;
 }
+interface BoxPlotDataPoint {
+  x:any
+  y:number
+}
 export interface BoxPlotData {
-  x: any
-  y: Array<number>
+  data: {
+    x: any
+    y: Array<number>
+  }
+  outliers: Array<BoxPlotDataPoint>
 }
 
 export class API {

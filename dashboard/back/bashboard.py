@@ -18,7 +18,7 @@ from temporis.dataset.analysis.distribution import (
     histogram_per_life,
     features_divergeces,
 )
-from temporis.dataset.analysis.general import numerical_features
+from temporis.dataset.analysis.general import numerical_features, sample_rate
 from temporis.dataset.analysis.correlation import correlation_analysis
 import numpy as np
 import pickle
@@ -83,7 +83,7 @@ def feature_divergences(dataset):
     return df.to_json(orient="table")
 
 
-def dataset_statistics(dataset:AbstractTimeSeriesDataset):
+def dataset_statistics(dataset: AbstractTimeSeriesDataset):
     d = {"Number of lives": [len(dataset)]}
 
     samples = [life.shape[0] for life in dataset]
@@ -92,7 +92,7 @@ def dataset_statistics(dataset:AbstractTimeSeriesDataset):
     d["Number of samples"] = [f"{m} +- {s}"]
     d["Number of Categorical features"] = [len(dataset.categorical_features())]
     d["Number of Numerical features"] = [len(dataset.numeric_features())]
-    
+
     return pd.DataFrame(d).to_json(orient="table")
 
 
@@ -108,7 +108,7 @@ class DatasetHandler(tornado.web.RequestHandler):
 
     def categorical_features(self):
         self.write(dataset_statistics(self.dataset))
-    
+
     def histogram(self):
         features = self.get_argument("features", [], True).split(",")
         align_histograms = self.get_argument("align_histograms", False, True)
@@ -127,13 +127,18 @@ class DatasetHandler(tornado.web.RequestHandler):
         self.write(str(len(self.dataset)))
 
     def sampling_rate(self):
-        values = []
-        for life in self.dataset:
-            values.extend(np.diff(life.index).tolist())
-        self.write(json.dumps({
-            'x': 'Sampling rate',
-            'y': values,
-        }))
+        q = sample_rate(self.dataset)
+        Q1 = np.quantile(q, 0.25)
+        Q3 = np.quantile(q, 0.75)
+        IQR = Q3 - Q1
+        MIN = max(Q1 - 1.5 * IQR, np.min(q))
+        MAX = min(Q3 + 1.5 * IQR, np.max(q))
+        data = {"x": "Sampling rate", "y": [MIN, Q1, np.median(q), Q3, MAX]}
+        outliers = [{"x": "Sampling rate", "y": y} for y in q[q < MIN]]
+        outliers.extend([{"x": "Sampling rate", "y": y} for y in q[q > MAX]])
+        if len(outliers) > 100:
+            outliers = np.random.choice(outliers, 100, replace=False).tolist()
+        self.write(json.dumps([{"data": data, "outliers": outliers}]))
 
     def duration_distribution(self):
         samples = [life.shape[0] for life in self.dataset]
@@ -161,18 +166,14 @@ class DatasetHandler(tornado.web.RequestHandler):
         N = len(feature_values)
         d = {
             "id": feature,
-            "data": [
-                {"x": i, "y": feature_values.values[i]} for i in range(0, N, 2)
-            ],
+            "data": [{"x": i, "y": feature_values.values[i]} for i in range(0, N, 2)],
         }
         self.write(json.dumps(d))
-
 
     def get(self, name):
         fun = getattr(self, name)
         fun()
-        
-        
+
 
 class StaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):

@@ -27,7 +27,10 @@ const CardContent = styled(Typography)({
 const CardTitle = styled(Typography)({
     textAlign: 'center',
     backgroundColor: '#DADAFF',
-    margin: '-0.7em',
+    marginTop: '-0.7em',
+    marginLeft: '-0.7em',
+    marginRight: '-0.7em',
+    marginBottom: '0.3em',
     padding: '0.5em'
 })
 const FancyCard = (props: FancyCardProps) => {
@@ -110,7 +113,7 @@ export default function BasicStatistics(props: BasicStatisticsProps) {
 
         <Grid container spacing={3}>
             <BasicStatisticsCards api={props.api} />
-            <Grid item xs={6}>
+            <Grid item xs={4}>
                 <FancyCard title='Sampling rate'>
                     <SamplingRate api={props.api} />
                 </FancyCard>

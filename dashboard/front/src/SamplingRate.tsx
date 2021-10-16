@@ -1,7 +1,7 @@
 
-import { CircularProgress } from "@mui/material";
+import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select } from "@mui/material";
 
-import React, { ReactNode, useEffect, useState } from "react";
+import React, {  useEffect, useState } from "react";
 import { API, BoxPlotData } from "./API";
 
 
@@ -12,6 +12,12 @@ interface PropsSamplingRate {
     api: API
 }
 export default function SamplingRate(props: PropsSamplingRate) {
+    const [unit, setUnit] = React.useState('');
+
+    const handleUnitChange = (event) => {
+        setUnit(event.target.value);
+    };
+  
     const [basicData, setBasicData] = useState<Array<BoxPlotData>>(null)
     useEffect(() => {
         props.api.samplingRate(setBasicData)
@@ -19,35 +25,61 @@ export default function SamplingRate(props: PropsSamplingRate) {
     if (basicData == null) {
         return <CircularProgress />
     }
-    console.log(basicData)
     const data = [
-            {
-                name: 'box',
-                type: 'boxPlot',
-                data: [basicData]
-            }
-        
+        {
+            name: 'box',
+            type: 'boxPlot',
+            data: [basicData[0].data]
+        },
+        {
+            name: 'outliers',
+            type: 'scatter',
+            data: basicData[0].outliers
+        }
+
     ]
     const chart_options: ApexOptions = {
         chart: {
-            type: 'boxPlot',
-            height: 350
+            type: 'line',
+            height: 450,
+           
         },
-        colors: ['#008FFB'],
-        title: {
-            text: 'BoxPlot - Scatter Chart',
-            align: 'left'
-        },
+       
 
+        colors: ['#008FFB', '#FEB019'],
+        xaxis: {
+            type: 'category',
+         
+           
+        },
         tooltip: {
             shared: false,
             intersect: true
         }
     }
     return (
-        <div style={{padding:'0.5em'}} >
-            <ReactApexChart options={chart_options} series={data} type="boxPlot"  />
-        </div>
+        <Grid container spacing={3}>
+            <Grid item sm={6}>
+                <FormControl fullWidth>
+                    <InputLabel id="sample-rate-units">Unit</InputLabel>
+                    <Select
+                        labelId="sample-rate-unit"
+                        value={unit}
+                        label="Age"
+                        onChange={handleUnitChange}
+                    >
+                        <MenuItem value={''}>Not specified</MenuItem>
+                        <MenuItem value={'s'}>Seconds</MenuItem>
+                        <MenuItem value={'m'}>Minutes</MenuItem>
+                    </Select>
+                </FormControl>
+            </Grid>
+            <Grid item sm={12}>
+                <div >
+                    <ReactApexChart options={chart_options} series={data} type="boxPlot" />
+                </div>
+            </Grid>
+            </Grid>
 
     )
 
