@@ -1,5 +1,6 @@
 
-import { CircularProgress } from "@mui/material";
+import { Title } from "@mui/icons-material";
+import { CircularProgress, Paper, Typography } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
 
 
@@ -43,12 +44,12 @@ export default function LoadableComponent(WrappedComponent) {
       return <CircularProgress />;
     }
     return (
-      <div>
-        <h1>{props.title}</h1>
+      <Paper>
+        <Typography>{props.title}</Typography>
         <div>
         <WrappedComponent data={data} {...otherProps} />
         </div>
-      </div>
+      </Paper>
     );
   };
 }

@@ -18,12 +18,17 @@ import BasicStatistics from './BasicStatistics';
 import DistributionAnalysis from './DistributionAnalysis';
 import Correlation from './Correlation';
 import Duration from './Duration'
+import { Container } from '@mui/material';
+import NumericalFeatures from './NumericalFeatures';
+import CategoricalFeatures from './CategoricalFeatures';
 
 const drawerWidth = 240;
 
 
 enum Sections {
   BasicStatistics = "Basic Statistics",
+  NumericalFeatures = "Numerical Features",
+  CategoricalFeatures = "Categorical Features",
   MissingValues = "Missing Values",
   Correlations = "Correlations",
   Durations = "Durations",
@@ -33,7 +38,7 @@ enum Sections {
 
 export default function Dashboard() {
   const [currentSection, setCurrentSection] = React.useState<Sections>(
-    Sections[Sections.BasicStatistics]
+    Sections.BasicStatistics
   );
   const mainComponent = (section: Sections, api: API) => {
     switch (section as Sections) {
@@ -45,25 +50,23 @@ export default function Dashboard() {
         return <Correlation api={api} />
       case Sections.Durations:
         return <Duration api={api} />
+      case Sections.NumericalFeatures:
+        return <NumericalFeatures  api={api}  />
+      case Sections.CategoricalFeatures:
+        return <CategoricalFeatures api={api}  />
       default:
         return <div> aaaqq</div>
     }
   };
-
-  const panels = [
-    Sections.BasicStatistics,
-    Sections.MissingValues,
-    Sections.Correlations,
-    Sections.FeatureDistribution,
-  ];
-
+  console.log(currentSection)
+  console.log(Sections[currentSection])
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <Typography variant="h6" noWrap component="div">
-            RUL - PM | {Sections[currentSection]}
+            RUL - PM | {currentSection}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -91,10 +94,13 @@ export default function Dashboard() {
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: '3em' }}>
         <Toolbar />
-
+     
         <APIContext.Consumer>
+       
           {(api) => mainComponent(currentSection, api)}
+        
         </APIContext.Consumer>
+    
       </Box>
     </Box>
   );

@@ -75,6 +75,7 @@ export function DataFrame(props: DataFrameProps) {
     disableSelectionOnClick
     pageSize={7}
     onRowClick={onRowClick}
+    rowHeight={32}
   />
   )
 }

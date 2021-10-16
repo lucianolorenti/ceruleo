@@ -104,7 +104,7 @@ class DatasetHandler(tornado.web.RequestHandler):
         if name == "numerical_features_list":
             self.write(json.dumps(sorted(list(self.dataset.numeric_features()))))
         elif name == "numerical_features":
-            self.write(numerical_features(self.dataset).to_json(orient="table"))
+            self.write(numerical_features(self.dataset).round(2).to_json(orient="table"))
         elif name == "categorical_features":
             self.write(dataset_statistics(self.dataset))
         elif name == "histogram":
