@@ -1,12 +1,25 @@
 from pathlib import Path
 from typing import Optional
-from rul_pm import DATASET_PATH
+from rul_pm import CACHE_PATH, DATASET_PATH
 from enum import Enum
 from rul_pm.datasets.lives_dataset import AbstractLivesDataset
 import pandas as pd
+from joblib import Memory
+
+memory = Memory(CACHE_PATH, verbose=0)
 
 COMPRESSED_FILE = "phm_data_challenge_2018.tar.gz"
 FOLDER = "phm_data_challenge_2018"
+
+
+
+@memory.cache
+def cached_data(data_file: Path, ttf_file: Path, ttf_column: str):
+    data = pd.read_csv(data_file).set_index("time")
+    time = pd.read_csv(ttf_file).set_index("time").loc[:, ttf_column].dropna()
+    return pd.merge(data, time, on="time", how="left")
+
+
 
 
 class FailureType(Enum):
@@ -39,7 +52,7 @@ class PHMDataset2018(AbstractLivesDataset):
         self.failure_type = failure_type
         self.files = list(Path(self.dataset_path / "train").resolve().glob("*.csv"))
         self.ttf_files = list(
-            Path("phm_data_challenge_2018/train/train_ttf").resolve().glob("*.csv")
+            Path(self.dataset_path  / "train" / "train_ttf").resolve().glob("*.csv")
         )
         self.lives_limits = {}
 
@@ -52,9 +65,12 @@ class PHMDataset2018(AbstractLivesDataset):
     def n_time_series(self) -> int:
         return self.nlives
 
-
     def get_time_series(self, i: int) -> pd.DataFrame:
         """
+        Paramters
+        ---------
+        i:int
+
 
         Returns
         -------
@@ -62,14 +78,9 @@ class PHMDataset2018(AbstractLivesDataset):
             DataFrame with the data of the life i
         """
         (file, start, end) = self.lives_list[i]
-        data = pd.read_csv(self.files[file]).set_index("time")
-        time = (
-            pd.read_csv(self.ttf_files[file])
-            .set_index("time")
-            .loc[:, self.failure_type.value]
-            .dropna()
-        )
-        return pd.merge(data, time, on="time", how="inner").loc[start:end, :]
+        data_file = self.files[file]
+        ttf_file = self.ttf_files[file]
+        return cached_data(data_file, ttf_file, self.failure_type.value).loc[start:end, :]
 
     def _process_ttf_files(self):
         self.nlives = 0
@@ -89,11 +100,15 @@ class PHMDataset2018(AbstractLivesDataset):
                 *time_diff.where(time_diff > 0).dropna().index.tolist(),
                 time.index[-1],
             ]
-            for i in range(len(lives_limits)- 1):
-                start  = lives_limits[i]
-                end = lives_limits[i+1] - 1
+            for i in range(len(lives_limits) - 1):
+                start = lives_limits[i]
+                end = lives_limits[i + 1] - 1
                 self.lives_list.append((filename, start, end))
 
             nlives = len(lives_limits) - 1
             self.nlives += nlives
             self.lives_limits[filename] = lives_limits
+
+    @property
+    def rul_column(self) -> str:
+        return self.failure_type.value
