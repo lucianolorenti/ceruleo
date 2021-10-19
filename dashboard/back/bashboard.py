@@ -134,11 +134,16 @@ class DatasetHandler(tornado.web.RequestHandler):
         MIN = max(Q1 - 1.5 * IQR, np.min(q))
         MAX = min(Q3 + 1.5 * IQR, np.max(q))
         data = {"x": "Sampling rate", "y": [MIN, Q1, np.median(q), Q3, MAX]}
-        outliers = [{"x": "Sampling rate", "y": y} for y in q[q < MIN]]
-        outliers.extend([{"x": "Sampling rate", "y": y} for y in q[q > MAX]])
+        outliers = [y for y in q[q < MIN]]
+        outliers.extend([y for y in q[q > MAX]])
         if len(outliers) > 100:
             outliers = np.random.choice(outliers, 100, replace=False).tolist()
-        self.write(json.dumps([{"data": data, "outliers": outliers}]))
+        
+        outliers = [
+            {"x": "Sampling rate", "y":   y } for y in outliers  
+        ]
+        print(outliers)
+        self.write(json.dumps([{"data": [data], "outliers": outliers}]))
 
     def duration_distribution(self):
         samples = [life.shape[0] for life in self.dataset]

@@ -1,5 +1,5 @@
 
-import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select } from "@mui/material";
+import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select, Typography } from "@mui/material";
 
 import React, {  useEffect, useState } from "react";
 import { API, BoxPlotData } from "./API";
@@ -29,7 +29,7 @@ export default function SamplingRate(props: PropsSamplingRate) {
         {
             name: 'box',
             type: 'boxPlot',
-            data: [basicData[0].data]
+            data: basicData[0].data
         },
         {
             name: 'outliers',
@@ -40,7 +40,7 @@ export default function SamplingRate(props: PropsSamplingRate) {
     ]
     const chart_options: ApexOptions = {
         chart: {
-            type: 'line',
+            type: 'scatter',
             height: 450,
            
         },
@@ -48,7 +48,10 @@ export default function SamplingRate(props: PropsSamplingRate) {
 
         colors: ['#008FFB', '#FEB019'],
         xaxis: {
-            type: 'category',
+            type: 'categories',
+            categories: ['Sample rate'],
+            sorted: false,
+            overwriteCategories: ['Sample rate']
          
            
         },
@@ -73,6 +76,11 @@ export default function SamplingRate(props: PropsSamplingRate) {
                         <MenuItem value={'m'}>Minutes</MenuItem>
                     </Select>
                 </FormControl>
+            </Grid>
+            <Grid item sm={12}>
+                <Typography>
+                    {basicData[0].data.y[3]} [{unit}]
+                </Typography>
             </Grid>
             <Grid item sm={12}>
                 <div >

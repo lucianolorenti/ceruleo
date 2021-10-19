@@ -11,7 +11,7 @@ import { withTooltip, Tooltip, defaultStyles as defaultTooltipStyles } from '@vi
 import { WithTooltipProvidedProps } from '@visx/tooltip/lib/enhancers/withTooltip';
 import { PatternLines } from '@visx/pattern';
 import { CircularProgress, Grid } from "@mui/material";
-import FeatureSelector from "./FeatureSelector";
+import NumericalFeatureSelector from "./NumericalFeatureSelector";
 
 interface BasicDurationProps {
     api: API
@@ -225,7 +225,7 @@ export default function Duration(props: DurationProps) {
         <Grid container spacing={2} style={{ marginTop: '1em' }}>
 
         <Grid item xs={12}>
-             <FeatureSelector api={props.api} setCurrentFeatures={setCategoricalFeature} features={categoricalFeature} />
+             <NumericalFeatureSelector api={props.api} setCurrentFeatures={setCategoricalFeature} features={categoricalFeature} />
         </Grid>
         <Grid item xs={12}>
             <DurationBoxPlot api={props.api} width={600} height={400} />

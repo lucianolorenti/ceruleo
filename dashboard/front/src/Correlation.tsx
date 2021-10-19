@@ -2,7 +2,7 @@ import { Box, Container, Grid, Paper } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { API, LineData } from "./API";
 import LoadableDataFrame from "./DataTable";
-import FeatureSelector from "./FeatureSelector";
+import NumericalFeatureSelector from "./NumericalFeatureSelector";
 import LifeSelector from "./LifeSelector";
 import LinePlot from "./LinePlot";
 
@@ -47,10 +47,10 @@ export default function Correlation(props: CorrelationProps) {
                 </Grid>
 
                 <Grid item xs={4}>
-                    <FeatureSelector features={feature1} setCurrentFeatures={setFeature1} api={props.api} />
+                    <NumericalFeatureSelector features={feature1} setCurrentFeatures={setFeature1} api={props.api} />
                 </Grid>
                 <Grid item xs={4}>
-                    <FeatureSelector features={feature2} setCurrentFeatures={setFeature2} api={props.api} />
+                    <NumericalFeatureSelector features={feature2} setCurrentFeatures={setFeature2} api={props.api} />
                 </Grid>
                 <Grid item xs={12}>
                 

@@ -91,7 +91,7 @@ class PHMDataset2018(AbstractLivesDataset):
             ]
             for i in range(len(lives_limits)- 1):
                 start  = lives_limits[i]
-                end = lives_limits[i+1]
+                end = lives_limits[i+1] - 1
                 self.lives_list.append((filename, start, end))
 
             nlives = len(lives_limits) - 1

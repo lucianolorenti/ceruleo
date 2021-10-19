@@ -12,7 +12,7 @@ import FeatureDistribution from './FeatureDistribution';
 
 import LoadableComponent from './LoadableComponent';
 import { DataFrame } from './DataTable';
-import FeatureSelector from './FeatureSelector'
+import NumericalFeatureSelector from './NumericalFeatureSelector'
 
 
 interface DistributionAnalysisProps {
@@ -39,7 +39,7 @@ export default function DistributionAnalysis(props: DistributionAnalysisProps) {
                         height: 600,
                     }}
                 >
-                  <FeatureSelector api={props.api} multiple={true} features={features} setCurrentFeatures={setCurrentFeatures} />
+                  <NumericalFeatureSelector api={props.api} multiple={true} features={features} setCurrentFeatures={setCurrentFeatures} />
                     <FeatureDistribution api={props.api} features={features} />
                   
                 </Paper>
