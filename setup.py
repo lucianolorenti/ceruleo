@@ -11,7 +11,7 @@ BASEPATH = Path(__file__).resolve().parent
 
 
 setup(
-    name="rul_pm",
+    name="rul_pm-dev",
     packages=find_packages(),
     version="0.2.1",
     description="Remaining useful life estimation utilities",
@@ -29,7 +29,9 @@ setup(
         "mmh3",
         "temporis",
         "pyarrow",
-        "fastparquet"
+        "fastparquet",
+        "sphinxcontrib.bibtex",
+        "gdown"
     ],
     license="MIT",
     include_package_data=True,
