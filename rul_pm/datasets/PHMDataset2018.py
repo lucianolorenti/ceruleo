@@ -1,15 +1,50 @@
+import logging
+import tarfile
+from enum import Enum
 from pathlib import Path
 from typing import Optional
-from rul_pm import CACHE_PATH, DATASET_PATH
-from enum import Enum
-from rul_pm.datasets.lives_dataset import AbstractLivesDataset
+import io
+import os
+import gdown
 import pandas as pd
 from joblib import Memory
+from rul_pm import CACHE_PATH, DATASET_PATH
+from rul_pm.datasets.lives_dataset import AbstractLivesDataset
+from tqdm.auto import tqdm
+
+logger = logging.getLogger(__name__)
 
 memory = Memory(CACHE_PATH, verbose=0)
 
 COMPRESSED_FILE = "phm_data_challenge_2018.tar.gz"
 FOLDER = "phm_data_challenge_2018"
+
+
+URL = "https://drive.google.com/uc?id=15Jx9Scq9FqpIGn8jbAQB_lcHSXvIoPzb"
+OUTPUT = COMPRESSED_FILE
+
+
+def download(path: Path):
+    logger.info("Downloading dataset...")
+    gdown.download(URL, str(path / OUTPUT), quiet=False)
+
+
+
+
+
+
+def prepare_dataset(path: Path):
+    def track_progress(members):
+        for member in tqdm(members):      
+            yield member  
+
+    path.mkdir(parents=True, exist_ok=True)
+    if not (path / OUTPUT).resolve().is_file():
+        download(path)
+    logger.info("Decompressing  dataset...")
+    with tarfile.open(path / OUTPUT, 'r') as tarball:
+        tarball.extractall(path=path.parent, members = track_progress(tarball))
+    (path / OUTPUT).unlink()
 
 
 
@@ -18,8 +53,6 @@ def cached_data(data_file: Path, ttf_file: Path, ttf_column: str):
     data = pd.read_csv(data_file).set_index("time")
     time = pd.read_csv(ttf_file).set_index("time").loc[:, ttf_column].dropna()
     return pd.merge(data, time, on="time", how="left")
-
-
 
 
 class FailureType(Enum):
@@ -46,13 +79,13 @@ class PHMDataset2018(AbstractLivesDataset):
         self.path = path
         self.dataset_path = path / FOLDER
         self.subset_type = subset_type
-        if not self.dataset_path.is_dir():
-            raise FileNotFoundError(f"Dataset path not found in {self.dataset_path}")
+        if not (self.dataset_path / "train").is_dir():
+            prepare_dataset(self.dataset_path)            
 
         self.failure_type = failure_type
         self.files = list(Path(self.dataset_path / "train").resolve().glob("*.csv"))
         self.ttf_files = list(
-            Path(self.dataset_path  / "train" / "train_ttf").resolve().glob("*.csv")
+            Path(self.dataset_path / "train" / "train_ttf").resolve().glob("*.csv")
         )
         self.lives_limits = {}
 
@@ -80,7 +113,9 @@ class PHMDataset2018(AbstractLivesDataset):
         (file, start, end) = self.lives_list[i]
         data_file = self.files[file]
         ttf_file = self.ttf_files[file]
-        return cached_data(data_file, ttf_file, self.failure_type.value).loc[start:end, :]
+        return cached_data(data_file, ttf_file, self.failure_type.value).loc[
+            start:end, :
+        ]
 
     def _process_ttf_files(self):
         self.nlives = 0
