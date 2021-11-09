@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Iterable, List, Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -9,7 +9,9 @@ import seaborn as sns
 from temporis.dataset.transformed import TransformedDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.results.results import (
+    FitResult,
     FittedLife,
+    PredictionResult,
     models_cv_results,
     split_lives,
     unexpected_breaks,
@@ -743,12 +745,13 @@ def plot_life(
 
 
 def plot_test_set_predictions(
-    results: dict,
+    results: Union[FitResult, List[FitResult]],
     ncols: int = 3,
-    CV: int = 0,
+    fold: int = 0,
     alpha=1.0,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
+    show_models: Optional[Iterable[str]] = None
 ):
     """Plot a matrix of predictions
 
@@ -758,7 +761,7 @@ def plot_test_set_predictions(
         Dictionary with the results
     ncols : int, optional
         Number of colmns in the plot, by default 3
-    CV : int, optional
+    fold : int, optional
         Which folds of predictions are going to be plotted, by default 0
     alpha : float, optional
         Opacity of the predicted curves, by default 1.0
@@ -766,6 +769,8 @@ def plot_test_set_predictions(
         Xlabel, by default None
     ylabel : Optional[str], optional
         YLabel, by default None
+    show_models: Optional[Iterable[str]]
+        Indicate which models should be showed
 
     Return
     ------
@@ -778,11 +783,19 @@ def plot_test_set_predictions(
         col = i % ncols
         return row, col
 
+    if isinstance(results, FitResult):
+        results = [results]
+    
+    if fold > len(results):
+        raise ValueError('Fold number is greater than the available number of folds fitted')
+    fold = fold - 1  
     init = False
-    for model_name in results.keys():
-
+    result : FitResult = results[fold]
+    for model_results  in result.predictions:
+        if show_models is not None and model_results.name not in show_models:
+            continue
         lives_model = split_lives(
-            results[model_name][CV]["true"], results[model_name][CV]["predicted"]
+            model_results.true_RUL, model_results.predicted_RUL
         )
         NROW = math.ceil(len(lives_model) / ncols)
         if not init:
@@ -792,7 +805,7 @@ def plot_test_set_predictions(
             row, col = linear_to_subindices(i, ncols)
             if not init:
                 ax[row, col].plot(life.time, life.y_true, label="True")
-            ax[row, col].plot(life.time, life.y_pred, label=model_name, alpha=alpha)
+            ax[row, col].plot(life.time, life.y_pred, label=model_results.name, alpha=alpha)
             if xlabel is not None:
                 ax[row, col].set_xlabel(xlabel)
             if ylabel is not None:

@@ -38,23 +38,36 @@ Example:
 
 """
 import logging
-from rul_pm.results.picewise_regression import (
-    PiecewiseLinearRegression,
-    PiecewesieLinearFunction,
-)
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from rul_pm.results.picewise_regression import (PiecewesieLinearFunction,
+                                                PiecewiseLinearRegression)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
-from sklearn.model_selection import KFold
-from tqdm.auto import tqdm
-
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class MetricsResult:
+    mae: float
+    mse: float
+    fitting_time: float = 0
+    prediction_time: float = 0
+
+@dataclass
+class PredictionResult:
+    name: str
+    true_RUL: np.ndarray
+    predicted_RUL: np.ndarray
+
+@dataclass
+class FitResult:
+    metrics: MetricsResult
+    predictions: List[PredictionResult]
 
 
 def compute_sample_weight(sample_weight, y_true, y_pred, c: float = 0.9):
