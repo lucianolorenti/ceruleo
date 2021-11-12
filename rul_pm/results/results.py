@@ -39,12 +39,14 @@ Example:
 """
 import logging
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from rul_pm.results.picewise_regression import (PiecewesieLinearFunction,
-                                                PiecewiseLinearRegression)
+from rul_pm.results.picewise_regression import (
+    PiecewesieLinearFunction,
+    PiecewiseLinearRegression,
+)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
 
@@ -58,16 +60,17 @@ class MetricsResult:
     fitting_time: float = 0
     prediction_time: float = 0
 
+
 @dataclass
 class PredictionResult:
     name: str
     true_RUL: np.ndarray
     predicted_RUL: np.ndarray
+    metrics: MetricsResult = MetricsResult(0, 0)
 
-@dataclass
-class FitResult:
-    metrics: MetricsResult
-    predictions: List[PredictionResult]
+    def compute_metrics(self):
+        self.metrics.mae = mae(self.true_RUL, self.predicted_RUL)
+        self.metrics.mse = mse(self.true_RUL, self.predicted_RUL)
 
 
 def compute_sample_weight(sample_weight, y_true, y_pred, c: float = 0.9):
@@ -88,7 +91,6 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
         if z[i + 1] - 0 < 0.0000000000001:
             break
     return z
-
 
 
 class CVResults:
@@ -149,28 +151,45 @@ class CVResults:
             self.errors.append(errors)
 
 
-def models_cv_results(results_dict: dict, nbins: int):
+def model_cv_results(
+    results: List[PredictionResult],
+    nbins: Optional[int] = None,
+    bin_edges: Optional[np.ndarray] = None,
+) -> CVResults:
+    if nbins is None and bin_edges is None:
+        raise ValueError("nbins and bin_edges cannot be both None")
+    if nbins is None:
+        nbins = len(bin_edges) - 1
+    if bin_edges is None:
+        max_y_value = np.max([r.true_RUL.max() for r in results])
+        bin_edges = np.linspace(0, max_y_value, nbins + 1)
+
+    trues = []
+    predicted = []
+    for results in results:
+        trues.append(results.true_RUL)
+        predicted.append(results.predicted_RUL)
+    return CVResults(trues, predicted, nbins=nbins, bin_edges=bin_edges)
+
+
+def models_cv_results(
+    results_dict: Dict[str, List[PredictionResult]], nbins: int
+) -> Tuple[np.ndarray, Dict[str, CVResults]]:
     """Create a dictionary with the result of each cross validation of the model"""
 
     max_y_value = np.max(
         [
-            r["true"].max()
+            r.true_RUL.max()
             for model_name in results_dict.keys()
             for r in results_dict[model_name]
         ]
     )
     bin_edges = np.linspace(0, max_y_value, nbins + 1)
-
     model_results = {}
-
     for model_name in results_dict.keys():
-        trues = []
-        predicted = []
-        for results in results_dict[model_name]:
-            trues.append(results["true"])
-            predicted.append(results["predicted"])
-        model_results[model_name] = CVResults(
-            trues, predicted, nbins=nbins, bin_edges=bin_edges
+
+        model_results[model_name] = model_cv_results(
+            results_dict[model_name], bin_edges=bin_edges
         )
 
     return bin_edges, model_results
@@ -311,7 +330,7 @@ class FittedLife:
     def rmse(self, sample_weight=None) -> float:
         N = len(self.y_pred)
         sw = compute_sample_weight(sample_weight, self.y_true[:N], self.y_pred)
-        return np.sqrt(np.mean(sw * (self.y_true[:N]- self.y_pred) ** 2))
+        return np.sqrt(np.mean(sw * (self.y_true[:N] - self.y_pred) ** 2))
 
     def mae(self, sample_weight=None) -> float:
         N = len(self.y_pred)
@@ -321,14 +340,14 @@ class FittedLife:
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
         if len(z) == 0:
-            return self.time[len(self.y_pred)-1] + self.y_pred[-1]
+            return self.time[len(self.y_pred) - 1] + self.y_pred[-1]
         else:
             return self.time[z[0]]
 
     def end_of_life(self):
         z = np.where(self.y_true == 0)[0]
         if len(z) == 0:
-            return self.time[len(self.y_pred)-1] + self.y_true[-1]
+            return self.time[len(self.y_pred) - 1] + self.y_true[-1]
         else:
             return self.time[z[0]]
 
@@ -369,7 +388,7 @@ class FittedLife:
         else:
             return 0
 
-    def unexpected_break(self, m: float = 0, tolerance:float = 0):
+    def unexpected_break(self, m: float = 0, tolerance: float = 0):
         """Compute wether an unexpected break will produce using a fault horizon window of size m
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
@@ -488,7 +507,9 @@ def unexploited_lifetime_from_cv(
     return windows, qq
 
 
-def unexpected_breaks(d: dict, window_size: int, step: int) -> Tuple[np.ndarray, np.ndarray]:
+def unexpected_breaks(
+    d: dict, window_size: int, step: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the risk of unexpected breaks with respect to the maintenance window size
 
     Parameters
@@ -520,7 +541,7 @@ def unexpected_breaks_from_cv(
     Parameters
     ----------
     lives : List[List[FittedLife]]
-        Cross validation results.        
+        Cross validation results.
     window_size : int
         Maximum size of the maintenance window
     n : int
@@ -569,7 +590,9 @@ def metric_J(d, window_size: int, step: int):
     return metric_J_from_cv(lives_cv, window_size, step)
 
 
-def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
+def cv_regression_metrics(
+    data: List[List[PredictionResult]], threshold: float = np.inf
+) -> dict:
     """Compute regression metrics for each model
 
     Parameters
@@ -604,9 +627,12 @@ def cv_regression_metrics(data: dict, threshold: float = np.inf) -> dict:
     """
     metrics_dict = {}
     summary_metrics_dict = {}
-    for m in data.keys():
-        errors = []
-        for r in data[m]:
+    errors = {}
+    for fold_data in data:
+        for model_results in fold_data:
+            model_name = model_results.name
+            y_true = model_results.true_RUL
+
             y = np.where(r["true"] <= threshold)[0]
             y_true = np.squeeze(r["true"][y])
             y_pred = np.squeeze(r["predicted"][y])
@@ -665,19 +691,3 @@ def hold_out_regression_metrics(results: dict, CV: int = 0):
         metrics,
         columns=["Model", "MAE sample weight", "MAE", "MSE sample weight", "MSE"],
     )
-
-
-def transform_results(results_dict: dict, transformation: Callable):
-    """Modifies in place the results dictionary applying the transformation in each array
-
-    Parameters
-    ----------
-    results : dict
-        The dictionary with the results
-    transformation : Callable
-        A functions that receives and array and returns a transformed array
-    """
-    for model_name in results_dict.keys():
-        for result in results_dict[model_name]:
-            result["true"] = transformation(result["true"])
-            result["predicted"] = transformation(result["predicted"])

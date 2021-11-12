@@ -9,17 +9,13 @@ import seaborn as sns
 from temporis.dataset.transformed import TransformedDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
 from rul_pm.results.results import (
-    FitResult,
-    FittedLife,
     PredictionResult,
+    FittedLife,
     models_cv_results,
     split_lives,
     unexpected_breaks,
     unexploited_lifetime,
 )
-
-
-
 
 
 def plot_lives(ds: TransformedDataset):
@@ -83,6 +79,7 @@ def _boxplot_errors_wrt_RUL_multiple_models(
     colors = sns.color_palette("hls", n_models)
     for model_number, model_name in enumerate(model_results.keys()):
         model_data = model_results[model_name]
+        hold_out = model_data.n_folds == 1
         if hold_out:
             for errors in model_data.errors:
                 min_value = min(min_value, np.min(errors))
@@ -111,7 +108,7 @@ def _boxplot_errors_wrt_RUL_multiple_models(
         )
         ticks.append(x)
 
-    max_x = np.max(ticks) + 2
+    max_x = np.max(ticks) + 1
     ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
     ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
@@ -137,12 +134,11 @@ def _boxplot_errors_wrt_RUL_multiple_models(
     return ax.figure, ax
 
 
-def cv_boxplot_errors_wrt_RUL_multiple_models(
-    results_dict: dict,
+def boxplot_errors_wrt_RUL(
+    results_dict: List[List[PredictionResult]],
     nbins: int,
     y_axis_label: Optional[str] = None,
     x_axis_label: Optional[str] = None,
-    fig=None,
     ax=None,
     **kwargs,
 ):
@@ -151,7 +147,7 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(
 
     Parameters
     ----------
-    results_dict: dict
+    results_dict: List[List[PredictionResult]]
                   Dictionary with the results of the fitted models
     nbins: int
            Number of bins to divide the
@@ -173,8 +169,11 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(
     -------
     fig, ax:
     """
-    if fig is None:
+    if ax is None:
         fig, ax = plt.subplots(**kwargs)
+    else:
+        fig = ax.figure
+    
 
     bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _boxplot_errors_wrt_RUL_multiple_models(
@@ -184,57 +183,6 @@ def cv_boxplot_errors_wrt_RUL_multiple_models(
         ax=ax,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
-    )
-
-
-def hold_out_boxplot_errors_wrt_RUL_multiple_models(
-    results_dict: dict,
-    nbins: int,
-    y_axis_label: Optional[str] = None,
-    x_axis_label: Optional[str] = None,
-    fig=None,
-    ax=None,
-    **kwargs,
-):
-    """Boxplots of difference between true and predicted RUL on a hold-out set
-
-
-    Parameters
-    ----------
-    results_dict: dict
-                  Dictionary with the results of the fitted models
-    nbins: int
-           Number of bins to divide the
-    y_axis_label: Optional[str]. Default None,
-                  Optional string to be added to the y axis
-    x_axis_label: Optional[str]=None
-                  Optional string to be added to the x axis
-    fig:
-       Optional figure in which the plot will be
-    ax: Optional. Default None
-        Optional axis in which the plot will be drawed.
-        If an axis is not provided, it will create one.
-
-    Keyword arguments
-    -----------------
-    **kwargs
-
-    Return
-    -------
-    fig, ax:
-    """
-    if fig is None:
-        fig, ax = plt.subplots(**kwargs)
-
-    bin_edges, model_results = models_cv_results(results_dict, nbins)
-    return _boxplot_errors_wrt_RUL_multiple_models(
-        bin_edges,
-        model_results,
-        fig=fig,
-        ax=ax,
-        y_axis_label=y_axis_label,
-        x_axis_label=x_axis_label,
-        hold_out=True,
     )
 
 
@@ -744,14 +692,14 @@ def plot_life(
     return ax
 
 
-def plot_test_set_predictions(
-    results: Union[FitResult, List[FitResult]],
+def plot_predictions(
+    results: Union[PredictionResult, List[PredictionResult]],
     ncols: int = 3,
-    fold: int = 0,
     alpha=1.0,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
-    show_models: Optional[Iterable[str]] = None
+    show_models: Optional[Iterable[str]] = None,
+    **kwargs,
 ):
     """Plot a matrix of predictions
 
@@ -761,8 +709,6 @@ def plot_test_set_predictions(
         Dictionary with the results
     ncols : int, optional
         Number of colmns in the plot, by default 3
-    fold : int, optional
-        Which folds of predictions are going to be plotted, by default 0
     alpha : float, optional
         Opacity of the predicted curves, by default 1.0
     xlabel : Optional[str], optional
@@ -783,29 +729,28 @@ def plot_test_set_predictions(
         col = i % ncols
         return row, col
 
-    if isinstance(results, FitResult):
+    if isinstance(results, PredictionResult):
         results = [results]
-    
-    if fold > len(results):
-        raise ValueError('Fold number is greater than the available number of folds fitted')
-    fold = fold - 1  
+
     init = False
-    result : FitResult = results[fold]
-    for model_results  in result.predictions:
+
+    for model_results in results:
         if show_models is not None and model_results.name not in show_models:
             continue
-        lives_model = split_lives(
-            model_results.true_RUL, model_results.predicted_RUL
-        )
+        lives_model = split_lives(model_results.true_RUL, model_results.predicted_RUL)
         NROW = math.ceil(len(lives_model) / ncols)
         if not init:
-            fig, ax = plt.subplots(NROW, ncols, figsize=(25, 25))
+            fig, ax = plt.subplots(NROW, ncols, squeeze=False, **kwargs)
 
         for i, life in enumerate(lives_model):
             row, col = linear_to_subindices(i, ncols)
+
             if not init:
                 ax[row, col].plot(life.time, life.y_true, label="True")
-            ax[row, col].plot(life.time, life.y_pred, label=model_results.name, alpha=alpha)
+
+            ax[row, col].plot(
+                life.time, life.y_pred, label=model_results.name, alpha=alpha
+            )
             if xlabel is not None:
                 ax[row, col].set_xlabel(xlabel)
             if ylabel is not None:

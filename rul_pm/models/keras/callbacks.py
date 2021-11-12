@@ -10,6 +10,7 @@ from rul_pm.graphics.plots import plot_true_and_predicted
 from tensorflow.keras.callbacks import Callback
 from temporis.iterators.utils import true_values
 import tensorflow as tf
+from sklearn.metrics import mean_absolute_error as mae
 
 logger = logging.getLogger(__name__)
 
@@ -27,25 +28,33 @@ class PredictionCallback(Callback):
         The dataset that want to be plotted
     """
 
-    def __init__(self, model: tf.keras.Model, output_path: Path, dataset: tf.data.Dataset, units: str):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_path: Path,
+        dataset: tf.data.Dataset,
+        units: str,
+        filename_suffix: str = "",
+    ):
 
         super().__init__()
         self.output_path = output_path
         self.dataset = dataset
         self.pm_model = model
         self.units = units
+        self.suffix = filename_suffix
+        self.output_path = self.output_path.with_stem(
+            filename_suffix + "_" + self.output_path.stem
+        )
 
     def on_epoch_end(self, epoch, logs={}):
-        print('FOOFOOF')
-        ds = self.dataset.batch(64)
-        print('b')
-        y_pred = self.pm_model.predict( ds)
-        print('a')
+
+        y_pred = self.pm_model.predict(self.dataset)
         y_true = true_values(self.dataset)
         ax = plot_true_and_predicted(
             {"Model": [{"true": y_true, "predicted": y_pred}]},
             figsize=(17, 5),
-            units=self.units
+            units=self.units,
         )
         ax.legend()
         ax.figure.savefig(self.output_path, dpi=ax.figure.dpi)
@@ -65,7 +74,6 @@ class TerminateOnNaN(Callback):
         loss = logs.get("loss")
         if loss is not None:
             if np.isnan(loss) or np.isinf(loss):
-                logger.info(
-                    "Batch %d: Invalid loss, terminating training" % (batch))
+                logger.info("Batch %d: Invalid loss, terminating training" % (batch))
                 self.model.stop_training = True
                 self.batcher.stop = True
