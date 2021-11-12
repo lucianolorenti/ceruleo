@@ -1,5 +1,5 @@
 import math
-from typing import Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -135,7 +135,7 @@ def _boxplot_errors_wrt_RUL_multiple_models(
 
 
 def boxplot_errors_wrt_RUL(
-    results_dict: List[List[PredictionResult]],
+    results_dict: Dict[str, List[PredictionResult]],
     nbins: int,
     y_axis_label: Optional[str] = None,
     x_axis_label: Optional[str] = None,
@@ -147,7 +147,7 @@ def boxplot_errors_wrt_RUL(
 
     Parameters
     ----------
-    results_dict: List[List[PredictionResult]]
+    results_dict: Dict[str, List[PredictionResult]]
                   Dictionary with the results of the fitted models
     nbins: int
            Number of bins to divide the
@@ -173,7 +173,6 @@ def boxplot_errors_wrt_RUL(
         fig, ax = plt.subplots(**kwargs)
     else:
         fig = ax.figure
-    
 
     bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _boxplot_errors_wrt_RUL_multiple_models(
@@ -259,8 +258,8 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     return fig, ax
 
 
-def cv_barplot_errors_wrt_RUL_multiple_models(
-    results_dict: dict,
+def barplot_errors_wrt_RUL(
+    results_dict: Dict[str, List[PredictionResult]],
     nbins: int,
     y_axis_label=None,
     x_axis_label=None,
@@ -288,26 +287,6 @@ def cv_barplot_errors_wrt_RUL_multiple_models(
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
         color_palette=color_palette,
-    )
-
-
-def hold_out_barplot_errors_wrt_RUL_multiple_models(
-    results_dict: dict,
-    nbins: int,
-    y_axis_label=None,
-    x_axis_label=None,
-    fig=None,
-    ax=None,
-    **kwargs,
-):
-    return cv_barplot_errors_wrt_RUL_multiple_models(
-        results_dict,
-        nbins,
-        y_axis_label=y_axis_label,
-        x_axis_label=x_axis_label,
-        fig=fig,
-        ax=ax,
-        **kwargs,
     )
 
 
@@ -347,14 +326,26 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
     colors = sns.color_palette("hls", n_models)
     for model_number, model_name in enumerate(model_results.keys()):
         model_data = model_results[model_name]
-        min_value = min(min_value, np.min(model_data.mean_error))
-        max_value = max(max_value, np.max(model_data.mean_error))
+        hold_out = model_data.n_folds == 1
+        if hold_out:
+            for errors in model_data.errors:
+                min_value = min(min_value, np.min(errors))
+                max_value = max(max_value, np.max(errors))
+        else:
+            min_value = min(min_value, np.min(model_data.mean_error))
+            max_value = max(max_value, np.max(model_data.mean_error))
+
         positions = []
         for i in range(nbins):
             positions.append((model_number * width) + (i * n_models))
 
-        mean_error = np.mean(model_data.mean_error, axis=0)
-        std_error = np.std(model_data.mean_error, axis=0)
+        if not hold_out:
+            mean_error = np.mean(model_data.mean_error, axis=0)
+            std_error = np.std(model_data.mean_error, axis=0)
+        else:
+            mean_error = np.array([np.mean(e, axis=0) for e in model_data.errors])
+            std_error = np.array([np.std(e, axis=0) for e in model_data.errors])
+
         rect = ax.plot(
             positions, mean_error, label=model_name, color=colors[model_number]
         )
@@ -394,7 +385,7 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
     return fig, ax
 
 
-def cv_shadedline_plot_errors_wrt_RUL_multiple_models(
+def shadedline_plot_errors_wrt_RUL(
     results_dict: dict,
     nbins: int,
     y_axis_label=None,

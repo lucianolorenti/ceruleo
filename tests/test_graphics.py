@@ -1,4 +1,4 @@
-from rul_pm.graphics.plots import boxplot_errors_wrt_RUL, plot_predictions
+from rul_pm.graphics.plots import barplot_errors_wrt_RUL, boxplot_errors_wrt_RUL, plot_predictions, shadedline_plot_errors_wrt_RUL
 from rul_pm.results.results import PredictionResult
 import numpy as np
 
@@ -54,11 +54,25 @@ class TestGraphics:
         fig, ax = boxplot_errors_wrt_RUL(results, nbins=5)
         assert fig is not None
 
+        fig, ax = barplot_errors_wrt_RUL(results, nbins= 5)
+        assert fig is not None
+
+        fig, ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
+        assert fig is not None
+
         results = { 'Model A':[
                 create_predictions('Model A', 5),
             ]
 
         }
         fig, ax = boxplot_errors_wrt_RUL(results, nbins=5)
+        assert fig is not None
+
+
+        fig, ax = barplot_errors_wrt_RUL(results, nbins= 5)
+        assert fig is not None
+        
+        fig, ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
+        assert fig is not None
 
     
