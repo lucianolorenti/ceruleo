@@ -14,6 +14,7 @@ from joblib import Memory
 from rul_pm import CACHE_PATH, DATASET_PATH
 from rul_pm.datasets.lives_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,20 @@ def download(path: Path):
 
 def prepare_raw_dataset(path: Path):
     def track_progress(members):
-        for member in tqdm(members):
+        for member in tqdm(members, total=70):
             yield member
-
+    path = path / 'raw'
     path.mkdir(parents=True, exist_ok=True)
     if not (path / OUTPUT).resolve().is_file():
         download(path)
     logger.info("Decompressing  dataset...")
-    with tarfile.open(path / OUTPUT, "r") as tarball:
-        tarball.extractall(path=path.parent, members=track_progress(tarball))
+    with tarfile.open(path  / OUTPUT, "r") as tarball:
+        tarball.extractall(path=path, members=track_progress(tarball))
+    shutil.move(str(path / 'phm_data_challenge_2018' / 'train'),
+                str(path / 'train'))
+    shutil.move(str(path / 'phm_data_challenge_2018' / 'test'),
+                str(path / 'test'))
+    shutil.rmtree(str(path / 'phm_data_challenge_2018'))
     (path / OUTPUT).unlink()
 
 
