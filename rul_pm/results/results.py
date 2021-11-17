@@ -436,8 +436,7 @@ def split_lives_indices(y_true: np.array):
 
 
 def split_lives(
-    y_true: np.array,
-    y_pred: np.array,
+    results: PredictionResult,
     RUL_threshold: Optional[float] = None,
     fit_line_not_increasing: Optional[bool] = False,
     time: Optional[int] = None,
@@ -461,21 +460,18 @@ def split_lives(
         FittedLife list
     """
     lives = []
-    for r in split_lives_indices(y_true):
-        if np.any(np.isnan(y_pred[r])):
+    for r in split_lives_indices(results.true_RUL):
+        if np.any(np.isnan(results.predicted_RUL[r])):
             continue
-        # try:
         lives.append(
             FittedLife(
-                y_true[r],
-                y_pred[r],
+                results.true_RUL[r],
+                results.predicted_RUL[r],
                 RUL_threshold=RUL_threshold,
                 fit_line_not_increasing=fit_line_not_increasing,
                 time=time,
             )
         )
-        # except Exception as e:
-        #    logger.error(e)
     return lives
 
 
