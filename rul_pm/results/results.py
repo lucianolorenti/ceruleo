@@ -423,13 +423,14 @@ def split_lives_indices(y_true: np.array):
     List[List[int]]
         A list with the indices belonging to each life
     """
+    assert len(y_true) >= 2
     lives_indices = (
         [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]+1).tolist() + [len(y_true)]
     )
     indices = []
     for i in range(len(lives_indices) - 1):
         r = range(lives_indices[i], lives_indices[i + 1])
-        if len(r) == 0:
+        if len(r) <= 1:
             continue
         indices.append(r)
     return indices

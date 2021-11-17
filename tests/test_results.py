@@ -1,12 +1,6 @@
 import numpy as np 
 from rul_pm.results.results import split_lives_indices
-
-y_true = np.hstack((
-    np.linspace(25, 0, 50), 
-    np.linspace(25, 0, 45),
-    np.linspace(25, 0, 50)))
-indices = split_lives_indices(y_true)
-list(map(len, indices)) 
+import pytest
 
 class TestResults:
     def test_1(self):
@@ -21,10 +15,14 @@ class TestResults:
         assert (y_true[indices[2]] == v3).all()
         assert list(map(len, indices)) == [50, 45, 50]
 
-
-
         y_true = v1
         indices = split_lives_indices(y_true)
         assert (y_true[indices[0]] == v1).all()
         assert list(map(len, indices)) == [50]
+
+        with pytest.raises(AssertionError):
+            y_true = np.linspace(25, 0, 1)
+            indices = split_lives_indices(y_true)
+            assert (y_true[indices[0]] == v1).all()
+            assert list(map(len, indices)) == []
 
