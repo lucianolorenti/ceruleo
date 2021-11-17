@@ -424,11 +424,11 @@ def split_lives_indices(y_true: np.array):
         A list with the indices belonging to each life
     """
     lives_indices = (
-        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]).tolist() + [len(y_true)]
+        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]+1).tolist() + [len(y_true)]
     )
     indices = []
     for i in range(len(lives_indices) - 1):
-        r = range(lives_indices[i] + 1, lives_indices[i + 1])
+        r = range(lives_indices[i], lives_indices[i + 1])
         if len(r) == 0:
             continue
         indices.append(r)
@@ -591,7 +591,7 @@ def metric_J(d, window_size: int, step: int):
 
 
 def cv_regression_metrics(
-    data: List[List[PredictionResult]], threshold: float = np.inf
+    data: List[PredictionResult], threshold: float = np.inf
 ) -> dict:
     """Compute regression metrics for each model
 
@@ -606,63 +606,71 @@ def cv_regression_metrics(
     Returns
     -------
     dict
-        A dictionary with the following format
-
-    .. highlight:: python
-    .. code-block:: python
-
+        A dictionary with the following format:
         {
-            'Model 1': {
-                'mean':
+            'MAE': {
+                'mean': 
                 'std':
             },
-            ....
-            'Model nane n': {
-                'mean': ,
-                'std': ,
-            }
+            'MAE SW': {
+                'mean': 
+                'std':
+            },
+            'MSE': {
+                'mean': 
+                'std':
+            },
+            
+
         }
 
 
     """
-    metrics_dict = {}
-    summary_metrics_dict = {}
-    errors = {}
-    for fold_data in data:
-        for model_results in fold_data:
-            model_name = model_results.name
-            y_true = model_results.true_RUL
-
-            y = np.where(r["true"] <= threshold)[0]
-            y_true = np.squeeze(r["true"][y])
-            y_pred = np.squeeze(r["predicted"][y])
-            sw = compute_sample_weight(
-                "relative",
-                y_true,
-                y_pred,
-            )
+    errors = {
+        'MAE': [],
+        'MAE SW': [],
+        'MSE': [],
+        'MSE SW': []
+    }
+    for result in data:
+        y_mask = np.where(result.true_RUL <= threshold)[0]
+        y_true = np.squeeze(result.true_RUL[y_mask])
+        y_pred = np.squeeze(result.predicted_RUL[y_mask])
+        sw = compute_sample_weight(
+            "relative",
+            y_true,
+            y_pred,
+        )
+        try:
             MAE_SW = mae(
                 y_true,
                 y_pred,
                 sample_weight=sw,
             )
-            MAE = mae(y_true, y_pred)
+        except:
+            MAE_SW = np.nan
+        MAE = mae(y_true, y_pred)
 
+        try:
             MSE_SW = mse(
                 y_true,
                 y_pred,
                 sample_weight=sw,
             )
-            MSE = mse(y_true, y_pred)
+        except:
+            MSE_SW = np.nan
+        MSE = mse(y_true, y_pred)
 
-            errors.append((MAE_SW, MAE, MSE_SW, MSE))
-        df = pd.DataFrame(errors, columns=["MAE SW", "MAE", "MSE_SW", "MSE"])
-
-        summary_metrics_dict[m] = (
-            df.mean().round(2).astype(str) + " $\pm$ " + df.std().round(2).astype(str)
-        )
-        metrics_dict[m] = df
-    return metrics_dict, pd.DataFrame(summary_metrics_dict)
+        errors['MAE'].append(MAE)
+        errors['MAE SW'].append(MAE_SW)
+        errors['MSE'].append(MSE)
+        errors['MSE SW'].append(MSE_SW)
+    for k in errors.keys():
+        errors[k] = {
+            'mean': np.mean(errors[k]),
+            'std': np.std(errors[k]),
+        }
+    return errors
 
 
 def hold_out_regression_metrics(results: dict, CV: int = 0):
