@@ -689,7 +689,6 @@ def plot_predictions(
     alpha=1.0,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
-    show_models: Optional[Iterable[str]] = None,
     **kwargs,
 ):
     """Plot a matrix of predictions
@@ -706,8 +705,6 @@ def plot_predictions(
         Xlabel, by default None
     ylabel : Optional[str], optional
         YLabel, by default None
-    show_models: Optional[Iterable[str]]
-        Indicate which models should be showed
 
     Return
     ------
@@ -726,8 +723,6 @@ def plot_predictions(
     init = False
 
     for model_results in results:
-        if show_models is not None and model_results.name not in show_models:
-            continue
         lives_model = split_lives(model_results.true_RUL, model_results.predicted_RUL)
         NROW = math.ceil(len(lives_model) / ncols)
         if not init:
