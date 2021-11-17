@@ -723,7 +723,7 @@ def plot_predictions(
     init = False
 
     for model_results in results:
-        lives_model = split_lives(model_results.true_RUL, model_results.predicted_RUL)
+        lives_model = split_lives(model_results)
         NROW = math.ceil(len(lives_model) / ncols)
         if not init:
             fig, ax = plt.subplots(NROW, ncols, squeeze=False, **kwargs)
