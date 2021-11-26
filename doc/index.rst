@@ -7,18 +7,22 @@ Welcome to RUL-PM's documentation!
 
    reference/installation
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Getting started:
 
+   examples/ExampleAircraftEngine
 
 .. toctree::
    :maxdepth: 2
    :caption: Models:
 
    reference/models/index
-   reference/models/models
    reference/models/baseline
    reference/models/keras
    reference/models/sklearn
    reference/models/xgboost
+   reference/models/zoo
 
 
 .. toctree::
@@ -34,11 +38,7 @@ Welcome to RUL-PM's documentation!
    reference/graphics
 
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting started:
 
-   examples/ExampleAircraftEngine
 
 Indices and tables
 ==================
