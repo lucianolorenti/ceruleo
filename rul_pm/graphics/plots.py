@@ -550,47 +550,6 @@ def plot_J_Cost(
     return ax
 
 
-def plot_true_and_predicted(
-    results_dict: dict,
-    ax=None,
-    units: str = "Hours [h]",
-    cv: int = 0,
-    markersize: float = 0.7,
-    **kwargs,
-):
-    """Plots the predicted and the true remaining useful lives
-
-    Parameters
-    ----------
-    results_dict : dict
-        Dictionary with an interface conforming the requirements of the module
-    ax : optional
-        Axis to plot. If it is missing a new figure will be created, by default None
-    units : str, optional
-       Units of time to be used in the axis labels, by default 'Hours [h]'
-    cv : int, optional
-        Number of the CV results, by default 0
-
-    Returns
-    -------
-    ax
-        The axis on which the plot has been made
-    """
-    if ax is None:
-        _, ax = plt.subplots(1, 1, **kwargs)
-
-    for model_name in results_dict.keys():
-        r = results_dict[model_name]
-        y_predicted = r[cv]["predicted"]
-        y_true = r[cv]["true"]
-        ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
-        ax.plot(y_true, label="True")
-        ax.set_ylabel(units)
-        ax.set_xlabel(units)
-        ax.legend()
-
-    return ax
-
 
 def plot_J_Cost(
     results: dict,
@@ -664,15 +623,20 @@ def plot_life(
         time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
         ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
-        time1 = np.hstack(
-            (time[len(life.y_pred) - 1], time[len(life.y_pred) - 1] + life.y_pred[-1])
+        #time1 = np.hstack(
+        #    (time[len(life.y_pred) - 1], time[len(life.y_pred) - 1] + life.y_pred[-1])
+        #)
+        #ax.plot(time1, [life.y_pred[-1], 0], label="Projected end")
+        ax.plot(
+           life.time,
+           life.y_pred_fitted,
+           label="Picewise fitted",
         )
-        ax.plot(time1, [life.y_pred[-1], 0], label="Projected end")
-        # ax.plot(
-        #    life.time,
-        #    life.y_pred_fitted.predict_line(life.time),
-        #    label="Picewise fitted",
-        # )
+        ax.plot(
+           life.time,
+           life.y_true_fitted,
+           label="Picewise fitted",
+        )
 
     ax.set_ylabel(units)
     ax.set_xlabel(units)
@@ -683,7 +647,7 @@ def plot_life(
     return ax
 
 
-def plot_predictions(
+def plot_predictions_grid(
     results: Union[PredictionResult, List[PredictionResult]],
     ncols: int = 3,
     alpha=1.0,
@@ -749,3 +713,48 @@ def plot_predictions(
     for a in ax.flatten():
         a.legend()
     return fig, ax
+
+
+def plot_predictions(
+    result: PredictionResult,
+    ax=None,
+    units: str = "Hours [h]",
+    markersize: float = 0.7,
+    **kwargs,
+):
+    """Plots the predicted and the true remaining useful lives
+
+    Parameters
+    ----------
+    results_dict : dict
+        Dictionary with an interface conforming the requirements of the module
+    ax : optional
+        Axis to plot. If it is missing a new figure will be created, by default None
+    units : str, optional
+       Units of time to be used in the axis labels, by default 'Hours [h]'
+    cv : int, optional
+        Number of the CV results, by default 0
+
+    Returns
+    -------
+    ax
+        The axis on which the plot has been made
+    """
+    if ax is None:
+        _, ax = plt.subplots(1, 1, **kwargs)
+
+    
+    
+    y_predicted = result.predicted_RUL
+    y_true = result.true_RUL
+    ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
+    ax.plot(y_true, label="True")
+    x = 0
+    fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
+
+    ax.plot(fitted)
+    ax.set_ylabel(units)
+    ax.set_xlabel(units)
+    ax.legend()
+
+    return ax
