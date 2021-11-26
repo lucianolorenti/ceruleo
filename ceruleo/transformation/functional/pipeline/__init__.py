@@ -1,0 +1,1 @@
+from ceruleo.transformation.functional.pipeline.pipeline import Pipeline

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ceruleo"
+description = "Remaining useful life estimation utilities"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["predictive maintenance", "remaining useful life"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+        "pandas",
+        "numpy",
+        "tqdm",
+        "scikit-learn",
+        "gwpy",
+        "emd",
+        "dill",
+        "mmh3",
+        "pyarrow",
+        "fastparquet",
+        "sphinxcontrib.bibtex",
+        "gdown",
+        "uncertainties",
+        "pyinform",
+        "pyts",
+        "PyWavelets",
+        "seaborn",
+        "antropy"
+
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+doc = ["mkdocs"]
+
+

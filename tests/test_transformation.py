@@ -1,10 +1,10 @@
 import numpy as np
-from rul_pm.transformation.target import PicewiseRUL
+from ceruleo.transformation.target import PicewiseRUL
 
 
 class TestTargetTransformers():
     def test_PicewiseRUL(self):
-        t = PicewiseRUL(26)
+        t = PicewiseRUL(max_life=26)
         d = np.vstack(
             (np.linspace(0, 30, 50),
              np.linspace(0, 30, 50)))

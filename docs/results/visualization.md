@@ -1,0 +1,3 @@
+# Visualization
+
+::: ceruleo.graphics.results

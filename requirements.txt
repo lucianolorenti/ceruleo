@@ -1,5 +1,13 @@
+xgboost
 tensorflow
 torchsummary
 torch
 keras-tcn
 tensorflow_probability
+mkdocs 
+mkdocstrings[python]
+mkdocs-material
+mkdocs-jupyter
+jupyter_contrib_nbextensions
+mkdocstrings
+mkdocs-bibtex  
