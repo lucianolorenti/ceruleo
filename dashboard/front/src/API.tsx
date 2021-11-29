@@ -21,11 +21,16 @@ interface BoxPlotDataPoint {
   y:number
 }
 export interface BoxPlotData {
-  data: {
     x: any
-    y: Array<number>
-  }
-  outliers: Array<BoxPlotDataPoint>
+    min: number
+    max: number
+    q1: number
+    q3: number
+    median: number
+}
+export interface BoxPlot {
+  boxplot: Array<BoxPlotData>
+  outliers: Array<Array<number>>
 }
 
 export class API {
@@ -90,8 +95,8 @@ export class API {
   durationDistribution = (callback: (d:Array<Stats>) => void) => {
     this.callDatasetEndPoint("duration_distribution", callback)
   }
-  samplingRate = (callback: (d:Array<BoxPlotData>) => void) => {
-    this.callDatasetEndPoint('sampling_rate', callback)
+  samplingRate = (callback: (d:BoxPlot) => void, unit:string) => {
+    this.callDatasetEndPoint('sampling_rate', callback, {'unit': unit})
   }
     
 }

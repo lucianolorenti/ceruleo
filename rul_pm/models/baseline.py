@@ -57,7 +57,7 @@ class BaselineModel:
         """
         output = []
         for _, y, _ in ds:
-            degrading_start, time = FittedLife.compute_time_feature(
+            _, time = FittedLife.compute_time_feature(
                 y, self.RUL_threshold
             )
             y_pred = np.clip(self.fitted_RUL - time, 0, self.fitted_RUL)

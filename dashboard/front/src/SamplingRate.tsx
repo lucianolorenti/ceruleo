@@ -1,67 +1,36 @@
 
 import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select, Typography } from "@mui/material";
 
-import React, {  useEffect, useState } from "react";
-import { API, BoxPlotData } from "./API";
-
-
-import ReactApexChart from "react-apexcharts";
-import { ApexOptions } from "apexcharts";
+import React, { useEffect, useState } from "react";
+import { API, BoxPlot, BoxPlotData } from "./API";
+import { VictoryChart, VictoryBoxPlot, VictoryTheme, VictoryTooltip, VictoryScatter, VictoryZoomContainer, VictoryAxis } from 'victory';
 
 interface PropsSamplingRate {
     api: API
 }
 export default function SamplingRate(props: PropsSamplingRate) {
-    const [unit, setUnit] = React.useState('');
+    const [unit, setUnit] = React.useState('s');
 
     const handleUnitChange = (event) => {
         setUnit(event.target.value);
     };
-  
-    const [basicData, setBasicData] = useState<Array<BoxPlotData>>(null)
+
+    const [basicData, setBasicData] = useState<BoxPlot>(null)
     useEffect(() => {
-        props.api.samplingRate(setBasicData)
+        props.api.samplingRate(setBasicData, unit)
     }, [])
+    useEffect(() => {
+        props.api.samplingRate(setBasicData, unit)
+    }, [unit])
     if (basicData == null) {
         return <CircularProgress />
     }
-    const data = [
-        {
-            name: 'box',
-            type: 'boxPlot',
-            data: basicData[0].data
-        },
-        {
-            name: 'outliers',
-            type: 'scatter',
-            data: basicData[0].outliers
-        }
+    const max = basicData.boxplot[0].max
+    const min = basicData.boxplot[0].min
 
-    ]
-    const chart_options: ApexOptions = {
-        chart: {
-            type: 'scatter',
-            height: 450,
-           
-        },
-       
 
-        colors: ['#008FFB', '#FEB019'],
-        xaxis: {
-            type: 'categories',
-            categories: ['Sample rate'],
-            sorted: false,
-            overwriteCategories: ['Sample rate']
-         
-           
-        },
-        tooltip: {
-            shared: false,
-            intersect: true
-        }
-    }
     return (
-        <Grid container spacing={3}>
+        <Grid container spacing={0}>
             <Grid item sm={6}>
                 <FormControl fullWidth>
                     <InputLabel id="sample-rate-units">Unit</InputLabel>
@@ -78,16 +47,31 @@ export default function SamplingRate(props: PropsSamplingRate) {
                 </FormControl>
             </Grid>
             <Grid item sm={12}>
-                <Typography>
-                    {basicData[0].data.y[3]} [{unit}]
-                </Typography>
-            </Grid>
-            <Grid item sm={12}>
                 <div >
-                    <ReactApexChart options={chart_options} series={data} type="boxPlot" />
+                    <VictoryChart padding={50} height={300} containerComponent={<VictoryZoomContainer zoomDomain={{ y: [min, max + (max - min) * 0.5] }} zoomDimension="y" allowPan={true} />} theme={VictoryTheme.material}       >
+                        <VictoryAxis
+
+                            label={unit}
+                            dependentAxis
+                        />
+                        <VictoryBoxPlot
+                            animate={{
+                                duration: 2000,
+                                onLoad: { duration: 1000 }
+                            }}
+                            boxWidth={40}
+                            data={basicData.boxplot}
+                        />
+                        <VictoryScatter
+                            style={{ data: { fill: "#c43a31" } }}
+                            categories={{ x: ["Sampling rate"] }}
+                            size={1}
+                            data={basicData.outliers[0]}
+                        />
+                    </VictoryChart>
                 </div>
             </Grid>
-            </Grid>
+        </Grid>
 
     )
 

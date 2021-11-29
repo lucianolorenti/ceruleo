@@ -127,23 +127,31 @@ class DatasetHandler(tornado.web.RequestHandler):
         self.write(str(len(self.dataset)))
 
     def sampling_rate(self):
-        q = sample_rate(self.dataset)
+        unit = self.get_argument("unit", None)
+        if len(unit.strip()) == 0:
+            unit = None
+        q = sample_rate(self.dataset, unit)
         Q1 = np.quantile(q, 0.25)
         Q3 = np.quantile(q, 0.75)
         IQR = Q3 - Q1
         MIN = max(Q1 - 1.5 * IQR, np.min(q))
         MAX = min(Q3 + 1.5 * IQR, np.max(q))
-        data = {"x": "Sampling rate", "y": [MIN, Q1, np.median(q), Q3, MAX]}
+        data = {
+            "x": "Sampling rate",
+            "min": MIN,
+            "median": np.median(q),
+            "max": MAX,
+            "q1": Q1,
+            "q3": Q3,
+        }
         outliers = [y for y in q[q < MIN]]
         outliers.extend([y for y in q[q > MAX]])
         if len(outliers) > 100:
             outliers = np.random.choice(outliers, 100, replace=False).tolist()
-        
-        outliers = [
-            {"x": "Sampling rate", "y":   y } for y in outliers  
-        ]
-        print(outliers)
-        self.write(json.dumps([{"data": [data], "outliers": outliers}]))
+
+        outliers = [{"x": 'Sampling rate', "y": float(y)} for y in outliers]
+
+        self.write(json.dumps({"boxplot": [data], "outliers": [outliers]}))
 
     def duration_distribution(self):
         samples = [life.shape[0] for life in self.dataset]

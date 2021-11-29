@@ -296,7 +296,8 @@ class FittedLife:
         np.array
             [description]
         """
-
+        if len(y_true) == 1:
+            return np.array([0])
         time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:

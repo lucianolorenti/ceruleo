@@ -33,7 +33,7 @@ class PredictionCallback(Callback):
         model: tf.keras.Model,
         output_path: Path,
         dataset: tf.data.Dataset,
-        units: str,
+        units: str='',
         filename_suffix: str = "",
     ):
 
@@ -43,12 +43,12 @@ class PredictionCallback(Callback):
         self.pm_model = model
         self.units = units
         self.suffix = filename_suffix
-        self.output_path = self.output_path.with_stem(
-            filename_suffix + "_" + self.output_path.stem
-        )
+        if len(filename_suffix) > 0:
+            self.output_path = self.output_path.with_stem(
+                filename_suffix + "_" + self.output_path.stem
+            )
 
     def on_epoch_end(self, epoch, logs={}):
-
         y_pred = self.pm_model.predict(self.dataset)
         y_true = true_values(self.dataset)
         ax = plot_true_and_predicted(
@@ -57,6 +57,7 @@ class PredictionCallback(Callback):
             units=self.units,
         )
         ax.legend()
+
         ax.figure.savefig(self.output_path, dpi=ax.figure.dpi)
 
         plt.close(ax.figure)

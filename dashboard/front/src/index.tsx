@@ -25,6 +25,7 @@ import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
+import MissingValues from './MissingValues';
 
 
 const drawerWidth = 240;
@@ -32,9 +33,10 @@ const drawerWidth = 240;
 
 enum Sections {
   BasicStatistics = "Basic Statistics",
+  MissingValues = "Missing Values",
   NumericalFeatures = "Numerical Features",
   CategoricalFeatures = "Categorical Features",
-  MissingValues = "Missing Values",
+  
   Correlations = "Correlations",
   Durations = "Durations",
   FeatureDistribution = "Feature Distribution",
@@ -59,12 +61,12 @@ export default function Dashboard() {
         return <NumericalFeatures  api={api}  />
       case Sections.CategoricalFeatures:
         return <CategoricalFeatures api={api}  />
+      case Sections.MissingValues:
+        return <MissingValues api={api} />
       default:
         return <div> aaaqq</div>
     }
   };
-  console.log(currentSection)
-  console.log(Sections[currentSection])
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
