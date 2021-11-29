@@ -5,36 +5,6 @@ each the keys are the model name, and the elements are list of dictionaries.
 Each of the dictionaries contain two keys: true, predicted. 
 Those elements are list of the predictions
 
-Example:
-
-.. highlight:: python
-.. code-block:: python
-
-    {
-        'Model Name': [
-            {
-                'true': [true_0, true_1,...., true_n],
-                'predicted': [pred_0, pred_1,...., pred_n]
-            },
-            {
-                'true': [true_0, true_1,...., true_m],
-                'predicted': [pred_0, pred_1,...., pred_m]
-            },
-            ...
-        'Model Name 2': [
-             {
-                'true': [true_0, true_1,...., true_n],
-                'predicted': [pred_0, pred_1,...., pred_n]
-            },
-            {
-                'true': [true_0, true_1,...., true_m],
-                'predicted': [pred_0, pred_1,...., pred_m]
-            },
-            ...
-        ]
-    }
-
-
 
 """
 import logging
@@ -237,11 +207,21 @@ class FittedLife:
                 y_true, RUL_threshold
             )
 
-        self.y_pred_fitted = self._fit_picewise_linear_regression(y_pred)
-        self.y_true_fitted = self._fit_picewise_linear_regression(y_true)
+        #self.y_pred_fitted_picewise = self._fit_picewise_linear_regression(y_pred)
+        #self.y_true_fitted_picewise = self._fit_picewise_linear_regression(y_true)
+
+        
         self.RUL_threshold = RUL_threshold
         self.y_pred = y_pred
         self.y_true = y_true
+
+        self.y_pred_fitted_coefficients = np.polyfit(self.time, self.y_pred, 1)
+        p = np.poly1d(self.y_pred_fitted_coefficients)
+        self.y_pred_fitted = p(self.time)
+
+        self.y_true_fitted_coefficients = np.polyfit(self.time, self.y_true, 1)
+        p = np.poly1d(self.y_true_fitted_coefficients)
+        self.y_true_fitted = p(self.time)
 
     @staticmethod
     def compute_time_feature(y_true: np.array, RUL_threshold: Optional[float] = None):
@@ -337,6 +317,23 @@ class FittedLife:
         N = len(self.y_pred)
         sw = compute_sample_weight(sample_weight, self.y_true[:N], self.y_pred)
         return np.mean(sw * np.abs(self.y_true[:N] - self.y_pred))
+
+    def noisiness(self) -> float:
+        """How much the predictions resemble a line
+
+        This metric is computed as the mse of the fitted values
+        with respect to the least squares fitted line of this
+        values
+        """
+        return mae(self.y_pred_fitted, self.y_pred) 
+
+    def slope_resemblance(self):
+        m1 = self.y_true_fitted_coefficients[0] 
+        m2 = self.y_pred_fitted_coefficients[0]
+        d =  np.arctan((m1-m2)/(1+m1*m2))
+        d = d / (np.pi/2)
+        return 1-np.abs((d / (np.pi/2)))
+
 
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
@@ -588,49 +585,16 @@ def metric_J(d, window_size: int, step: int):
     return metric_J_from_cv(lives_cv, window_size, step)
 
 
-def cv_regression_metrics(
-    data: List[PredictionResult], threshold: float = np.inf
-) -> dict:
-    """Compute regression metrics for each model
-
-    Parameters
-    ----------
-    data : dict
-        Dictionary with the model predictions.
-        The dictionary must conform the results specification of this module
-    threshold : float, optional
-        Compute metrics errors only in RUL values less than the threshold, by default np.inf
-
-    Returns
-    -------
-    dict
-        A dictionary with the following format:
-        {
-            'MAE': {
-                'mean': 
-                'std':
-            },
-            'MAE SW': {
-                'mean': 
-                'std':
-            },
-            'MSE': {
-                'mean': 
-                'std':
-            },
-            
-
-        }
-
-
-    """
+def cv_regression_metrics_single_model(results: List[PredictionResult], threshold: float = np.inf):
     errors = {
         'MAE': [],
         'MAE SW': [],
         'MSE': [],
-        'MSE SW': []
+        'MSE SW': [],   
+        'Noisiness': [],
+        'Slope': []
     }
-    for result in data:
+    for result in results:
         y_mask = np.where(result.true_RUL <= threshold)[0]
         y_true = np.squeeze(result.true_RUL[y_mask])
         y_pred = np.squeeze(result.predicted_RUL[y_mask])
@@ -659,41 +623,57 @@ def cv_regression_metrics(
             MSE_SW = np.nan
         MSE = mse(y_true, y_pred)
 
+        lives = split_lives(result)
+        errors['Noisiness'].extend([life.noisiness() for life in lives ])
+        errors['Slope'].extend([life.slope_resemblance() for life in lives ])
+            
+
         errors['MAE'].append(MAE)
         errors['MAE SW'].append(MAE_SW)
         errors['MSE'].append(MSE)
         errors['MSE SW'].append(MSE_SW)
+    errors1 = {}
     for k in errors.keys():
-        errors[k] = {
-            'mean': np.mean(errors[k]),
-            'std': np.std(errors[k]),
+        errors1[(k, 'mean')] = np.mean(errors[k])
+        errors1[(k, 'std')] = np.std(errors[k])
+    return errors1
+
+
+def cv_regression_metrics(
+    results_dict: Dict[str, List[PredictionResult]], threshold: float = np.inf
+) -> dict:
+    """Compute regression metrics for each model
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with the model predictions.
+        The dictionary must conform the results specification of this module
+    threshold : float, optional
+        Compute metrics errors only in RUL values less than the threshold, by default np.inf
+
+    Returns
+    -------
+    dict
+        A dictionary with the following format:
+        {
+            'MAE': {
+                'mean': 
+                'std':
+            },
+            'MAE SW': {
+                'mean': 
+                'std':
+            },
+            'MSE': {
+                'mean': 
+                'std':
+            },           
         }
-    return errors
+    """
+    out = {}
+    for model_name in results_dict.keys():
+        out[model_name] = cv_regression_metrics_single_model(results_dict['model_name'],   threshold)
+    return out
 
 
-def hold_out_regression_metrics(results: dict, CV: int = 0):
-    metrics = []
-    for model_name in results.keys():
-        sw = compute_sample_weight(
-            "relative",
-            results[model_name][CV]["true"],
-            results[model_name][CV]["predicted"],
-        )
-        MAE_SW = mae(
-            results[model_name][CV]["true"],
-            results[model_name][CV]["predicted"],
-            sample_weight=sw,
-        )
-        MAE = mae(results[model_name][CV]["true"], results[model_name][CV]["predicted"])
-
-        MSE_SW = mse(
-            results[model_name][CV]["true"],
-            results[model_name][CV]["predicted"],
-            sample_weight=sw,
-        )
-        MSE = mse(results[model_name][CV]["true"], results[model_name][CV]["predicted"])
-        metrics.append((model_name, MAE_SW, MAE, MSE_SW, MSE))
-    return pd.DataFrame(
-        metrics,
-        columns=["Model", "MAE sample weight", "MAE", "MSE sample weight", "MSE"],
-    )
