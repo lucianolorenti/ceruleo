@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from temporis.iterators.iterators import WindowedDatasetIterator
-from rul_pm.graphics.plots import plot_true_and_predicted
+from rul_pm.graphics.plots import plot_predictions
 
 from tensorflow.keras.callbacks import Callback
 from temporis.iterators.utils import true_values
 import tensorflow as tf
 from sklearn.metrics import mean_absolute_error as mae
+
+from rul_pm.results.results import PredictionResult
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +53,8 @@ class PredictionCallback(Callback):
     def on_epoch_end(self, epoch, logs={}):
         y_pred = self.pm_model.predict(self.dataset)
         y_true = true_values(self.dataset)
-        ax = plot_true_and_predicted(
-            {"Model": [{"true": y_true, "predicted": y_pred}]},
+        ax = plot_predictions(
+            PredictionResult('Model', y_true, y_pred),
             figsize=(17, 5),
             units=self.units,
         )

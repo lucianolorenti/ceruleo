@@ -28,7 +28,7 @@ setup(
         "dill",
         "mmh3",
         #"temporis",
-        'temporis @ git+https://github.com/lucianolorenti/Temporis.git@main#egg=temporis',
+        #'temporis @ git+https://github.com/lucianolorenti/Temporis.git@main#egg=temporis',
         "pyarrow",
         "fastparquet",
         "sphinxcontrib.bibtex",

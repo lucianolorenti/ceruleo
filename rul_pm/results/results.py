@@ -673,7 +673,7 @@ def cv_regression_metrics(
     """
     out = {}
     for model_name in results_dict.keys():
-        out[model_name] = cv_regression_metrics_single_model(results_dict['model_name'],   threshold)
+        out[model_name] = cv_regression_metrics_single_model(results_dict[model_name],   threshold)
     return out
 
 

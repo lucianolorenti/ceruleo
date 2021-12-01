@@ -720,6 +720,7 @@ def plot_predictions(
     ax=None,
     units: str = "Hours [h]",
     markersize: float = 0.7,
+    plot_fitted: bool  = True,
     **kwargs,
 ):
     """Plots the predicted and the true remaining useful lives
@@ -750,9 +751,14 @@ def plot_predictions(
     ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
     ax.plot(y_true, label="True")
     x = 0
-    fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
+    
 
-    ax.plot(fitted)
+    if plot_fitted:
+        try:
+            fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
+            ax.plot(fitted)
+        except:
+            pass
     ax.set_ylabel(units)
     ax.set_xlabel(units)
     ax.legend()
