@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import LoadableComponent from "./LoadableComponent";
 
 
-import { isEmpty } from "./utils";
+import { isEmpty } from "../utils";
 
 interface DataFrameField {
   name: string;

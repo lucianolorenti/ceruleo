@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper';
 
 import React, { useEffect, useState } from 'react';
 
-import { API, APIContext } from './API';
+import { DatasetAPI as API } from './API';
 import FeatureDistribution from './FeatureDistribution';
 
 import LoadableComponent from './LoadableComponent';

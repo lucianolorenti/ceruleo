@@ -13,19 +13,15 @@ import ListItemText from '@mui/material/ListItemText';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 import ReactDOM from "react-dom";
-import { API, APIContext } from "./API"
-import BasicStatistics from './BasicStatistics';
-import DistributionAnalysis from './DistributionAnalysis';
-import Correlation from './Correlation';
-import Duration from './Duration'
-import { Container } from '@mui/material';
-import NumericalFeatures from './NumericalFeatures';
-import CategoricalFeatures from './CategoricalFeatures';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
-import MissingValues from './MissingValues';
+import { DatasetAPI, DatasetAPIContext } from "../Dataset/API"
+import BasicStatistics from '../Dataset/BasicStatistics';
+import DistributionAnalysis from '../Dataset/DistributionAnalysis';
+import Correlation from '../Dataset/Correlation';
+import Duration from '../Dataset/Duration'
+import { Container, createMuiTheme, createTheme, ThemeProvider } from '@mui/material';
+import NumericalFeatures from '../Dataset/NumericalFeatures';
+import CategoricalFeatures from '../Dataset/CategoricalFeatures';
+import MissingValues from '../Dataset/MissingValues';
 
 
 const drawerWidth = 240;
@@ -42,12 +38,24 @@ enum Sections {
   FeatureDistribution = "Feature Distribution",
 }
 
+const theme = createTheme({
+  typography: {
+    fontFamily: [
+      'Nunito',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif'
+    ].join(','),
+  }
+});
+
 
 export default function Dashboard() {
   const [currentSection, setCurrentSection] = React.useState<Sections>(
     Sections.BasicStatistics
   );
-  const mainComponent = (section: Sections, api: API) => {
+  const mainComponent = (section: Sections, api: DatasetAPI) => {
     switch (section as Sections) {
       case Sections.BasicStatistics:
         return <BasicStatistics api={api} />
@@ -68,7 +76,8 @@ export default function Dashboard() {
     }
   };
   return (
-    <Box sx={{ display: 'flex' }}>
+    <ThemeProvider theme={theme}>
+    <Box sx={{ display: 'flex', backgroundColor: '#f8f9fc' } }>
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
@@ -102,20 +111,24 @@ export default function Dashboard() {
       <Box component="main" sx={{ flexGrow: 1, p: '3em' }}>
         <Toolbar />
      
-        <APIContext.Consumer>
+        <DatasetAPIContext.Consumer>
        
           {(api) => mainComponent(currentSection, api)}
         
-        </APIContext.Consumer>
+        </DatasetAPIContext.Consumer>
     
       </Box>
     </Box>
+    </ThemeProvider>
   );
 }
+
+
+
 ReactDOM.render(
-  <APIContext.Provider value={new API("http://localhost", 7575)}>
+  <DatasetAPIContext.Provider value={new DatasetAPI("http://localhost", 7575)}>
     <Dashboard />
 
-  </APIContext.Provider>,
+  </DatasetAPIContext.Provider>,
   document.getElementById("root")
 );

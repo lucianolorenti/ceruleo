@@ -33,7 +33,7 @@ export interface BoxPlot {
   outliers: Array<Array<number>>
 }
 
-export class API {
+export class DatasetAPI {
   url: string;
   port: Number;
   endpoint: string;
@@ -101,4 +101,4 @@ export class API {
     
 }
 
-export const APIContext = React.createContext(new API("localhost", 0));
+export const DatasetAPIContext = React.createContext(new DatasetAPI("localhost", 0));

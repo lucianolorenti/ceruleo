@@ -4,7 +4,7 @@ import ListItemText from '@mui/material/ListItemText'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import React, { useEffect } from 'react'
-import { API } from './API'
+import { DatasetAPI as API } from './API'
 
 
 interface LifeSelectorProps {

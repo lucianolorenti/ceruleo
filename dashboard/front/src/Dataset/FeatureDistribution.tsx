@@ -1,8 +1,8 @@
-import { API } from './API'
+import { DatasetAPI as API } from './API'
 import { ResponsiveLine } from '@nivo/line'
 import React, { useEffect } from 'react'
 
-import { isEmpty, zip } from './utils'
+import { isEmpty, zip } from '../utils'
 import { CircularProgress } from '@mui/material'
 interface FeatureDistributionProps {
 

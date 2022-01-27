@@ -1,6 +1,6 @@
 import { Box, Container, Grid, Paper } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { API, LineData } from "./API";
+import { DatasetAPI as API, LineData } from "./API";
 import LoadableDataFrame from "./DataTable";
 import NumericalFeatureSelector from "./NumericalFeatureSelector";
 import LifeSelector from "./LifeSelector";

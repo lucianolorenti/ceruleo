@@ -1,7 +1,8 @@
 var path = require('path'); module.exports = {
   mode: 'development',
   entry: {
-          'index':  './front/src/index.tsx',
+          'IndexDataset':  './front/src/EntryPoints/IndexDataset.tsx',
+          'IndexModel':  './front/src/EntryPoints/IndexModel.tsx',
          },
   module: {
     rules: [

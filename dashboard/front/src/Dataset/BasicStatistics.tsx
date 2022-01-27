@@ -2,7 +2,7 @@
 import { Card, CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
 
 import React, { ReactNode, useEffect, useState } from "react";
-import { API, BoxPlotData } from "./API";
+import { DatasetAPI as API, BoxPlotData } from "./API";
 import LoadableDataFrame, { DataFrame, DataFrameInterface } from "./DataTable";
 import SamplingRate from './SamplingRate'
 
@@ -21,23 +21,29 @@ interface FancyCardProps {
 }
 const CardContent = styled(Typography)({
     textAlign: 'center',
-    paddingTop: '1em',
-    paddingBottom: '0.5em',
+    padding: '2rem',
+
+
 });
 const CardTitle = styled(Typography)({
     textAlign: 'center',
-    backgroundColor: '#DADAFF',
-    marginTop: '-0.7em',
-    marginLeft: '-0.7em',
-    marginRight: '-0.7em',
-    marginBottom: '0.3em',
-    padding: '0.5em'
+    borderRadius: 'calc(.35rem - 1px) calc(.35rem - 1px) 0 0',
+    backgroundColor: '#f8f9fc',
+    borderBottom: '1px solid #e3e6f0',
+    padding: '1rem',
+    color: '#4e73df',
+    fontWeight: 700,
+    paddingLeft: '2rem',
+    paddingRight: '2rem'
+
 })
 const FancyCard = (props: FancyCardProps) => {
     return (<Paper sx={{
-        p: 2,
+
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        borderRadius: '.35rem',
+        boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)'
     }}>
         <CardTitle variant="h5" > {props.title} </CardTitle>
         {props.children}
@@ -58,7 +64,7 @@ const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
     if (basicData == null) {
         return <CircularProgress />
     }
-    const size = 3
+    const size = 4
     const style = {
         'textAlign': 'center',
         'paddingTop': '1em',
@@ -73,21 +79,27 @@ const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
 
     return (
         <>
-            <Grid item xs={size} md={size} lg={size}>
+            <Grid item xs>
                 <FancyCard title="Number of lives">
                     <CardContent variant="h4">
                         {basicData.data[0]['Number of lives']}
                     </CardContent>
                 </FancyCard>
             </Grid>
-            <Grid item xs={size} md={size} lg={size}>
+            <Grid item xs>
                 <FancyCard title="Samples per life">
                     <CardContent variant="h4">
                         {basicData.data[0]['Number of samples']}
                     </CardContent>
                 </FancyCard>
             </Grid>
-            <Grid item xs={size} md={size} lg={size}>
+            <Grid item xs>
+                <FancyCard title='Sampling rate'>
+                    <SamplingRate api={props.api} />
+                </FancyCard>
+
+            </Grid>
+            <Grid item xs>
                 <FancyCard title="Number of categorical fetures">
                     <CardContent variant="h4">
                         {basicData.data[0]['Number of Categorical features']}
@@ -95,7 +107,7 @@ const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
 
                 </FancyCard>
             </Grid>
-            <Grid item xs={size} md={size} lg={size}>
+            <Grid item xs >
                 <FancyCard title="Numerical features">
                     <CardContent variant="h4">
                         {basicData.data[0]['Number of Numerical features']}
@@ -111,14 +123,11 @@ export default function BasicStatistics(props: BasicStatisticsProps) {
 
     return (
 
-        <Grid container spacing={3}>
+        <Grid container spacing={3} direction="row"
+            justifyContent="flex-start"
+            alignItems="flex-start">
             <BasicStatisticsCards api={props.api} />
-            <Grid item xs={4}>
-                <FancyCard title='Sampling rate'>
-                    <SamplingRate api={props.api} />
-                </FancyCard>
 
-            </Grid>
         </Grid>
     )
 

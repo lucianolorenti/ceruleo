@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { API, LineData } from './API';
+import { DatasetAPI as API, LineData } from './API';
 import { CircularProgress, Grid, Paper, Typography } from "@mui/material";
 import LoadableDataFrame from './DataTable';
 import LinePlot from './LinePlot';
