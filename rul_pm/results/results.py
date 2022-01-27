@@ -19,6 +19,8 @@ from rul_pm.results.picewise_regression import (
 )
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_squared_error as mse
+from uncertainties import ufloat
+from dtaidistance import dtw
 
 logger = logging.getLogger(__name__)
 
@@ -591,13 +593,13 @@ def cv_regression_metrics_single_model(results: List[PredictionResult], threshol
         'MAE SW': [],
         'MSE': [],
         'MSE SW': [],   
-        'Noisiness': [],
-        'Slope': []
+        'DTW': []
     }
     for result in results:
         y_mask = np.where(result.true_RUL <= threshold)[0]
         y_true = np.squeeze(result.true_RUL[y_mask])
         y_pred = np.squeeze(result.predicted_RUL[y_mask])
+        distance = dtw.distance_fast(y_true.astype('double'), y_pred.astype('double'))
         sw = compute_sample_weight(
             "relative",
             y_true,
@@ -624,18 +626,14 @@ def cv_regression_metrics_single_model(results: List[PredictionResult], threshol
         MSE = mse(y_true, y_pred)
 
         lives = split_lives(result)
-        errors['Noisiness'].extend([life.noisiness() for life in lives ])
-        errors['Slope'].extend([life.slope_resemblance() for life in lives ])
-            
-
         errors['MAE'].append(MAE)
         errors['MAE SW'].append(MAE_SW)
         errors['MSE'].append(MSE)
         errors['MSE SW'].append(MSE_SW)
+        errors['DTW'].append(distance)
     errors1 = {}
     for k in errors.keys():
-        errors1[(k, 'mean')] = np.mean(errors[k])
-        errors1[(k, 'std')] = np.std(errors[k])
+        errors1[k] = ufloat(np.mean(errors[k]), np.std(errors[k]))
     return errors1
 
 

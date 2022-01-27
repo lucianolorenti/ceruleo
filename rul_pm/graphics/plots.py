@@ -721,6 +721,7 @@ def plot_predictions(
     units: str = "Hours [h]",
     markersize: float = 0.7,
     plot_fitted: bool  = True,
+    model_name:str = '',
     **kwargs,
 ):
     """Plots the predicted and the true remaining useful lives
@@ -744,14 +745,14 @@ def plot_predictions(
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-    
-    
+
+
     y_predicted = result.predicted_RUL
     y_true = result.true_RUL
-    ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
+    ax.plot(y_predicted, "o", label=f"Predicted {model_name}", markersize=markersize)
     ax.plot(y_true, label="True")
     x = 0
-    
+
 
     if plot_fitted:
         try:
@@ -761,6 +762,9 @@ def plot_predictions(
             pass
     ax.set_ylabel(units)
     ax.set_xlabel(units)
-    ax.legend()
+    legend = ax.legend()
+    for l in legend.legendHandles:
+        l.set_markersize(6)
+
 
     return ax

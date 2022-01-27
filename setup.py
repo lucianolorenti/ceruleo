@@ -32,7 +32,8 @@ setup(
         "pyarrow",
         "fastparquet",
         "sphinxcontrib.bibtex",
-        "gdown"
+        "gdown",
+        "uncertainties"
     ],
     license="MIT",
     include_package_data=True,
