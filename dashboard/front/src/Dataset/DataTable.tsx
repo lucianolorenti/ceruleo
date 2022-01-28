@@ -25,6 +25,7 @@ interface DataFrameProps {
   data: DataFrameInterface;
   show_index: boolean
   pagination: boolean
+  pageSize: number
   selectedRowCallback?: (row: Object) => void
 }
 
@@ -33,6 +34,7 @@ const DefaultDataFrameProps = {
   pagination: true
 };
 export function DataFrame(props: DataFrameProps) {
+  const {pageSize} = props;
   if (isEmpty(props.data)) {
     return null;
   }
@@ -65,15 +67,18 @@ export function DataFrame(props: DataFrameProps) {
     }
 
   }
+  
 
   return (<DataGrid
     rows={data}
-    autoHeight={true}
+ 
     disableExtendRowFullWidth={true}
     columns={columns}
     hideFooter={!props.pagination}
     disableSelectionOnClick
-    pageSize={7}
+    autoPageSize={true}
+    pageSize={pageSize}
+    autoHeight={true}
     onRowClick={onRowClick}
     rowHeight={32}
   />

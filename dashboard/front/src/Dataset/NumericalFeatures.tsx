@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DatasetAPI as API, LineData } from './API';
-import { CircularProgress, Grid, Paper, Typography } from "@mui/material";
+import { Box, CircularProgress, Grid, Paper, Typography } from "@mui/material";
 import LoadableDataFrame from './DataTable';
 import LinePlot from './LinePlot';
 import ReactApexChart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
+import AutoSizer from 'react-virtualized-auto-sizer';
+
+
 interface NumericalFeaturesProps {
     api: API
 }
@@ -13,7 +16,10 @@ function build_options(title: string): ApexOptions {
         chart: {
             height: 350,
             type: "line",
-            stacked: false
+            stacked: false,
+            animations: {
+                enabled: false
+            }
         },
         dataLabels: {
             enabled: false
@@ -24,7 +30,9 @@ function build_options(title: string): ApexOptions {
             align: 'left',
             offsetX: 110
         },
-
+        markers: {
+            size: 0
+        },
         yaxis: [
             {
                 axisTicks: {
@@ -45,6 +53,9 @@ function build_options(title: string): ApexOptions {
             }
 
         ],
+        xaxis: {
+            tickAmount: 20
+        },
         tooltip: {
             fixed: {
                 enabled: true,
@@ -74,8 +85,10 @@ export default function NumericalFeatures(props: NumericalFeaturesProps) {
     }
     useEffect(() => {
         if (selectedNumericalFeature != null) {
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 10; i++) {
+
                 props.api.getFeatureData(selectedNumericalFeature, i, (e: LineData) => updateArray(e, i))
+
             }
         }
     }, [selectedNumericalFeature])
@@ -90,17 +103,62 @@ export default function NumericalFeatures(props: NumericalFeaturesProps) {
     })
 
     return (
-        <Grid container spacing={3}>
-            <Grid item xs={12} md={12} lg={12}>
-                <LoadableDataFrame selectedRowCallback={numericalFeatureSelected} title={"Numerical features"} fetcher={props.api.numericalFeatures} paginate={true} />
-            </Grid>
-            <Grid item xs={12} md={12} lg={12}>
-                <Paper>
-                    {featureData.length > 0 ?
 
-                        <ReactApexChart options={build_options(selectedNumericalFeature)} series={series} type="line" height={350} /> : null}
-                </Paper>
+        <Grid container spacing={3} >
+            <Grid item xs={4} md={4} lg={4} style={{ 'height': '90vh' }}>
+                <AutoSizer>
+                    {({ height, width }) => {
+                        console.log(height)
+                        const pageSize = Math.floor((height - 192) / 30);
+
+                        return (
+                            <div style={{ height: `${height}px`, width: `${width}px`, overflowY: 'auto' }}>
+                                <LoadableDataFrame
+                                    selectedRowCallback={numericalFeatureSelected}
+                                    title={"Numerical features"}
+                                    fetcher={props.api.numericalFeatures}
+                                    paginate={true}
+                                    pageSize={pageSize} />
+                            </div>
+                        )
+                    }
+                    }
+                </AutoSizer>
+
+            </Grid>
+            <Grid item xs={8} md={8} lg={8}>
+                <Grid container spacing={3} >
+                    <Grid item xs={12} md={12} lg={12}>
+                        <Paper >
+
+                        {featureData.length > 0 ?
+
+                            <ReactApexChart
+                                options={build_options(selectedNumericalFeature)}
+                                series={series}
+                                type="line"
+                                height={350} /> : null}
+
+                        </Paper>
+                    </Grid>
+               
+    
+                <Grid item xs={12} md={12} lg={12}>
+                    <Paper >
+
+                        {featureData.length > 0 ?
+
+                            <ReactApexChart
+                                options={build_options(selectedNumericalFeature)}
+                                series={series}
+                                type="line"
+                                height={350} /> : null}
+
+                    </Paper>
+                </Grid>
             </Grid>
         </Grid>
+    </Grid>
+
     )
 }

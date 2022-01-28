@@ -179,7 +179,7 @@ class DatasetHandler(tornado.web.RequestHandler):
         N = len(feature_values)
         d = {
             "id": feature,
-            "data": [{"x": i, "y": feature_values.values[i]} for i in range(0, N, 2)],
+            "data": [{"x": i, "y": feature_values.values[i]} for i in range(0, N, 8)],
         }
         self.write(json.dumps(d))
 
@@ -204,10 +204,11 @@ def make_app(ds, debug: bool = True):
     }
     return tornado.web.Application(
         [
-            (r"/", HelloHandler),
+            
             (r"/api", ApiHandler),
             (r"/api/dataset/(\w+)", DatasetHandler, dict(dataset=ds)),
             (r"/static/(.*)", StaticFileHandler, {"path": str(STATIC_PATH)}),
+            (r"/.*", HelloHandler),
         ],
         **settings,
     )

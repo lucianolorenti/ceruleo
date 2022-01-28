@@ -1,10 +1,12 @@
 
-import { Card, CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
+import { Box, Card, CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
 
 import React, { ReactNode, useEffect, useState } from "react";
 import { DatasetAPI as API, BoxPlotData } from "./API";
 import LoadableDataFrame, { DataFrame, DataFrameInterface } from "./DataTable";
 import SamplingRate from './SamplingRate'
+
+import Masonry from '@mui/lab/Masonry';
 
 interface BasicStatisticsProps {
     api: API
@@ -39,9 +41,6 @@ const CardTitle = styled(Typography)({
 })
 const FancyCard = (props: FancyCardProps) => {
     return (<Paper sx={{
-
-        display: 'flex',
-        flexDirection: 'column',
         borderRadius: '.35rem',
         boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)'
     }}>
@@ -55,8 +54,7 @@ const FancyCard = (props: FancyCardProps) => {
 
 
 
-
-const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
+export default function BasicStatistics(props: BasicStatisticsProps) {
     const [basicData, setBasicData] = useState<DataFrameInterface>(null)
     useEffect(() => {
         props.api.basicStatistics(setBasicData)
@@ -64,71 +62,43 @@ const BasicStatisticsCards = (props: BasicStatisticsCardsProps) => {
     if (basicData == null) {
         return <CircularProgress />
     }
-    const size = 4
-    const style = {
-        'textAlign': 'center',
-        'paddingTop': '1em',
-        'paddingBottom': '0.5em'
-    }
-
-
-
-
-
-
-
     return (
-        <>
-            <Grid item xs>
-                <FancyCard title="Number of lives">
-                    <CardContent variant="h4">
-                        {basicData.data[0]['Number of lives']}
-                    </CardContent>
-                </FancyCard>
-            </Grid>
-            <Grid item xs>
-                <FancyCard title="Samples per life">
-                    <CardContent variant="h4">
-                        {basicData.data[0]['Number of samples']}
-                    </CardContent>
-                </FancyCard>
-            </Grid>
-            <Grid item xs>
-                <FancyCard title='Sampling rate'>
-                    <SamplingRate api={props.api} />
-                </FancyCard>
+        <Box sx={{ width: '80vw', minHeight: 377 }}>
+            <Masonry columns={3} spacing={1} >
+            <FancyCard title="Number of lives">
+                <CardContent variant="h4">
+                    {basicData.data[0]['Number of lives']}
+                </CardContent>
+            </FancyCard>
 
-            </Grid>
-            <Grid item xs>
-                <FancyCard title="Number of categorical fetures">
-                    <CardContent variant="h4">
-                        {basicData.data[0]['Number of Categorical features']}
-                    </CardContent>
+            <FancyCard title="Samples per life">
+                <CardContent variant="h4">
+                    {basicData.data[0]['Number of samples']}
+                </CardContent>
+            </FancyCard>
 
-                </FancyCard>
-            </Grid>
-            <Grid item xs >
-                <FancyCard title="Numerical features">
-                    <CardContent variant="h4">
-                        {basicData.data[0]['Number of Numerical features']}
-                    </CardContent>
-                </FancyCard>
-            </Grid>
+            <FancyCard title='Sampling rate' >
+                <SamplingRate api={props.api} />
+            </FancyCard>
 
-        </>)
 
-}
+            <FancyCard title="Number of categorical fetures">
+                <CardContent variant="h4">
+                    {basicData.data[0]['Number of Categorical features']}
+                </CardContent>
 
-export default function BasicStatistics(props: BasicStatisticsProps) {
+            </FancyCard>
 
-    return (
+            <FancyCard title="Numerical features">
+                <CardContent variant="h4">
+                    {basicData.data[0]['Number of Numerical features']}
+                </CardContent>
+            </FancyCard>
 
-        <Grid container spacing={3} direction="row"
-            justifyContent="flex-start"
-            alignItems="flex-start">
-            <BasicStatisticsCards api={props.api} />
 
-        </Grid>
+
+            </Masonry>
+        </Box>
     )
 
 }
