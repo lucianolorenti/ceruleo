@@ -1,10 +1,10 @@
 import { Box, Container, Grid, Paper } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { DatasetAPI as API, LineData } from "./API";
-import LoadableDataFrame from "./DataTable";
+import { DatasetAPI as API } from "./Network/API";
+import LoadableDataFrame from "../Components/DataTable";
 import NumericalFeatureSelector from "./NumericalFeatureSelector";
 import LifeSelector from "./LifeSelector";
-import LinePlot from "./LinePlot";
+import { PlotData } from "../Graphics/Types";
 
 
 
@@ -21,8 +21,8 @@ export default function Correlation(props: CorrelationProps) {
     const [feature2, setFeature2] = useState<string[]>([''])
     const [currentLife, setCurrrentLife] = useState<number>(0)
 
-    const [feature1Data, setFeture1Data] = useState<LineData>(null)
-    const [feature2Data, setFeture2Data] = useState<LineData>(null)
+    const [feature1Data, setFeture1Data] = useState<PlotData>(null)
+    const [feature2Data, setFeture2Data] = useState<PlotData>(null)
     useEffect(() => {
         props.api.getFeatureData(feature1[0], currentLife, setFeture1Data)
     }, [feature1, currentLife])
@@ -32,13 +32,13 @@ export default function Correlation(props: CorrelationProps) {
     let plot = null
 
     if ((feature1Data != null) && (feature2Data != null)) {
-        plot = <LinePlot data={[feature1Data, feature2Data ]} />
+        //plot = <LinePlot data={[feature1Data, feature2Data ]} />
     }
     return (
         <Container maxWidth={false}>
 
 
-            <LoadableDataFrame title={'Correlation'} fetcher={props.api.correlation} />
+           
 
             <Grid container spacing={2} style={{ marginTop: '1em' }}>
                 <Grid item xs={2}>
@@ -62,3 +62,4 @@ export default function Correlation(props: CorrelationProps) {
         </Container>)
 
 }
+//  <LoadableDataFrame title={'Correlation'} fetcher={props.api.correlation} />

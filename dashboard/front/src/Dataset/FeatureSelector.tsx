@@ -6,7 +6,7 @@ import ListItemText from '@mui/material/ListItemText'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import React, { useEffect } from 'react'
-import { DatasetAPI as API } from './API'
+import { DatasetAPI as API } from './Network/API'
 
 
 interface NumericalFeatureSelectorProps {
@@ -24,7 +24,7 @@ export default function NumericalFeatureSelector(props: NumericalFeatureSelector
     const [featureList, setFeatureList] = React.useState<Array<String>>(null);
 
     useEffect(() => {
-        props.api.numericalFeaturesList(setFeatureList)
+        props.api.numericalFeaturesList().then(setFeatureList)
 
     }, [])
 

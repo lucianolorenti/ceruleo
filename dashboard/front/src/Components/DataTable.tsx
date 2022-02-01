@@ -4,22 +4,9 @@ import LoadableComponent from "./LoadableComponent";
 
 
 import { isEmpty } from "../utils";
+import { DataFrameInterface } from "../Dataset/Network/Responses";
 
-interface DataFrameField {
-  name: string;
-  type: string;
-}
 
-interface DataFrameSchema {
-  fields: Array<DataFrameField>;
-  primaryKey: Array<string>;
-  pandas_version: string;
-}
-
-export interface DataFrameInterface {
-  schema: DataFrameSchema;
-  data: Array<Object>;
-}
 
 interface DataFrameProps {
   data: DataFrameInterface;
@@ -87,5 +74,5 @@ export function DataFrame(props: DataFrameProps) {
 
 
 DataFrame.defaultProps = DefaultDataFrameProps
-const LoadableDataFrame = LoadableComponent(DataFrame)
+const LoadableDataFrame = LoadableComponent<DataFrameInterface>(DataFrame)
 export default LoadableDataFrame

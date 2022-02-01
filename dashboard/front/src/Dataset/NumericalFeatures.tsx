@@ -1,15 +1,20 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { DatasetAPI as API, LineData } from './API';
+import { DatasetAPI as API, useAPI } from './Network/API';
 import { Box, CircularProgress, Grid, Paper, Typography } from "@mui/material";
-import LoadableDataFrame from './DataTable';
-import LinePlot from './LinePlot';
+import LoadableDataFrame from '../Components/DataTable';
+
 import ReactApexChart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 import AutoSizer from 'react-virtualized-auto-sizer';
+import { LineData, SeriesData } from './Network/Responses';
+import DistributionPlot from '../Graphics/DistributionPlot';
+import { PlotData } from '../Graphics/Types';
+import { useFeatureNames } from './Store/FeatureNames';
+import { useFeatureData } from './Store/FeatureTables';
 
 
 interface NumericalFeaturesProps {
-    api: API
+   
 }
 function build_options(title: string): ApexOptions {
     return {
@@ -71,36 +76,41 @@ function build_options(title: string): ApexOptions {
     }
 }
 
+
+
 export default function NumericalFeatures(props: NumericalFeaturesProps) {
-    const [featureData, setFetureData] = useState<Array<LineData>>([])
+    const api = useAPI()
+    const [featureData, featureDataLoading] = useFeatureData()
+    const [featurePlotData, setFeaturePlotData] = useState<Array<PlotData>>([])
+
     const [selectedNumericalFeature, setSelectedNumericalFeature] = useState<string>(null)
     const numericalFeatureSelected = (o: Object) => {
         setSelectedNumericalFeature(o['index'])
-        setFetureData([])
+        setFeaturePlotData([])
+
     }
 
-    const updateArray = (elem: LineData, i: number) => {
-        elem.id = elem.id + '_' + i
-        setFetureData(items => [...items, elem]);
+
+    const updateArray = (elem: PlotData, i: number) => {
+        setFeaturePlotData(items => [...items, elem]);
     }
+
+
     useEffect(() => {
-        if (selectedNumericalFeature != null) {
-            for (let i = 0; i < 10; i++) {
-
-                props.api.getFeatureData(selectedNumericalFeature, i, (e: LineData) => updateArray(e, i))
-
-            }
+        if (selectedNumericalFeature == null) {
+            return
         }
+        for (let i = 0; i < 10; i++) {
+
+            api.getFeatureData(selectedNumericalFeature, i, (e: PlotData) => updateArray(e, i))
+
+
+        }
+
     }, [selectedNumericalFeature])
 
-    const series = featureData.map((elem: LineData, index: number) => {
-        return {
-            name: selectedNumericalFeature + ' ' + index.toString(),
-            type: 'line',
-            data: elem.data
 
-        }
-    })
+
 
     return (
 
@@ -114,9 +124,10 @@ export default function NumericalFeatures(props: NumericalFeaturesProps) {
                         return (
                             <div style={{ height: `${height}px`, width: `${width}px`, overflowY: 'auto' }}>
                                 <LoadableDataFrame
+                                    loading={featureDataLoading}
                                     selectedRowCallback={numericalFeatureSelected}
                                     title={"Numerical features"}
-                                    fetcher={props.api.numericalFeatures}
+                                    data={featureData.numericals}
                                     paginate={true}
                                     pageSize={pageSize} />
                             </div>
@@ -130,35 +141,31 @@ export default function NumericalFeatures(props: NumericalFeaturesProps) {
                 <Grid container spacing={3} >
                     <Grid item xs={12} md={12} lg={12}>
                         <Paper >
+                            {featurePlotData.length > 0 ?
+                                <ReactApexChart
+                                    options={build_options(selectedNumericalFeature)}
+                                    series={featurePlotData}
+                                    type="line"
+                                    height={350} /> : <CircularProgress />}
+                        </Paper>
+                    </Grid>
 
-                        {featureData.length > 0 ?
 
-                            <ReactApexChart
-                                options={build_options(selectedNumericalFeature)}
-                                series={series}
-                                type="line"
-                                height={350} /> : null}
+                    <Grid item xs={12} md={12} lg={12}>
+                        <Paper >
+                            <DistributionPlot
+                                fetch_data={api.getDistributionData}
+                                selectedFeature={selectedNumericalFeature}
+                                title={selectedNumericalFeature}
+                            />
+
 
                         </Paper>
                     </Grid>
-               
-    
-                <Grid item xs={12} md={12} lg={12}>
-                    <Paper >
-
-                        {featureData.length > 0 ?
-
-                            <ReactApexChart
-                                options={build_options(selectedNumericalFeature)}
-                                series={series}
-                                type="line"
-                                height={350} /> : null}
-
-                    </Paper>
                 </Grid>
             </Grid>
         </Grid>
-    </Grid>
 
     )
 }
+

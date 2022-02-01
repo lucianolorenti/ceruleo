@@ -103,8 +103,12 @@ class DatasetHandler(tornado.web.RequestHandler):
     def numerical_features_list(self):
         self.write(json.dumps(sorted(list(self.dataset.numeric_features()))))
 
+    def categorical_features_list(self):
+        self.write(json.dumps(sorted(list(self.dataset.categorical_features()))))
+
+
     def numerical_features(self):
-        self.write(numerical_features(self.dataset).round(2).to_json(orient="table"))
+        self.write(numerical_features(self.dataset).round(2).sort_index().to_json(orient="table"))
 
     def categorical_features(self):
         self.write(dataset_statistics(self.dataset))
@@ -178,8 +182,30 @@ class DatasetHandler(tornado.web.RequestHandler):
         feature_values = self.dataset[life][feature]
         N = len(feature_values)
         d = {
-            "id": feature,
+            "name": f'{feature}_{life}',
             "data": [{"x": i, "y": feature_values.values[i]} for i in range(0, N, 8)],
+        }
+        self.write(json.dumps(d))
+
+    def distribution_data(self):
+        life = int(self.get_argument("life"))
+        feature = self.get_argument("feature")
+        nbins = int(self.get_argument('nbins', '15'))
+        colorized_by = self.get_argument('colorized_by', 'life')
+        df = self.dataset[life]
+        if colorized_by == 'life':
+            category = str(life)
+        else:
+            category = df[colorized_by].iloc[0]
+
+        feature_values = df[feature]
+        N = len(feature_values)
+        hist, bin_edges = np.histogram(feature_values.values, density=True,bins=nbins)
+        center = (bin_edges[:-1] + bin_edges[1:]) / 2 
+        d = {
+            "name": f'{feature}_{life}',
+            "data": [{"x": float(x), "y": float(y) } for x, y in zip(center, hist)],
+            "category": category
         }
         self.write(json.dumps(d))
 

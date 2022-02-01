@@ -24,6 +24,7 @@
     "@visx/stats": "^2.1.2",
     "@visx/visx": "^2.2.0",
     "apexcharts": "^3.29.0",
+    "color-scheme": "^1.0.1",
     "css-loader": "^6.4.0",
     "file-loader": "^6.2.0",
     "react": "^17.0.2",

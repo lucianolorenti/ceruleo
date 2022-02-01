@@ -13,7 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 import ReactDOM from "react-dom";
-import { DatasetAPI, DatasetAPIContext } from "../Dataset/API"
+import { DatasetAPI, DatasetAPIContext } from "../Dataset/Network/API"
 import BasicStatistics from '../Dataset/BasicStatistics';
 import DistributionAnalysis from '../Dataset/DistributionAnalysis';
 import Correlation from '../Dataset/Correlation';
@@ -25,9 +25,13 @@ import MissingValues from '../Dataset/MissingValues';
 import {
   BrowserRouter,
   Routes,
-  Route
+  Route,
+  useLocation
 } from "react-router-dom";
 import { Link as RouterLink } from 'react-router-dom';
+import { FeaturesProvider } from '../Dataset/Store/FeatureNames';
+import { FeaturesDataProvider } from '../Dataset/Store/FeatureTables';
+import { lightGreen } from '@mui/material/colors';
 
 const drawerWidth = 240;
 
@@ -58,6 +62,7 @@ const theme = createTheme({
 
 export default function Dashboard() {
 
+  const location = useLocation();
 
   return (
     <ThemeProvider theme={theme}>
@@ -66,7 +71,7 @@ export default function Dashboard() {
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
           <Toolbar>
             <Typography variant="h6" noWrap component="div">
-              RUL - PM
+              RUL - PM | {Sections[location.pathname.substr(1)]}
             </Typography>
           </Toolbar>
         </AppBar>
@@ -102,13 +107,9 @@ export default function Dashboard() {
 
 
               <Routes>
-                <Route path="BasicStatistics" element={<BasicStatistics api={api} />} />
-                <Route path="FeatureDistribution" element={<DistributionAnalysis api={api} />} />
-                <Route path="Correlations" element={<Correlation api={api} />} />
-                <Route path="Durations" element={<Duration api={api} />} />
-                <Route path="NumericalFeatures" element={<NumericalFeatures api={api} />} />
-                <Route path="CategoricalFeatures" element={<CategoricalFeatures api={api} />} />
-                <Route path="MissingValues" element={<MissingValues api={api} />} />
+                <Route path="BasicStatistics" element={<BasicStatistics  />} />
+                <Route path="NumericalFeatures" element={<NumericalFeatures />} />
+                <Route path="MissingValues" element={<MissingValues />} />
 
 
 
@@ -129,8 +130,23 @@ export default function Dashboard() {
 ReactDOM.render(
   <DatasetAPIContext.Provider value={new DatasetAPI("http://localhost", 7575)}>
     <BrowserRouter>
+    <FeaturesProvider>
+      <FeaturesDataProvider>
       <Dashboard />
+      </FeaturesDataProvider>
+     </FeaturesProvider> 
     </BrowserRouter>
   </DatasetAPIContext.Provider>,
   document.getElementById("root")
 );
+
+/*
+<Route path="FeatureDistribution" element={<DistributionAnalysis api={api} />} />
+                <Route path="Correlations" element={<Correlation api={api} />} />
+                <Route path="Durations" element={<Duration api={api} />} />
+                
+                <Route path="CategoricalFeatures" element={<CategoricalFeatures api={api} />} />
+                
+
+  
+*/

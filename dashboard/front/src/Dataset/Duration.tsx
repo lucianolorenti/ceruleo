@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { DatasetAPI as API } from "./API";
+import { DatasetAPI as API } from "./Network/API";
 
 import { ViolinPlot, BoxPlot } from '@visx/stats';
 import { Group } from '@visx/group';

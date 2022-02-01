@@ -2,8 +2,9 @@
 import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select, Typography } from "@mui/material";
 
 import React, { useEffect, useState } from "react";
-import { DatasetAPI as API , BoxPlot, BoxPlotData } from "./API";
-import { VictoryChart, VictoryBoxPlot, VictoryTheme, VictoryTooltip, VictoryScatter, VictoryZoomContainer, VictoryAxis } from 'victory';
+import { DatasetAPI as API  } from "./Network/API";
+import { VictoryChart, VictoryBoxPlot, VictoryTheme, VictoryTooltip, VictoryScatter, VictoryZoomContainer, VictoryAxis } from 'victory'
+import { BoxPlot } from "./Network/Responses";
 
 interface PropsSamplingRate {
     api: API

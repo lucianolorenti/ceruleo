@@ -2,19 +2,15 @@
 import { Box, Card, CircularProgress, Grid, Paper, styled, Typography } from "@mui/material";
 
 import React, { ReactNode, useEffect, useState } from "react";
-import { DatasetAPI as API, BoxPlotData } from "./API";
-import LoadableDataFrame, { DataFrame, DataFrameInterface } from "./DataTable";
+import { DatasetAPI as API, useAPI } from "./Network/API";
 import SamplingRate from './SamplingRate'
 
 import Masonry from '@mui/lab/Masonry';
+import { DataFrameInterface } from "./Network/Responses";
 
 interface BasicStatisticsProps {
-    api: API
 }
 
-interface BasicStatisticsCardsProps {
-    api: API
-}
 
 interface FancyCardProps {
     title: string
@@ -55,9 +51,10 @@ const FancyCard = (props: FancyCardProps) => {
 
 
 export default function BasicStatistics(props: BasicStatisticsProps) {
+    const api = useAPI()
     const [basicData, setBasicData] = useState<DataFrameInterface>(null)
     useEffect(() => {
-        props.api.basicStatistics(setBasicData)
+        api.basicStatistics(setBasicData)
     }, [])
     if (basicData == null) {
         return <CircularProgress />
@@ -78,7 +75,7 @@ export default function BasicStatistics(props: BasicStatisticsProps) {
             </FancyCard>
 
             <FancyCard title='Sampling rate' >
-                <SamplingRate api={props.api} />
+                <SamplingRate api={api} />
             </FancyCard>
 
 

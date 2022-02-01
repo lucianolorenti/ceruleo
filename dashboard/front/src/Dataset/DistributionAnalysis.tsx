@@ -5,13 +5,12 @@ import Grid from '@mui/material/Grid';
 
 import Paper from '@mui/material/Paper';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import { DatasetAPI as API } from './API';
-import FeatureDistribution from './FeatureDistribution';
+import { DatasetAPI as API } from './Network/API';
 
-import LoadableComponent from './LoadableComponent';
-import { DataFrame } from './DataTable';
+
+
 import NumericalFeatureSelector from './NumericalFeatureSelector'
 
 
@@ -40,7 +39,7 @@ export default function DistributionAnalysis(props: DistributionAnalysisProps) {
                     }}
                 >
                   <NumericalFeatureSelector api={props.api} multiple={true} features={features} setCurrentFeatures={setCurrentFeatures} />
-                    <FeatureDistribution api={props.api} features={features} />
+                    
                   
                 </Paper>
             </Grid>
@@ -50,5 +49,3 @@ export default function DistributionAnalysis(props: DistributionAnalysisProps) {
 
     </>
 }
-//   
-//  
