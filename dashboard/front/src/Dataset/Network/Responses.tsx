@@ -11,6 +11,13 @@ export interface Point {
       id: string
       data: Array<number>
   }
+
+
+export interface PlotData {
+ id: string
+ data: LineData  
+ category?: string
+}
   
   interface KLDivergenceTableRow {
     feature: string;

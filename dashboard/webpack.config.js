@@ -1,9 +1,16 @@
-var path = require('path'); module.exports = {
+const path = require("path");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+module.exports = {
   mode: 'development',
   entry: {
           'IndexDataset':  './front/src/EntryPoints/IndexDataset.tsx',
           'IndexModel':  './front/src/EntryPoints/IndexModel.tsx',
          },
+         plugins: [
+          new MiniCssExtractPlugin(),
+      
+          
+        ],
   module: {
     rules: [
       {
@@ -21,6 +28,17 @@ var path = require('path'); module.exports = {
             "@babel/plugin-syntax-dynamic-import"
           ]
         }
+      },
+      {
+        test: /\.scss$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          { loader: "css-modules-typescript-loader" },
+          { loader: "css-loader", options: { modules: true } },
+
+          "sass-loader",
+        ],
+        sideEffects: true,
       },
       {
         test: /\.css$/i,

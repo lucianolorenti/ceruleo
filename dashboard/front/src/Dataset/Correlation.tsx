@@ -4,7 +4,7 @@ import { DatasetAPI as API } from "./Network/API";
 import LoadableDataFrame from "../Components/DataTable";
 import NumericalFeatureSelector from "./NumericalFeatureSelector";
 import LifeSelector from "./LifeSelector";
-import { PlotData } from "../Graphics/Types";
+import { PlotData } from "./Network/Responses";
 
 
 
@@ -24,10 +24,10 @@ export default function Correlation(props: CorrelationProps) {
     const [feature1Data, setFeture1Data] = useState<PlotData>(null)
     const [feature2Data, setFeture2Data] = useState<PlotData>(null)
     useEffect(() => {
-        props.api.getFeatureData(feature1[0], currentLife, setFeture1Data)
+      //  props.api.getFeatureData(feature1[0], currentLife, setFeture1Data)
     }, [feature1, currentLife])
     useEffect(() => {
-        props.api.getFeatureData(feature2[0], currentLife, setFeture2Data)
+        //props.api.getFeatureData(feature2[0], currentLife, setFeture2Data)
     }, [feature2, currentLife])
     let plot = null
 

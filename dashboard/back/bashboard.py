@@ -1,29 +1,31 @@
 import sys
 from pathlib import Path
 from typing import List
+
 from numpy.lib.function_base import quantile
 from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 
+import json
+import logging
+import pickle
+
+import numpy as np
+import pandas as pd
 import tornado.ioloop
 import tornado.web
-import json
 from front import TEMPLATES_PATH
-from back import STATIC_PATH
-import logging
-from temporis.dataset.analysis.distribution import (
-    histogram_per_life,
-    features_divergeces,
-)
-from temporis.dataset.analysis.general import numerical_features, sample_rate
 from temporis.dataset.analysis.correlation import correlation_analysis
-import numpy as np
-import pickle
+from temporis.dataset.analysis.distribution import (features_divergeces,
+                                                    histogram_per_life)
+from temporis.dataset.analysis.entropy import entropy_information
+from temporis.dataset.analysis.general import numerical_features, sample_rate
+from temporis.dataset.analysis.null import null_proportion
+
+from back import STATIC_PATH
 from back.ds import CACHE_FILE, load_dataset
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -106,12 +108,52 @@ class DatasetHandler(tornado.web.RequestHandler):
     def categorical_features_list(self):
         self.write(json.dumps(sorted(list(self.dataset.categorical_features()))))
 
-
     def numerical_features(self):
-        self.write(numerical_features(self.dataset).round(2).sort_index().to_json(orient="table"))
+        self.write(
+            numerical_features(self.dataset)
+            .round(2)
+            .sort_index()
+            .to_json(orient="table")
+        )
 
     def categorical_features(self):
         self.write(dataset_statistics(self.dataset))
+
+    def missing_values(self):
+        df = null_proportion(self.dataset)[0].round(5)
+        df_entropy = entropy_information(self.dataset)[0].round(5)
+
+        df["Null proportion"] = list(
+            zip(
+                df["Min Null Proportion"],
+                df["Max Null Proportion"],
+                df["Mean Null Proportion"],
+            )
+        )
+        df.drop(
+            columns=[
+                "Min Null Proportion",
+                "Max Null Proportion",
+                "Mean Null Proportion",
+            ],
+            inplace=True
+        )
+        df_entropy['Entropy'] = list(zip(
+            df_entropy["Min entropy"],
+            df_entropy["Mean entropy"],
+            df_entropy["Max entropy"],
+        ))
+        df_entropy.drop(
+            columns=[
+                "Min entropy",
+                "Max entropy",
+                "Mean entropy",
+            ],
+            inplace=True
+        )
+        df = pd.concat([df_entropy,  df], axis=1)
+  
+        self.write(df.to_json(orient="table"))
 
     def histogram(self):
         features = self.get_argument("features", [], True).split(",")
@@ -153,7 +195,7 @@ class DatasetHandler(tornado.web.RequestHandler):
         if len(outliers) > 100:
             outliers = np.random.choice(outliers, 100, replace=False).tolist()
 
-        outliers = [{"x": 'Sampling rate', "y": float(y)} for y in outliers]
+        outliers = [{"x": "Sampling rate", "y": float(y)} for y in outliers]
 
         self.write(json.dumps({"boxplot": [data], "outliers": [outliers]}))
 
@@ -182,7 +224,7 @@ class DatasetHandler(tornado.web.RequestHandler):
         feature_values = self.dataset[life][feature]
         N = len(feature_values)
         d = {
-            "name": f'{feature}_{life}',
+            "name": f"{feature}_{life}",
             "data": [{"x": i, "y": feature_values.values[i]} for i in range(0, N, 8)],
         }
         self.write(json.dumps(d))
@@ -190,22 +232,22 @@ class DatasetHandler(tornado.web.RequestHandler):
     def distribution_data(self):
         life = int(self.get_argument("life"))
         feature = self.get_argument("feature")
-        nbins = int(self.get_argument('nbins', '15'))
-        colorized_by = self.get_argument('colorized_by', 'life')
+        nbins = int(self.get_argument("nbins", "15"))
+        colorized_by = self.get_argument("colorized_by", "life")
         df = self.dataset[life]
-        if colorized_by == 'life':
+        if colorized_by == "life":
             category = str(life)
         else:
             category = df[colorized_by].iloc[0]
 
         feature_values = df[feature]
         N = len(feature_values)
-        hist, bin_edges = np.histogram(feature_values.values, density=True,bins=nbins)
-        center = (bin_edges[:-1] + bin_edges[1:]) / 2 
+        hist, bin_edges = np.histogram(feature_values.values, density=True, bins=nbins)
+        center = (bin_edges[:-1] + bin_edges[1:]) / 2
         d = {
-            "name": f'{feature}_{life}',
-            "data": [{"x": float(x), "y": float(y) } for x, y in zip(center, hist)],
-            "category": category
+            "name": f"{feature}_{life}",
+            "data": [{"x": float(x), "y": float(y)} for x, y in zip(center, hist)],
+            "category": category,
         }
         self.write(json.dumps(d))
 
@@ -230,7 +272,6 @@ def make_app(ds, debug: bool = True):
     }
     return tornado.web.Application(
         [
-            
             (r"/api", ApiHandler),
             (r"/api/dataset/(\w+)", DatasetHandler, dict(dataset=ds)),
             (r"/static/(.*)", StaticFileHandler, {"path": str(STATIC_PATH)}),

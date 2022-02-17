@@ -99,7 +99,7 @@ export default function Dashboard() {
             </List>
           </Box>
         </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: '3em' }}>
+        <Box component="main" sx={{ flexGrow: 1, p: '1em' }}>
           <Toolbar />
 
           <DatasetAPIContext.Consumer>

@@ -2,8 +2,8 @@ import React, { useContext } from "react";
 import urlcat from "urlcat";
 
 import { Stats } from '@visx/mock-data/lib/generators/genStats';
-import { BoxPlot, DataFrameInterface, LineData, SeriesData } from "./Responses";
-import { PlotData } from "../../Graphics/Types";
+import { BoxPlot, DataFrameInterface, LineData, PlotData, SeriesData } from "./Responses";
+
 
 
 
@@ -69,8 +69,8 @@ export class DatasetAPI {
   numberOfLives = (callback: (d: number)=> void) => {
     this.callDatasetEndPoint("number_of_lives").then(callback);
   };
-  getFeatureData = (feature:string, life:number, callback:(d:PlotData) =>void) => {
-    this.callDatasetEndPoint("feature_data", {life: life, feature:feature}).then(callback);
+  getFeatureData = (feature:string, life:number) : Promise<PlotData>  => {
+    return this.callDatasetEndPoint("feature_data", {life: life, feature:feature})
   }
   durationDistribution = (callback: (d:Array<Stats>) => void) => {
     this.callDatasetEndPoint("duration_distribution").then(callback)
@@ -80,6 +80,10 @@ export class DatasetAPI {
   }
   getDistributionData = (feature:string, life:number, nbins:number, colorizedBy:string) :  Promise<PlotData>  => {
     return this.callDatasetEndPoint("distribution_data",  {life: life, feature:feature, nbins: nbins, colorized_by: colorizedBy});
+  }
+
+  getMissingValues = () : Promise<DataFrameInterface> => {
+    return this.callDatasetEndPoint('missing_values')
   }
     
 }

@@ -2,11 +2,12 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import ReactApexChart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
-import { PlotData } from './Types';
+
 import { CircularProgress, Input, InputLabel, MenuItem, Select, SelectChangeEvent } from '@mui/material';
 import { Toolbar } from '@mui/material';
 import { useFeatureNames } from '../Dataset/Store/FeatureNames';
 import ColorScheme from 'color-scheme'
+import { PlotData } from '../Dataset/Network/Responses';
 
 
 function build_distribution_options(title: string, colors:Array<string>): ApexOptions {
@@ -176,7 +177,7 @@ export default function DistributionPlot(props: DistributionPlotProps) {
                 onChange={handleColorizedByChange}
 
             >
-                <MenuItem value="life">Life</MenuItem>
+                <MenuItem value="life">Life number</MenuItem>
               {  featureNames.categoricals.map((elem, idx) => {
                     return <MenuItem  key={idx} value={elem}>{elem}</MenuItem>
                 })}

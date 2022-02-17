@@ -3,8 +3,8 @@ import { DatasetAPI as API } from './Network/API';
 import { CircularProgress, Grid, Paper, Typography } from "@mui/material";
 import LoadableDataFrame from '../Components/DataTable';
 import LinePlot from '../Graphics/LinePlot';
-import { LineData } from './Network/Responses';
-import { PlotData } from '../Graphics/Types';
+import { LineData, PlotData } from './Network/Responses';
+
 interface CategoricalFeaturesProps {
     api: API
 }
@@ -25,7 +25,7 @@ export default function CategoricalFeatures(props: CategoricalFeaturesProps) {
     useEffect(() => {
         if (selectedNumericalFeature != null) {
             for (let i = 0; i < 5; i++) {
-                props.api.getFeatureData(selectedNumericalFeature, i, (e: PlotData) => updateArray(e, i))
+                props.api.getFeatureData(selectedNumericalFeature, i).then((e: PlotData) => updateArray(e, i))
             }
         }
     }, [selectedNumericalFeature])

@@ -26,12 +26,11 @@ export default function LoadableComponent<DataType>(WrappedComponent) {
       return <CircularProgress />;
     }
     return (
-      <Paper>
-        <Typography>{props.title}</Typography>
-        <div>
+      <>
+        <Typography variant="h4">{props.title}</Typography>        
         <WrappedComponent data={data} {...otherProps} />
-        </div>
-      </Paper>
+        
+      </>
     );
   };
 }

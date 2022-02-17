@@ -1,15 +1,16 @@
 
-import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select, Typography } from "@mui/material";
+import { Checkbox, CircularProgress, FormControl, FormControlLabel, FormGroup, Grid, InputLabel, MenuItem, Select, Toolbar, Typography } from "@mui/material";
 
 import React, { useEffect, useState } from "react";
-import { DatasetAPI as API  } from "./Network/API";
+import { DatasetAPI as API, useAPI  } from "./Network/API";
 import { VictoryChart, VictoryBoxPlot, VictoryTheme, VictoryTooltip, VictoryScatter, VictoryZoomContainer, VictoryAxis } from 'victory'
 import { BoxPlot } from "./Network/Responses";
 
 interface PropsSamplingRate {
-    api: API
+    
 }
 export default function SamplingRate(props: PropsSamplingRate) {
+    const api = useAPI()
     const [unit, setUnit] = React.useState('s');
 
     const handleUnitChange = (event) => {
@@ -18,10 +19,10 @@ export default function SamplingRate(props: PropsSamplingRate) {
 
     const [basicData, setBasicData] = useState<BoxPlot>(null)
     useEffect(() => {
-        props.api.samplingRate(setBasicData, unit)
+        api.samplingRate(setBasicData, unit)
     }, [])
     useEffect(() => {
-        props.api.samplingRate(setBasicData, unit)
+        api.samplingRate(setBasicData, unit)
     }, [unit])
     if (basicData == null) {
         return <CircularProgress />
@@ -33,6 +34,7 @@ export default function SamplingRate(props: PropsSamplingRate) {
     return (
         <Grid container spacing={0}>
             <Grid item sm={6}>
+                <Toolbar>
                 <FormControl fullWidth>
                     <InputLabel id="sample-rate-units">Unit</InputLabel>
                     <Select
@@ -46,6 +48,7 @@ export default function SamplingRate(props: PropsSamplingRate) {
                         <MenuItem value={'m'}>Minutes</MenuItem>
                     </Select>
                 </FormControl>
+                </Toolbar>
             </Grid>
             <Grid item sm={12}>
                 <div >
