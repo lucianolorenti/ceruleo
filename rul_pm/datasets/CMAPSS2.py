@@ -11,14 +11,15 @@ import numpy as np
 import pandas as pd
 from rul_pm import DATASET_PATH
 from rul_pm.datasets.lives_dataset import AbstractLivesDataset
-from rul_pm.utils.download import download_file
 from tqdm.auto import tqdm
+
+from rul_pm.utils.download import download
 
 logger = logging.getLogger(__name__)
 
 DATASET_PATH = DATASET_PATH / "C_MAPSS2"
 DATASET_PATH.mkdir(exist_ok=True, parents=True)
-URL = "http:"
+URL = "https://ti.arc.nasa.gov/c/47/"
 
 
 def load_file(filename: Union[Path, str], train: bool = True):
@@ -104,26 +105,26 @@ class CMAPSS2PreProcessor:
         with open(self.lives_table_path, "wb") as file:
             pickle.dump(df, file)
 
+
+
     def obtain_raw_files(self):
         logger.info("Dataset not processed.")
         if not self.raw_data_path.is_dir():
             ZIP_FILE = self.path / "data_set.zip"
             if not ZIP_FILE.is_file():
-                self.download_file(URL)
+                logger.info('Downloading file')
+                download(URL, ZIP_FILE)
             logger.info("Unzipping")
             with zipfile.ZipFile(ZIP_FILE, "r") as zip_ref:
                 zip_ref.extractall(self.path)
             logger.info("Removing zip file")
-            # ZIP_FILE.unlink()
+            ZIP_FILE.unlink()
 
     def run(self):
         if not (self.lives_table_path).is_file():
             self.obtain_raw_files()
         self.process_raw_files()
 
-    def download(self, URL):
-        logger.info("Downloading file")
-        pass
 
 
 class CMAPSS2Dataset(AbstractLivesDataset):
