@@ -15,6 +15,8 @@ from rul_pm import CACHE_PATH, DATASET_PATH
 from rul_pm.datasets.lives_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 import shutil
+import numpy as np
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,56 +55,56 @@ def prepare_raw_dataset(path: Path):
 
 
 class FailureType(Enum):
-    FlowCoolPressureDroppedBelowLimit = "TTF_FlowCool Pressure Dropped Below Limit"
+    FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
     FlowcoolPressureTooHighCheckFlowcoolPump = (
-        "TTF_Flowcool Pressure Too High Check Flowcool Pump"
+        "Flowcool Pressure Too High Check Flowcool Pump"
     )
-    FlowcoolLeak = "TTF_Flowcool leak"
+    FlowcoolLeak = "Flowcool leak"
+
+    @staticmethod
+    def that_starth_with(s: str):
+        for f in FailureType:
+            if s.startswith(f.value):
+                return f
+        return None
 
 
 def prepare_dataset(dataset_path: Path):
     (dataset_path / "processed" / "lives").mkdir(exist_ok=True, parents=True)
 
     files = list(Path(dataset_path / "raw" / "train").resolve().glob("*.csv"))
-    ttf_files = list(
-        Path(dataset_path / "raw" / "train" / "train_ttf").resolve().glob("*.csv")
+    faults_files = list(
+        Path(dataset_path / "raw" / "train" / "train_faults").resolve().glob("*.csv")
     )
-    files = {file.stem: file for file in files}
-    ttf_files = {file.stem: file for file in ttf_files}
+    files = {file.stem[0:6]: file for file in files}
+    faults_files = {file.stem[0:6]: file for file in faults_files}
     dataset_data = []
-    for filename in tqdm(ttf_files.keys(), "Processing files"):
-        data_file = files[filename]
-        logger.info(f"Loading data file {files[filename]}")
+    for filename in tqdm(faults_files.keys(), "Processing files"):
+        tool = filename[0:6]
+        data_file = files[tool]
+        logger.info(f"Loading data file {files[tool]}")
         data = pd.read_csv(data_file).dropna().set_index("time")
 
         c = data.columns.tolist()
-        ttf_data_file = ttf_files[filename]
-        ttf_data = pd.read_csv(ttf_data_file).set_index("time")
-        data = pd.merge(data, ttf_data, on="time", how="left")
-        for failure_type in FailureType:
-            time = data.loc[:, failure_type.value].dropna()
-            if len(time) == 0:
-                continue
-            time_diff = time.diff()
-            lives_limits = [
-                time.index[0],
-                *time_diff.where(time_diff > 0).dropna().index.tolist(),
-                time.index[-1],
-            ]
+        fault_data_file = faults_files[filename]
+        fault_data = pd.read_csv(fault_data_file).set_index("time")
+        fault_data['fault_number'] = range(fault_data.shape[0])
+        data = pd.merge_asof(data, fault_data, on='time', direction='forward').set_index('time')
 
-            for i in tqdm(range(len(lives_limits) - 1), leave=False):
-                start = lives_limits[i]
-                end = lives_limits[i + 1] - 1
-                slice = data.loc[start:end, :][c + [failure_type.value]]
-                tool = slice["Tool"].iloc[0]
-                output_filename = f"Life_{i}_{tool}_{failure_type.value}.pkl.gzip"
-                dataset_data.append(
-                    (tool, slice.shape[0], failure_type.value, output_filename)
-                )
-                with gzip.open(
-                    dataset_path / "processed" / "lives" / output_filename, "wb"
-                ) as file:
-                    pickle.dump(slice, file)
+        for life_index, life_data in data.groupby('fault_number'):
+            if life_data.shape[0] == 0:
+                continue
+            failure_type = FailureType.that_starth_with(life_data['fault_name'].iloc[0])
+            output_filename = f"Life_{int(life_index)}_{tool}_{failure_type.name}.pkl.gzip"
+            dataset_data.append(
+                (tool, life_data.shape[0], failure_type.value, output_filename)
+            )
+            life = life_data.copy()
+            life['RUL'] = life.index[-1] - life.index 
+            with gzip.open(
+                dataset_path / "processed" / "lives" / output_filename, "wb"
+            ) as file:
+                pickle.dump(life_data, file)
 
     df = pd.DataFrame(
         dataset_data, columns=["Tool", "Number of samples", "Failure Type", "Filename"]
@@ -141,11 +143,26 @@ class PHMDataset2018(AbstractLivesDataset):
             self.lives = self.lives[self.lives["Tool"].isin(self.tools)]
         self.lives = self.lives[
             self.lives["Failure Type"].isin([a.value for a in self.failure_types])
+            
         ]
+        valid = []
+        for i, (j, r) in enumerate(self.lives.iterrows()):
+            df = self._load_life(r['Filename'])
+            df = df[df['FIXTURESHUTTERPOSITION'] == 1]
+            if df.shape[0] > 0:
+                valid.append(i)
+        self.lives =  self.lives.iloc[valid, :]
 
     @property
     def n_time_series(self) -> int:
         return self.lives.shape[0]
+
+    def _load_life(self, filename:str)->pd.DataFrame:
+        with gzip.open(
+            self.procesed_path / filename, "rb"
+        ) as file:
+            df = pickle.load(file)
+        return df
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         """
@@ -159,11 +176,16 @@ class PHMDataset2018(AbstractLivesDataset):
         pd.DataFrame
             DataFrame with the data of the life i
         """
-        with gzip.open(
-            self.procesed_path / self.lives.iloc[i]["Filename"], "rb"
-        ) as file:
-            df = pickle.load(file)
-        df['RUL'] = df[df.columns[-1]]
+        df = self._load_life(self.lives.iloc[i]["Filename"])
+
+        df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
+        df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
+        df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
+
+
+        df['RUL'] = np.array(list(range(df.shape[0]-1, -1, -1))) * 4
+        
+            
         return df
 
     @property

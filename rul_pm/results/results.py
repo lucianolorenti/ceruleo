@@ -13,12 +13,12 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from rul_pm.results.picewise_regression import (
-    PiecewesieLinearFunction,
-    PiecewiseLinearRegression,
-)
+from rul_pm.results.picewise_regression import (PiecewesieLinearFunction,
+                                                PiecewiseLinearRegression)
 from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_absolute_percentage_error as mape
 from sklearn.metrics import mean_squared_error as mse
+from uncertainties import ufloat
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,6 @@ def models_cv_results(
     results_dict: Dict[str, List[PredictionResult]], nbins: int
 ) -> Tuple[np.ndarray, Dict[str, CVResults]]:
     """Create a dictionary with the result of each cross validation of the model"""
-
     max_y_value = np.max(
         [
             r.true_RUL.max()
@@ -207,10 +206,9 @@ class FittedLife:
                 y_true, RUL_threshold
             )
 
-        #self.y_pred_fitted_picewise = self._fit_picewise_linear_regression(y_pred)
-        #self.y_true_fitted_picewise = self._fit_picewise_linear_regression(y_true)
+        # self.y_pred_fitted_picewise = self._fit_picewise_linear_regression(y_pred)
+        # self.y_true_fitted_picewise = self._fit_picewise_linear_regression(y_true)
 
-        
         self.RUL_threshold = RUL_threshold
         self.y_pred = y_pred
         self.y_true = y_true
@@ -276,7 +274,8 @@ class FittedLife:
         np.array
             [description]
         """
-
+        if len(y_true) == 1:
+            return np.array([0])
         time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
@@ -324,15 +323,14 @@ class FittedLife:
         with respect to the least squares fitted line of this
         values
         """
-        return mae(self.y_pred_fitted, self.y_pred) 
+        return mae(self.y_pred_fitted, self.y_pred)
 
     def slope_resemblance(self):
-        m1 = self.y_true_fitted_coefficients[0] 
+        m1 = self.y_true_fitted_coefficients[0]
         m2 = self.y_pred_fitted_coefficients[0]
-        d =  np.arctan((m1-m2)/(1+m1*m2))
-        d = d / (np.pi/2)
-        return 1-np.abs((d / (np.pi/2)))
-
+        d = np.arctan((m1 - m2) / (1 + m1 * m2))
+        d = d / (np.pi / 2)
+        return 1 - np.abs((d / (np.pi / 2)))
 
     def predicted_end_of_life(self):
         z = np.where(self.y_pred == 0)[0]
@@ -422,7 +420,9 @@ def split_lives_indices(y_true: np.array):
     """
     assert len(y_true) >= 2
     lives_indices = (
-        [0] + (np.where(np.diff(np.squeeze(y_true)) > 0)[0]+1).tolist() + [len(y_true)]
+        [0]
+        + (np.where(np.diff(np.squeeze(y_true)) > 0)[0] + 1).tolist()
+        + [len(y_true)]
     )
     indices = []
     for i in range(len(lives_indices) - 1):
@@ -473,36 +473,35 @@ def split_lives(
     return lives
 
 
-def split_lives_from_results(d: dict) -> List[FittedLife]:
-    y_true = d["true"]
-    y_pred = d["predicted"]
-    return split_lives(y_true, y_pred)
 
 
-def unexploited_lifetime(d: dict, window_size: int, step: int):
-    bb = [split_lives_from_results(cv) for cv in d]
+
+def unexploited_lifetime(d: PredictionResult, window_size: int, step: int):
+    bb = [split_lives(cv) for cv in d]
     return unexploited_lifetime_from_cv(bb, window_size, step)
 
 
 def unexploited_lifetime_from_cv(
     lives: List[List[FittedLife]], window_size: int, n: int
 ):
-    qq = []
+    std_per_window = []
+    mean_per_window = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
         for r in lives:
 
             ul_cv_list = [life.unexploited_lifetime(m) for life in r]
-            mean_ul_cv = np.mean(ul_cv_list)
-            std_ul_cv = np.std(ul_cv_list)
-            jj.append(mean_ul_cv)
-        qq.append(np.mean(jj))
-    return windows, qq
+
+            jj.extend(ul_cv_list)
+        mean_per_window.append(np.mean(jj))
+        std_per_window.append(np.std(jj))
+
+    return windows, np.array(mean_per_window), np.array(std_per_window)
 
 
 def unexpected_breaks(
-    d: dict, window_size: int, step: int
+    d: List[PredictionResult], window_size: int, step: int
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the risk of unexpected breaks with respect to the maintenance window size
 
@@ -523,7 +522,7 @@ def unexpected_breaks(
         * Risk computed for every window size used
     """
 
-    bb = [split_lives_from_results(cv) for cv in d]
+    bb = [split_lives(fold) for fold in d]
     return unexpected_breaks_from_cv(bb, window_size, step)
 
 
@@ -547,18 +546,17 @@ def unexpected_breaks_from_cv(
         * Maintenance window size evaluated
         * Risk computed for every window size used
     """
-
-    qq = []
+    std_per_window = []
+    mean_per_window = []
     windows = np.linspace(0, window_size, n)
     for m in windows:
         jj = []
         for r in lives:
             ul_cv_list = [life.unexpected_break(m) for life in r]
-            mean_ul_cv = np.mean(ul_cv_list)
-            std_ul_cv = np.std(ul_cv_list)
-            jj.append(mean_ul_cv)
-        qq.append(np.mean(jj))
-    return windows, np.array(qq)
+            jj.extend(ul_cv_list)
+        mean_per_window.append(np.mean(jj))
+        std_per_window.append(np.std(jj))
+    return windows, np.array(mean_per_window), np.array(std_per_window)
 
 
 def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1, q2):
@@ -580,23 +578,32 @@ def metric_J_from_cv(lives: List[List[FittedLife]], window_size: int, n: int, q1
 
 
 def metric_J(d, window_size: int, step: int):
-    lives_cv = [split_lives_from_results(cv) for cv in d]
+    lives_cv = [split_lives(cv) for cv in d]
     return metric_J_from_cv(lives_cv, window_size, step)
 
 
-def cv_regression_metrics_single_model(results: List[PredictionResult], threshold: float = np.inf):
+def cv_regression_metrics_single_model(
+    results: List[PredictionResult], threshold: float = np.inf
+):
     errors = {
-        'MAE': [],
-        'MAE SW': [],
-        'MSE': [],
-        'MSE SW': [],   
-        'Noisiness': [],
-        'Slope': []
+        "MAE": [],
+        "MAE SW": [],
+        "MSE": [],
+        "MSE SW": [],
+        "MAPE": []
     }
     for result in results:
         y_mask = np.where(result.true_RUL <= threshold)[0]
         y_true = np.squeeze(result.true_RUL[y_mask])
         y_pred = np.squeeze(result.predicted_RUL[y_mask])
+        mask = np.isfinite(y_pred)
+        y_pred = y_pred[mask]
+        y_true = y_true[mask]
+
+        if len(np.unique(y_pred)) == 1:
+            continue
+
+        
         sw = compute_sample_weight(
             "relative",
             y_true,
@@ -610,7 +617,10 @@ def cv_regression_metrics_single_model(results: List[PredictionResult], threshol
             )
         except:
             MAE_SW = np.nan
-        MAE = mae(y_true, y_pred)
+        try:
+            MAE = mae(y_true, y_pred)
+        except:
+            MAE = np.nan
 
         try:
             MSE_SW = mse(
@@ -620,21 +630,27 @@ def cv_regression_metrics_single_model(results: List[PredictionResult], threshol
             )
         except:
             MSE_SW = np.nan
-        MSE = mse(y_true, y_pred)
+
+        try:
+            MSE = mse(y_true, y_pred)
+        except:
+            MSE = np.nan
+
+        try:
+            MAPE = mape(y_true, y_pred)
+        except:
+            MAPE = np.nan
 
         lives = split_lives(result)
-        errors['Noisiness'].extend([life.noisiness() for life in lives ])
-        errors['Slope'].extend([life.slope_resemblance() for life in lives ])
-            
-
-        errors['MAE'].append(MAE)
-        errors['MAE SW'].append(MAE_SW)
-        errors['MSE'].append(MSE)
-        errors['MSE SW'].append(MSE_SW)
+        errors["MAE"].append(MAE)
+        errors["MAE SW"].append(MAE_SW)
+        errors["MSE"].append(MSE)
+        errors["MSE SW"].append(MSE_SW)
+        errors["MAPE"].append(MAPE)
+        
     errors1 = {}
     for k in errors.keys():
-        errors1[(k, 'mean')] = np.mean(errors[k])
-        errors1[(k, 'std')] = np.std(errors[k])
+        errors1[k] = ufloat(np.mean(errors[k]), np.std(errors[k]))
     return errors1
 
 
@@ -657,22 +673,22 @@ def cv_regression_metrics(
         A dictionary with the following format:
         {
             'MAE': {
-                'mean': 
+                'mean':
                 'std':
             },
             'MAE SW': {
-                'mean': 
+                'mean':
                 'std':
             },
             'MSE': {
-                'mean': 
+                'mean':
                 'std':
-            },           
+            },
         }
     """
     out = {}
     for model_name in results_dict.keys():
-        out[model_name] = cv_regression_metrics_single_model(results_dict['model_name'],   threshold)
+        out[model_name] = cv_regression_metrics_single_model(
+            results_dict[model_name], threshold
+        )
     return out
-
-

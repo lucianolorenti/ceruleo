@@ -6,16 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from temporis.dataset.transformed import TransformedDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.results.results import (
-    PredictionResult,
-    FittedLife,
-    models_cv_results,
-    split_lives,
-    unexpected_breaks,
-    unexploited_lifetime,
-)
+from rul_pm.results.results import (FittedLife, PredictionResult,
+                                    models_cv_results, split_lives,
+                                    unexpected_breaks, unexploited_lifetime)
+from temporis.dataset.transformed import TransformedDataset
 
 
 def plot_lives(ds: TransformedDataset):
@@ -193,6 +188,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     y_axis_label: Optional[str] = None,
     x_axis_label: Optional[str] = None,
     color_palette: str = "hls",
+    bar_width: float=1/1.5,
     **kwargs,
 ):
     """Plot the barplots given the errors
@@ -221,33 +217,52 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     n_models = len(model_results)
     nbins = len(bin_edges) - 1
 
-    width = 1.0 / 1.5
+   
 
     for i in range(nbins):
         labels.append(f"[{bin_edges[i]:.1f}, {bin_edges[i+1]:.1f})")
 
     colors = sns.color_palette(color_palette, n_models)
+    
+    mean_data = []
+    std_data = []
+    model_names = []
     for model_number, model_name in enumerate(model_results.keys()):
         model_data = model_results[model_name]
+        mean_data.append(np.mean(model_data.mae, axis=0))
+        std_data.append(np.std(model_data.mae, axis=0))
+        model_names.append(model_name)
 
-        positions = []
-        for i in range(nbins):
-            positions.append((model_number * width) + (i * n_models))
+    model_names = np.array(model_names)
+
+    bar_group_width = n_models*(bar_width+1)
+    group_separation = int(bar_group_width/2)
+    mean_data = np.vstack(mean_data)
+    std_data = np.vstack(std_data)
+    n_models, n_bins = mean_data.shape
+    indices = np.argsort(mean_data[:,  0])
+    for i in range(n_bins):
+        mean_data[:, i] = mean_data[indices, i]
+        std_data[:, i] = std_data[indices, i]
+    
+    for model_name, model_index in zip(model_names[indices], range(n_models)):    
+        
+        positions =  model_index+np.array(range(n_bins))  * (bar_group_width + group_separation)
+
         rect = ax.bar(
             positions,
-            np.mean(model_data.mae, axis=0),
-            yerr=np.std(model_data.mae, axis=0),
+            mean_data[model_index, :],
+            yerr=std_data[model_index, :],
             label=model_name,
-            width=width,
-            color=colors[model_number],
+            width=bar_width,
+            color=colors[model_index],
         )
 
     ticks = []
+    dx = 0
     for i in range(nbins):
-        x = np.mean(
-            [(model_number * 0.5) + (i * n_models) for model_number in range(n_models)]
-        )
-        ticks.append(x)
+        ticks.append( dx + bar_group_width/2)
+        dx += bar_group_width + group_separation
 
     ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
     ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
@@ -450,6 +465,7 @@ def plot_unexploited_lifetime(
     n: int,
     ax=None,
     units: Optional[str] = "",
+    add_shade: bool = True,
     **kwargs,
 ):
     if ax is None:
@@ -457,8 +473,10 @@ def plot_unexploited_lifetime(
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ulft = unexploited_lifetime(results_dict[model_name], max_window, n)
+        m, ulft, std_ul = unexploited_lifetime(results_dict[model_name], max_window, n)
         ax.plot(m, ulft, label=model_name, color=colors[i])
+        if add_shade:
+            ax.fill_between(m, ulft+std_ul, ulft-std_ul, alpha=0.1, color=colors[i])
     ax.legend()
     ax.set_title("Unexploited lifetime")
     ax.set_xlabel("Fault window size" + units)
@@ -472,6 +490,7 @@ def plot_unexpected_breaks(
     n: int,
     ax: Optional[matplotlib.axes.Axes] = None,
     units: Optional[str] = "",
+    add_shade: bool = True,
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """Plot the risk of unexpected breaks with respect to the maintenance window
@@ -499,8 +518,11 @@ def plot_unexpected_breaks(
     n_models = len(results_dict)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results_dict.keys()):
-        m, ub = unexpected_breaks(results_dict[model_name], max_window, n)
-        ax.plot(m, ub, label=model_name, color=colors[i])
+        m, mean_ub, std_ub = unexpected_breaks(results_dict[model_name], max_window, n)
+        ax.plot(m, mean_ub, label=model_name, color=colors[i])
+        if add_shade:
+            ax.fill_between(m, mean_ub+std_ub, mean_ub-std_ub, alpha=0.1, color=colors[i])
+
     ax.set_title("Unexpected breaks")
     ax.set_xlabel("Fault window size" + units)
     ax.set_ylabel("Risk of breakage")
@@ -508,51 +530,10 @@ def plot_unexpected_breaks(
     return ax
 
 
-def plot_J_Cost(
-    results: dict,
-    window: int,
-    step: int,
-    ax=None,
-    ratio_min: float = 1 / 120,
-    ration_max: float = 1 / 5,
-    ratio_n_points: int = 50,
-    label: str = "",
-):
-    a, b = unexpected_breaks(results, window_size=window, step=step)
-    c, d = unexploited_lifetime(results, window_size=window, step=step)
-
-    ratio = np.linspace(ratio_min, ration_max, ratio_n_points)
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(17, 5))
-    v = []
-    q = []
-    labels = []
-    for r in ratio:
-        UB_c = 1.0
-        UL_c = UB_c * r
-        v.append(np.min(np.array(b) * UB_c + np.array(d) * UL_c))
-        labels.append(f"{int(UB_c)}:{UL_c}")
-
-    def f(x):
-        UB_c = 1 / x
-        UL_c = 1
-        if x == 0:
-            return ""
-        return f"{int(UB_c)}:{int(UL_c)}"
-
-    ax.plot(ratio, v, label=label)
-    ax.set_xticks([1 / 120, 1 / 30, 1 / 20, 1 / 15, 1 / 10, 1 / 7, 1 / 5])
-    ax.set_xticklabels([f(x) for x in ax.get_xticks()])
-    ax.set_xlabel(
-        "Ratio between UL and UB. How many minutes of UL are equal to 1 breakage"
-    )
-    ax.set_ylabel("J")
-    return ax
-
 
 
 def plot_J_Cost(
-    results: dict,
+    results: Dict[str, List[PredictionResult]],
     window: int,
     step: int,
     ax=None,
@@ -574,18 +555,28 @@ def plot_J_Cost(
     n_models = len(results)
     colors = sns.color_palette("hls", n_models)
     for i, model_name in enumerate(results.keys()):
-        a, b = unexpected_breaks(results[model_name], window_size=window, step=step)
-        c, d = unexploited_lifetime(results[model_name], window_size=window, step=step)
+        window_ub, mean_ub, std_ub = unexpected_breaks(results[model_name], window_size=window, step=step)
+        window_ul, mean_ul, std_ul = unexploited_lifetime(results[model_name], window_size=window, step=step)
 
         v = []
+
         labels = []
+        from uncertainties import unumpy
+   
         for r in ratio:
             UB_c = 1.0
             UL_c = UB_c * r
-            v.append(np.min(np.array(b) * UB_c + np.array(d) * UL_c))
+            
+            v.append(np.mean(unumpy.uarray(mean_ub, std_ub) * UB_c + unumpy.uarray(mean_ul, std_ul) * UL_c))
+
             labels.append(f"{int(UB_c)}:{UL_c}")
 
-        ax.plot(ratio, v, "-o", label=model_name, color=colors[i])
+      
+  
+        mean = unumpy.nominal_values(v)
+        std = unumpy.std_devs(v)
+        ax.plot(ratio, mean, "-o", label=model_name, color=colors[i])
+        ax.fill_between(ratio, mean+std, mean-std, color=colors[i], alpha=0.2)
 
     ticks = ax.get_xticks().tolist()
     ticks.append(ratio[0])
@@ -604,6 +595,10 @@ def plot_life(
     units: Optional[str] = "",
     markersize: float = 0.7,
     add_fitted: bool = False,
+    plot_target:bool = True,
+    add_regressed:bool = True,
+    start_x:int= 0,
+    label:str = '',
     **kwargs,
 ):
     if ax is None:
@@ -612,16 +607,17 @@ def plot_life(
     time = life.time
 
     ax.plot(
-        life.time[: len(life.y_pred)],
-        life.y_pred,
+        life.time[start_x: len(life.y_pred)],
+        life.y_pred[start_x:],
         "o",
-        label="Predicted",
+        label=f"Predicted {label}",
         markersize=markersize,
     )
-    ax.plot(life.time, life.y_true, label="True")
-    if life.y_true[-1] > 0:
-        time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
-        ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
+    if plot_target:
+        ax.plot(life.time, life.y_true, label="True", linewidth=3)
+    if add_regressed and life.y_true[-1] > 0:
+            time1 = np.hstack((time[-1], time[-1] + life.y_true[-1]))
+            ax.plot(time1, [life.y_true[-1], 0], label="Regressed true")
     if add_fitted:
         #time1 = np.hstack(
         #    (time[len(life.y_pred) - 1], time[len(life.y_pred) - 1] + life.y_pred[-1])
@@ -642,7 +638,9 @@ def plot_life(
     ax.set_xlabel(units)
     _, max = ax.get_ylim()
     ax.set_ylim(0 - max / 10, max)
-    ax.legend()
+    legend = ax.legend(markerscale=15,)
+
+
 
     return ax
 
@@ -720,6 +718,8 @@ def plot_predictions(
     ax=None,
     units: str = "Hours [h]",
     markersize: float = 0.7,
+    plot_fitted: bool  = True,
+    model_name:str = '',
     **kwargs,
 ):
     """Plots the predicted and the true remaining useful lives
@@ -743,18 +743,26 @@ def plot_predictions(
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-    
-    
+
+
     y_predicted = result.predicted_RUL
     y_true = result.true_RUL
-    ax.plot(y_predicted, "o", label="Predicted", markersize=markersize)
+    ax.plot(y_predicted, "o", label=f"Predicted {model_name}", markersize=markersize)
     ax.plot(y_true, label="True")
     x = 0
-    fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
 
-    ax.plot(fitted)
+
+    if plot_fitted:
+        try:
+            fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
+            ax.plot(fitted)
+        except:
+            pass
     ax.set_ylabel(units)
     ax.set_xlabel(units)
-    ax.legend()
+    legend = ax.legend()
+    for l in legend.legendHandles:
+        l.set_markersize(6)
+
 
     return ax

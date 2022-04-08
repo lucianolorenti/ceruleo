@@ -110,9 +110,9 @@ class TestModels:
 
     def test_baselines(self):
         features = ["feature1", "feature2"]
-        pipe = ByNameFeatureSelector(features)
-        pipe = MinMaxScaler((-1, 1))(pipe)
-        rul_pipe = ByNameFeatureSelector(["RUL"])
+        pipe = ByNameFeatureSelector(features=features)
+        pipe = MinMaxScaler(range=(-1, 1))(pipe)
+        rul_pipe = ByNameFeatureSelector(features=["RUL"])
         transformer = Transformer(pipe, rul_pipe)
         ds = MockDataset(5)
         transformer.fit(ds)

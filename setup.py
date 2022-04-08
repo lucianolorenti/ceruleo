@@ -13,7 +13,7 @@ BASEPATH = Path(__file__).resolve().parent
 setup(
     name="rul_pm-dev",
     packages=find_packages(),
-    version="0.2.1",
+    version="1.0.0",
     description="Remaining useful life estimation utilities",
     author="",
     install_requires=[
@@ -32,7 +32,8 @@ setup(
         "pyarrow",
         "fastparquet",
         "sphinxcontrib.bibtex",
-        "gdown"
+        "gdown",
+        "uncertainties"
     ],
     license="MIT",
     include_package_data=True,

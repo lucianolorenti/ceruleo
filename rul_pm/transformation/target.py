@@ -31,8 +31,8 @@ class PicewiseRUL(TransformerStep):
         Maximum threshold for clipping the RUL values, by default np.inf
     name : Optional[str], optional
         Name of the step, by default None    """
-    def __init__(self, max_life: float = np.inf, name: Optional[str] = None):
-        super().__init__(name)
+    def __init__(self, *, max_life: float = np.inf, name: Optional[str] = None):
+        super().__init__(name=name)
         self.max_life = max_life
 
     def transform(self, X):
@@ -91,3 +91,38 @@ class RULBinarizer(TransformerStep):
         return (X < self.t).astype('int')
 
 
+
+
+class RemoveGaps(TransformerStep):
+    """Gaps larger than a treshold are removed
+
+    Parameters
+    ----------
+    max_life : float, optional
+        Maximum threshold for clipping the RUL values, by default np.inf
+    name : Optional[str], optional
+        Name of the step, by default None    """
+    def __init__(self, *, threshold: float, name: Optional[str] = None):
+        super().__init__(name=name)
+        self.threshold = threshold
+
+    def transform(self, x:pd.DataFrame):
+        """Remove gaps in the RUL target
+
+        Parameters
+        ----------
+        X : np.array
+            Vector with the true labels
+
+        Returns
+        -------
+        np.array
+            Cliiped RUL values
+        """
+
+        y = np.abs(np.diff(np.squeeze(x)))
+        y[y  <= self.threshold] = 0        
+        new_x  = np.squeeze(x.values) + np.hstack((0, np.cumsum(y)))
+        
+        return pd.DataFrame(new_x - np.min(new_x), index=x.index, columns=x.columns)
+        

@@ -1,3 +1,4 @@
+from typing import Tuple
 import tensorflow as tf
 from rul_pm.models.keras.keras import KerasTrainableModel
 from tensorflow.keras import Input, Sequential
