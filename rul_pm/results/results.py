@@ -13,15 +13,12 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from rul_pm.results.picewise_regression import (
-    PiecewesieLinearFunction,
-    PiecewiseLinearRegression,
-)
+from rul_pm.results.picewise_regression import (PiecewesieLinearFunction,
+                                                PiecewiseLinearRegression)
 from sklearn.metrics import mean_absolute_error as mae
-from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import mean_absolute_percentage_error as mape
+from sklearn.metrics import mean_squared_error as mse
 from uncertainties import ufloat
-from dtaidistance import dtw
 
 logger = logging.getLogger(__name__)
 
@@ -594,7 +591,6 @@ def cv_regression_metrics_single_model(
         "MSE": [],
         "MSE SW": [],
         "MAPE": []
-        #'DTW': []
     }
     for result in results:
         y_mask = np.where(result.true_RUL <= threshold)[0]
@@ -607,7 +603,7 @@ def cv_regression_metrics_single_model(
         if len(np.unique(y_pred)) == 1:
             continue
 
-        # distance = dtw.distance_fast(y_true.astype('double'), y_pred.astype('double'))
+        
         sw = compute_sample_weight(
             "relative",
             y_true,
@@ -651,7 +647,7 @@ def cv_regression_metrics_single_model(
         errors["MSE"].append(MSE)
         errors["MSE SW"].append(MSE_SW)
         errors["MAPE"].append(MAPE)
-        # errors['DTW'].append(distance)
+        
     errors1 = {}
     for k in errors.keys():
         errors1[k] = ufloat(np.mean(errors[k]), np.std(errors[k]))
