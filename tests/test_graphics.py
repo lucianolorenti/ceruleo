@@ -1,6 +1,10 @@
-from rul_pm.graphics.plots import barplot_errors_wrt_RUL, boxplot_errors_wrt_RUL, plot_predictions, plot_predictions_grid, shadedline_plot_errors_wrt_RUL
-from rul_pm.results.results import PredictionResult
 import numpy as np
+from rul_pm.graphics.plots import (barplot_errors_wrt_RUL,
+                                   boxplot_errors_wrt_RUL, plot_predictions,
+                                   plot_predictions_grid,
+                                   shadedline_plot_errors_wrt_RUL)
+from rul_pm.results.results import PredictionResult
+
 
 def create_predictions(name:str, number_of_lives: int) -> PredictionResult:
     y_trues = []

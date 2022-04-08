@@ -6,16 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from temporis.dataset.transformed import TransformedDataset
 from rul_pm.graphics.utils.curly_brace import curlyBrace
-from rul_pm.results.results import (
-    PredictionResult,
-    FittedLife,
-    models_cv_results,
-    split_lives,
-    unexpected_breaks,
-    unexploited_lifetime,
-)
+from rul_pm.results.results import (FittedLife, PredictionResult,
+                                    models_cv_results, split_lives,
+                                    unexpected_breaks, unexploited_lifetime)
+from temporis.dataset.transformed import TransformedDataset
 
 
 def plot_lives(ds: TransformedDataset):

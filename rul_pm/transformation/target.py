@@ -31,8 +31,8 @@ class PicewiseRUL(TransformerStep):
         Maximum threshold for clipping the RUL values, by default np.inf
     name : Optional[str], optional
         Name of the step, by default None    """
-    def __init__(self, max_life: float = np.inf, name: Optional[str] = None):
-        super().__init__(name)
+    def __init__(self, *, max_life: float = np.inf, name: Optional[str] = None):
+        super().__init__(name=name)
         self.max_life = max_life
 
     def transform(self, X):
