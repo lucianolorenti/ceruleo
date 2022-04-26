@@ -2,8 +2,12 @@ from temporis.iterators.iterators import AbstractSampleWeights
 import numpy as np
 
 class RULInverseWeighted(AbstractSampleWeights):
+    def __init__(self, c:float):
+        super().__init__()
+        self.c = c
+    
     def __call__(self, y, i: int, metadata):
-        return 1 / (y[i, 0] + 1)
+        return self.c / (y[i, 0] + 1)
 
 
 class InverseToLengthWeighted(AbstractSampleWeights):

@@ -35,7 +35,8 @@ class BaselineModel:
             degrading_start, time = FittedLife.compute_time_feature(
                 y, self.RUL_threshold
             )
-            true.append(y[0] + time[degrading_start])
+            
+            true.append(y.iloc[0] + time[degrading_start])
 
         if self.mode == "mean":
             self.fitted_RUL = np.mean(true)
