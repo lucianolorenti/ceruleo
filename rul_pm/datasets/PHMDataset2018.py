@@ -68,6 +68,13 @@ class FailureType(Enum):
                 return f
         return None
 
+from typing import List, Optional, Union
+def merge_data_with_faults(data_file: Union[str, Path], fault_data_file: Union[str, Path]):
+    data = pd.read_csv(data_file).dropna().set_index("time")
+    
+    fault_data = pd.read_csv(fault_data_file).drop_duplicates(subset=['time']).set_index("time")
+    fault_data['fault_number'] = range(fault_data.shape[0])
+    return pd.merge_asof(data, fault_data, on='time', direction='forward').set_index('time')
 
 def prepare_dataset(dataset_path: Path):
     (dataset_path / "processed" / "lives").mkdir(exist_ok=True, parents=True)
@@ -83,14 +90,8 @@ def prepare_dataset(dataset_path: Path):
         tool = filename[0:6]
         data_file = files[tool]
         logger.info(f"Loading data file {files[tool]}")
-        data = pd.read_csv(data_file).dropna().set_index("time")
-
-        c = data.columns.tolist()
         fault_data_file = faults_files[filename]
-        fault_data = pd.read_csv(fault_data_file).set_index("time")
-        fault_data['fault_number'] = range(fault_data.shape[0])
-        data = pd.merge_asof(data, fault_data, on='time', direction='forward').set_index('time')
-
+        data = merge_data_with_faults(data_file, fault_data_file)
         for life_index, life_data in data.groupby('fault_number'):
             if life_data.shape[0] == 0:
                 continue
@@ -100,7 +101,7 @@ def prepare_dataset(dataset_path: Path):
                 (tool, life_data.shape[0], failure_type.value, output_filename)
             )
             life = life_data.copy()
-            life['RUL'] = life.index[-1] - life.index 
+            life['RUL'] = np.arange(life.shape[0]-1, -1, -1)
             with gzip.open(
                 dataset_path / "processed" / "lives" / output_filename, "wb"
             ) as file:
@@ -148,8 +149,7 @@ class PHMDataset2018(AbstractLivesDataset):
         valid = []
         for i, (j, r) in enumerate(self.lives.iterrows()):
             df = self._load_life(r['Filename'])
-            df = df[df['FIXTURESHUTTERPOSITION'] == 1]
-            if df.shape[0] > 0:
+            if df.shape[0] > 1200 :
                 valid.append(i)
         self.lives =  self.lives.iloc[valid, :]
 
@@ -178,12 +178,12 @@ class PHMDataset2018(AbstractLivesDataset):
         """
         df = self._load_life(self.lives.iloc[i]["Filename"])
 
-        df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
-        df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
-        df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
+        #df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
+        #df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
+        #df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
 
 
-        df['RUL'] = np.array(list(range(df.shape[0]-1, -1, -1))) * 4
+        df['RUL'] = np.arange(df.shape[0]-1, -1, -1)
         
             
         return df
