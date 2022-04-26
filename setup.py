@@ -11,9 +11,9 @@ BASEPATH = Path(__file__).resolve().parent
 
 
 setup(
-    name="rul_pm-dev",
+    name="rul_pm",
     packages=find_packages(),
-    version="1.0.0",
+    version="1.1.0",
     description="Remaining useful life estimation utilities",
     author="",
     install_requires=[
@@ -27,8 +27,7 @@ setup(
         "emd",
         "dill",
         "mmh3",
-        #"temporis",
-        'temporis @ git+https://github.com/lucianolorenti/Temporis.git@main#egg=temporis',
+        "temporis",
         "pyarrow",
         "fastparquet",
         "sphinxcontrib.bibtex",
