@@ -39,18 +39,17 @@ def prepare_raw_dataset(path: Path):
     def track_progress(members):
         for member in tqdm(members, total=70):
             yield member
-    path = path / 'raw'
+
+    path = path / "raw"
     path.mkdir(parents=True, exist_ok=True)
     if not (path / OUTPUT).resolve().is_file():
         download(path)
     logger.info("Decompressing  dataset...")
-    with tarfile.open(path  / OUTPUT, "r") as tarball:
+    with tarfile.open(path / OUTPUT, "r") as tarball:
         tarball.extractall(path=path, members=track_progress(tarball))
-    shutil.move(str(path / 'phm_data_challenge_2018' / 'train'),
-                str(path / 'train'))
-    shutil.move(str(path / 'phm_data_challenge_2018' / 'test'),
-                str(path / 'test'))
-    shutil.rmtree(str(path / 'phm_data_challenge_2018'))
+    shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
+    shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
+    shutil.rmtree(str(path / "phm_data_challenge_2018"))
     (path / OUTPUT).unlink()
 
 
@@ -68,13 +67,38 @@ class FailureType(Enum):
                 return f
         return None
 
+
 from typing import List, Optional, Union
-def merge_data_with_faults(data_file: Union[str, Path], fault_data_file: Union[str, Path]):
+
+
+def merge_data_with_faults(
+    data_file: Union[str, Path], fault_data_file: Union[str, Path]
+) -> pd.DataFrame:
+    """Merge the raw sensor data with the fault information
+
+    Parameters
+    ----------
+    data_file : Union[str, Path]
+        Path where the raw sensor data is located
+    fault_data_file : Union[str, Path]
+        Path where the fault information is located
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe indexed by time with the raw sensors and faults
+        The dataframe contains also a fault_number column
+    """
     data = pd.read_csv(data_file).dropna().set_index("time")
-    
-    fault_data = pd.read_csv(fault_data_file).drop_duplicates(subset=['time']).set_index("time")
-    fault_data['fault_number'] = range(fault_data.shape[0])
-    return pd.merge_asof(data, fault_data, on='time', direction='forward').set_index('time')
+
+    fault_data = (
+        pd.read_csv(fault_data_file).drop_duplicates(subset=["time"]).set_index("time")
+    )
+    fault_data["fault_number"] = range(fault_data.shape[0])
+    return pd.merge_asof(data, fault_data, on="time", direction="forward").set_index(
+        "time"
+    )
+
 
 def prepare_dataset(dataset_path: Path):
     (dataset_path / "processed" / "lives").mkdir(exist_ok=True, parents=True)
@@ -92,16 +116,18 @@ def prepare_dataset(dataset_path: Path):
         logger.info(f"Loading data file {files[tool]}")
         fault_data_file = faults_files[filename]
         data = merge_data_with_faults(data_file, fault_data_file)
-        for life_index, life_data in data.groupby('fault_number'):
+        for life_index, life_data in data.groupby("fault_number"):
             if life_data.shape[0] == 0:
                 continue
-            failure_type = FailureType.that_starth_with(life_data['fault_name'].iloc[0])
-            output_filename = f"Life_{int(life_index)}_{tool}_{failure_type.name}.pkl.gzip"
+            failure_type = FailureType.that_starth_with(life_data["fault_name"].iloc[0])
+            output_filename = (
+                f"Life_{int(life_index)}_{tool}_{failure_type.name}.pkl.gzip"
+            )
             dataset_data.append(
                 (tool, life_data.shape[0], failure_type.value, output_filename)
             )
             life = life_data.copy()
-            life['RUL'] = np.arange(life.shape[0]-1, -1, -1)
+            life["RUL"] = np.arange(life.shape[0] - 1, -1, -1)
             with gzip.open(
                 dataset_path / "processed" / "lives" / output_filename, "wb"
             ) as file:
@@ -144,23 +170,20 @@ class PHMDataset2018(AbstractLivesDataset):
             self.lives = self.lives[self.lives["Tool"].isin(self.tools)]
         self.lives = self.lives[
             self.lives["Failure Type"].isin([a.value for a in self.failure_types])
-            
         ]
         valid = []
         for i, (j, r) in enumerate(self.lives.iterrows()):
-            df = self._load_life(r['Filename'])
-            if df.shape[0] > 1200 :
+            df = self._load_life(r["Filename"])
+            if df.shape[0] > 1200:
                 valid.append(i)
-        self.lives =  self.lives.iloc[valid, :]
+        self.lives = self.lives.iloc[valid, :]
 
     @property
     def n_time_series(self) -> int:
         return self.lives.shape[0]
 
-    def _load_life(self, filename:str)->pd.DataFrame:
-        with gzip.open(
-            self.procesed_path / filename, "rb"
-        ) as file:
+    def _load_life(self, filename: str) -> pd.DataFrame:
+        with gzip.open(self.procesed_path / filename, "rb") as file:
             df = pickle.load(file)
         return df
 
@@ -178,16 +201,14 @@ class PHMDataset2018(AbstractLivesDataset):
         """
         df = self._load_life(self.lives.iloc[i]["Filename"])
 
-        #df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
-        #df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
-        #df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
+        # df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
+        # df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
+        # df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
 
+        df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
-        df['RUL'] = np.arange(df.shape[0]-1, -1, -1)
-        
-            
         return df
 
     @property
     def rul_column(self) -> str:
-        return 'RUL'
+        return "RUL"
