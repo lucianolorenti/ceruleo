@@ -1,5 +1,5 @@
 
-from temporis.utils.lrucache import LRUDataCache
+from ceruleo.utils.lrucache import LRUDataCache
 
 
 class TestLRUCache():

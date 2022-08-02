@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from temporis.transformation import TransformerStep
+from ceruleo.transformation import TransformerStep
 
 logger = logging.getLogger(__name__)
 
@@ -210,3 +210,48 @@ class  MatchFeatureSelector(TransformerStep):
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X[self.selected_columns_].copy()
+
+
+
+
+class ByTypeFeatureSelector(TransformerStep):
+    """Select a subset of feature by type
+
+    Parameters
+    ----------
+            
+    features : Union[str, List[str]], optional
+               Feature name or List of features name to select, by default []
+    """
+    def __init__(self, *, type_:Union[str, List]= [], name: Optional[str] = None):
+        super().__init__(name=name)
+
+        self.features = []
+        self.type = type_
+
+    def partial_fit(self, df, y=None):
+        if len(self.features) == 0:            
+            self.features = df.select_dtypes(include=self.type).columns      
+        return self
+
+    def fit(self, df, y=None):
+        if len(self.features) == 0:
+            self.features = df.select_dtypes(include=self.type).columns
+
+        return self
+
+    def transform(self, X):
+        return X.loc[:, self.features].copy()
+
+    @property
+    def n_features(self):
+        return len(self.features)
+
+    def description(self):
+        name = super().description()
+        return (name, self.features)
+
+    def __str__(self):
+        name, f = self.description()
+        features = ', '.join(f)[:10]
+        return f'{name} : [{features}]'

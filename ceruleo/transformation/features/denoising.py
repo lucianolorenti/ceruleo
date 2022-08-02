@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 from sklearn.cluster import MiniBatchKMeans
-from temporis.transformation import TransformerStep
+from ceruleo.transformation import TransformerStep
 
 
 class SavitzkyGolayTransformer(TransformerStep):

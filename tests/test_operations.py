@@ -2,9 +2,9 @@
 
 import numpy as np
 import pandas as pd
-from temporis.transformation.features.operations import Divide, Sum
-from temporis.transformation.features.selection import ByNameFeatureSelector
-from temporis.transformation.functional.transformers import Transformer
+from ceruleo.transformation.features.operations import Divide, Sum
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.transformation.functional.transformers import Transformer
 
 
 

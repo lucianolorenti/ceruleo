@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 import numpy as np
 import pandas as pd
 from numpy.lib.arraysetops import isin
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.iterators import NotWeighted, SampleWeight, WindowedDatasetIterator
-from temporis.iterators.shufflers import AbstractShuffler, NotShuffled
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.iterators import NotWeighted, SampleWeight, WindowedDatasetIterator
+from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 
 
 class Batcher:

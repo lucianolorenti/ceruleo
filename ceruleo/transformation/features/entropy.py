@@ -1,5 +1,5 @@
 from typing import List, Optional
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 from copy import copy
 from pyinform import active_info, block_entropy, entropy_rate
 import pandas as pd

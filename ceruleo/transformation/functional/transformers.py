@@ -14,13 +14,14 @@ from typing import List, Optional, Union
 import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
-from temporis.transformation.functional.graph_utils import \
+
+from ceruleo.transformation.functional.graph_utils import \
     topological_sort_iterator
-from temporis.transformation.functional.pipeline.cache_store import \
+from ceruleo.transformation.functional.pipeline.cache_store import \
     CacheStoreType
-from temporis.transformation.functional.pipeline.pipeline import \
+from ceruleo.transformation.functional.pipeline.pipeline import \
     TemporisPipeline
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 logger = logging.getLogger(__name__)
 
@@ -32,20 +33,18 @@ RESAMPLER_STEP_NAME = "resampler"
 def transformer_info(transformer : Optional[TemporisPipeline]):
     """Obtains the transformer information in a serializable format
 
-    Parameters
-    ----------
-    transformer : Union[LivesPipeline, PandasFeatureUnion, TransformerMixin]
-        The transformer step, or pipeline to obtain their underlying information
+    Parameters:   
 
-    Returns
-    -------
-    dict
+        transformer: The transformer step, or pipeline to obtain their underlying information
 
-    Raises
-    ------
-    ValueError
-        If the transformer passed as an argument doesn't have
-        the get_params method.
+    Returns:
+        dict
+
+    Raises:
+    
+        ValueError
+            If the transformer passed as an argument doesn't have
+            the get_params method.
     """
     if transformer is None:
         return 'Missing'
@@ -70,8 +69,8 @@ class Transformer:
     It contains Transformation Pipelines for the input data and the target,
     and provides mechanism to inspect the structure of the transformed data.
 
-    Parameters
-    ----------
+    Parameters:
+    
     transformerX : LivesPipeline
         Transformer that will be applied to the life data
     transformerY : LivesPipeline
@@ -169,6 +168,10 @@ class Transformer:
             self.transformY(life),
             self.transformMetadata(life),
         )
+
+    def fit_map(self, dataset, show_progress: bool = False ) -> "TransformedDataset":
+        self.fit(dataset, show_progress=show_progress)
+        return dataset.map(self)
 
     def transformMetadata(self, df: pd.DataFrame) -> Optional[any]:
         if self.transformerMetadata is not None:

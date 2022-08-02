@@ -3,7 +3,7 @@ from typing import Union
 
 
 def root_nodes(step_or_pipe: Union["TemporisPipeline", "TransformerStep"]):
-    from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
+    from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
 
     if isinstance(step_or_pipe, TemporisPipeline):
         final_step = step_or_pipe.final_step
@@ -24,7 +24,7 @@ def root_nodes(step_or_pipe: Union["TemporisPipeline", "TransformerStep"]):
 
 def dfs_iterator(step_or_pipe: Union["TemporisPipeline", "TransformerStep"]):
 
-    from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
+    from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
 
     if isinstance(step_or_pipe, TemporisPipeline):
         final_step = step_or_pipe.final_step
@@ -49,7 +49,7 @@ def dfs_iterator(step_or_pipe: Union["TemporisPipeline", "TransformerStep"]):
 
 class topological_sort_iterator:
     def __init__(self, step_or_pipe: Union["TemporisPipeline", "TransformerStep"]):
-        from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
+        from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
 
         if isinstance(step_or_pipe, TemporisPipeline):
             final_step = step_or_pipe.final_step

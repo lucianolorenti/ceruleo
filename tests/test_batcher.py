@@ -2,11 +2,11 @@
 
 import numpy as np
 import pandas as pd
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.batcher import Batcher
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
-from temporis.transformation import (TemporisPipeline, Transformer)
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.batcher import Batcher
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.transformation import ( Transformer)
 import math
 
 class MockDataset(AbstractTimeSeriesDataset):

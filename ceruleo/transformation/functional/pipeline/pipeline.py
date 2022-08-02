@@ -6,30 +6,20 @@ from typing import Iterable, List, Optional, Tuple, Union
 import pandas as pd
 
 from sklearn.base import TransformerMixin
-from temporis import CACHE_PATH
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.transformation.functional.graph_utils import (
+from ceruleo import CACHE_PATH
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.transformation.functional.graph_utils import (
     dfs_iterator,
-    edges,
-    nodes,
-    root_nodes,
     topological_sort_iterator,
 )
-from temporis.transformation.functional.pipeline.cache_store import CacheStoreType
-from temporis.transformation.functional.pipeline.runner import CachedPipelineRunner
-from temporis.transformation.functional.transformerstep import TransformerStep
-from tqdm.auto import tqdm
-import shutil
-
-
-
-
-
+from ceruleo.transformation.functional.pipeline.cache_store import CacheStoreType
+from ceruleo.transformation.functional.pipeline.runner import CachedPipelineRunner
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 
 class TemporisPipeline(TransformerMixin):
-    def __init__(self, final_step, cache_type:CacheStoreType = CacheStoreType.SHELVE):
+    def __init__(self, final_step, cache_type: CacheStoreType = CacheStoreType.MEMORY):
         self.final_step = final_step
         self.fitted_ = False
         self.runner = CachedPipelineRunner(final_step, cache_type)
@@ -62,10 +52,11 @@ class TemporisPipeline(TransformerMixin):
 
         return self
 
-
-    def partial_fit(self,
+    def partial_fit(
+        self,
         dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
-        show_progress: bool = False):
+        show_progress: bool = False,
+    ):
         self.fit(dataset, show_progress=show_progress)
 
     def transform(self, df: Union[pd.DataFrame, Iterable[pd.DataFrame]]):
@@ -76,7 +67,3 @@ class TemporisPipeline(TransformerMixin):
         for node in topological_sort_iterator(self):
             data.append(node.description())
         return data
-
-    
-
-

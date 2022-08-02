@@ -2,18 +2,18 @@ import numpy as np
 import pandas as pd
 from pyexpat import features
 from scipy.stats import entropy
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.transformation import Concatenate as TransformationConcatenate
-from temporis.transformation import Transformer
-from temporis.transformation.features.imputers import PerColumnImputer
-from temporis.transformation.features.outliers import IQROutlierRemover
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
-from temporis.transformation.features.split import SplitByCategory
-from temporis.transformation.features.transformation import MeanCentering
-from temporis.transformation.functional.concatenate import Concatenate
-from temporis.transformation.functional.graph_utils import root_nodes
-from temporis.transformation.functional.pipeline.utils import make_pipeline
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.transformation import Concatenate as TransformationConcatenate
+from ceruleo.transformation import Transformer
+from ceruleo.transformation.features.imputers import PerColumnImputer
+from ceruleo.transformation.features.outliers import IQROutlierRemover
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.transformation.features.split import SplitByCategory
+from ceruleo.transformation.features.transformation import MeanCentering
+from ceruleo.transformation.functional.concatenate import Concatenate
+from ceruleo.transformation.functional.graph_utils import root_nodes
+from ceruleo.transformation.functional.pipeline.utils import make_pipeline
 
 
 def gaussian(N: int, mean: float = 50, std: float = 10):

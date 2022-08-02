@@ -1,4 +1,4 @@
-from temporis.iterators.iterators import AbstractSampleWeights
+from ceruleo.iterators.iterators import AbstractSampleWeights
 import numpy as np
 
 class RULInverseWeighted(AbstractSampleWeights):

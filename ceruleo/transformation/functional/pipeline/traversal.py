@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 import pandas as pd
-from temporis import CACHE_PATH
-from temporis.transformation.functional.pipeline.cache_store import CacheStoreType, GraphTraversalCacheMemory, GraphTraversalCacheShelveStore
-from temporis.transformation.functional.pipeline.utils import decode_tuple, encode_tuple
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo import CACHE_PATH
+from ceruleo.transformation.functional.pipeline.cache_store import CacheStoreType, GraphTraversalCacheMemory, GraphTraversalCacheShelveStore
+from ceruleo.transformation.functional.pipeline.utils import decode_tuple, encode_tuple
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class CachedGraphTraversal:

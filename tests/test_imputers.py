@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from temporis.transformation.features.imputers import (ForwardFillImputer,
+from ceruleo.transformation.features.imputers import (ForwardFillImputer,
                                                        MeanImputer, ApplyRollingImputer,
                                                        MedianImputer, NaNtoInf)
 

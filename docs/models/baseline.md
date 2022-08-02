@@ -1,4 +1,4 @@
 # Baseline models
 
 
-::: rul_pm.models.baseline
+::: ceruleo.models.baseline

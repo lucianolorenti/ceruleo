@@ -2,12 +2,12 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from temporis.transformation import TransformerStep
+from ceruleo.transformation import TransformerStep
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
-from temporis.transformation.features.tdigest import TDigest
-from temporis.transformation.utils import QuantileEstimator
+from ceruleo.transformation.features.tdigest import TDigest
+from ceruleo.transformation.utils import QuantileEstimator
 from sklearn.ensemble import IsolationForest
 
 

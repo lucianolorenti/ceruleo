@@ -1,5 +1,5 @@
 import torch
-from temporis.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.iterators import WindowedDatasetIterator
 
 
 class IterableDataset(torch.utils.data.IterableDataset):

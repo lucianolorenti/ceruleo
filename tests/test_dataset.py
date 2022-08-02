@@ -2,13 +2,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from temporis.dataset.CMAPSS import CMAPSSDataset, sensor_indices
-from temporis.dataset.transformed import TransformedSerializedDataset
-from temporis.dataset.ts_dataset import (AbstractTimeSeriesDataset,
+from ceruleo.dataset.catalog.CMAPSS import CMAPSSDataset, sensor_indices
+from ceruleo.dataset.transformed import TransformedSerializedDataset
+from ceruleo.dataset.ts_dataset import (AbstractTimeSeriesDataset,
                                          FoldedDataset)
-from temporis.transformation import Transformer
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.transformation import Transformer
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
 from sklearn.model_selection import train_test_split
 
 class MockDataset(AbstractTimeSeriesDataset):

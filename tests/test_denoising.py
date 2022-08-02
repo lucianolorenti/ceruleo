@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from temporis.transformation.features.denoising import (GaussianFilter,
+from ceruleo.transformation.features.denoising import (GaussianFilter,
     EWMAFilter, MeanFilter, MedianFilter, MultiDimensionalKMeans, OneDimensionalKMeans, SavitzkyGolayTransformer)
 
 

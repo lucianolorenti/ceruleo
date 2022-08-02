@@ -1,12 +1,10 @@
 
-import logging
+
+from itertools import combinations
 from typing import List, Optional, Tuple
 
-import numpy as np
 import pandas as pd
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-import antropy as ant
-from itertools import combinations
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 
 
 def correlation_analysis(

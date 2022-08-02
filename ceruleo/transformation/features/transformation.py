@@ -2,8 +2,8 @@ from typing import Optional
 
 
 import pandas as pd
-from temporis.transformation import TransformerStep
-from temporis.transformation.features.tdigest import TDigest
+from ceruleo.transformation import TransformerStep
+from ceruleo.transformation.features.tdigest import TDigest
 import numpy as np
 from scipy.signal import find_peaks
 

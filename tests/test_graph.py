@@ -1,5 +1,5 @@
-from temporis.transformation.functional.graph_utils import topological_sort_iterator
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.graph_utils import topological_sort_iterator
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class VisitableNode(TransformerStep):

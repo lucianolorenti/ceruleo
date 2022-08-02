@@ -1,13 +1,10 @@
 import logging
 from typing import Optional, Union
 
-
 import numpy as np
 import pandas as pd
-from temporis.transformation import TransformerStep
-
-from temporis.transformation.features.tdigest import TDigest
-from temporis.transformation.utils import QuantileEstimator
+from ceruleo.transformation import TransformerStep
+from ceruleo.transformation.features.tdigest import TDigest
 
 logger = logging.getLogger(__name__)
            

@@ -212,7 +212,7 @@ class AbstractTimeSeriesDataset:
         return self._common_features
 
     def map(self, transformer, cache_size: int = None):
-        from temporis.dataset.transformed import TransformedDataset
+        from ceruleo.dataset.transformed import TransformedDataset
 
         return TransformedDataset(self, transformer, cache_size=cache_size)
 

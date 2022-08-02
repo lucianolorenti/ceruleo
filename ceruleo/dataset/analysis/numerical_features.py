@@ -7,7 +7,7 @@ import pandas as pd
 
 from pyparsing import col
 from scipy.stats import spearmanr
-from temporis.dataset.transformed import TransformedDataset
+from ceruleo.dataset.transformed import TransformedDataset
 from tqdm.auto import tqdm
 from sklearn.feature_selection import mutual_info_regression
 from uncertainties import ufloat
@@ -98,7 +98,7 @@ def merge_analysis(data: dict):
 def analysis(
     transformed_dataset: TransformedDataset,
     *,
-    show_progress: bool,
+    show_progress: bool = False,
     what_to_compute: List[str] = [],
 ):
 
@@ -110,6 +110,7 @@ def analysis(
         iterator = tqdm(iterator)
 
     for (X, y, _) in iterator:
+        print(X.columns)
         y = np.squeeze(y)
         data = analysis_single_time_series(
             X, y, transformed_dataset.transformer.column_names, data, what_to_compute

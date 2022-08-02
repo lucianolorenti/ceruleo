@@ -2,11 +2,11 @@ from typing import Optional, Union
 
 
 import pandas as pd
-from temporis.transformation import TransformerStep
-from temporis.transformation.features.tdigest import TDigest
+from ceruleo.transformation import TransformerStep
+from ceruleo.transformation.features.tdigest import TDigest
 import numpy as np
 from scipy.signal import find_peaks
-from temporis.iterators.iterators import (
+from ceruleo.iterators.iterators import (
     RelativePosition,
     RelativeToEnd,
     RelativeToStart,

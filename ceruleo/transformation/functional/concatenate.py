@@ -1,11 +1,10 @@
 from typing import List
+
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
-from numpy.lib.arraysetops import isin
-from sklearn.pipeline import FeatureUnion, _transform_one
+from ceruleo.transformation.functional.mixin import TransformerStepMixin
 
-from temporis.transformation.functional.mixin import TransformerStepMixin
 
 
 class Concatenate(TransformerStepMixin):

@@ -7,8 +7,8 @@ from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from temporis.dataset.transformed import TransformedDataset
-from temporis.iterators.shufflers import AbstractShuffler, NotShuffled
+from ceruleo.dataset.transformed import TransformedDataset
+from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 from tqdm.auto import tqdm
 import functools
 

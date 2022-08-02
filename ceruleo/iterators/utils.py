@@ -1,13 +1,13 @@
 
 
 from numpy.lib.arraysetops import isin
-from temporis.dataset.transformed import TransformedDataset
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.transformed import TransformedDataset
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from typing import Optional, Union
 
 import numpy as np
-from temporis.iterators.batcher import Batcher
-from temporis.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.batcher import Batcher
+from ceruleo.iterators.iterators import WindowedDatasetIterator
 
 try:
     import tensorflow as tf 

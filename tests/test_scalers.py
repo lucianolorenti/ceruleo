@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from temporis.transformation.features.scalers import (RobustMinMaxScaler)
+from ceruleo.transformation.features.scalers import (RobustMinMaxScaler)
 from sklearn.preprocessing import RobustScaler
 
 class TestImputers():

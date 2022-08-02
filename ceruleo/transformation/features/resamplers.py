@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
-from temporis.transformation import TransformerStep
+from ceruleo.transformation import TransformerStep
 
 
 class Subsample(TransformerStep):

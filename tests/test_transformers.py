@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.transformation.features.entropy import LocalEntropyMeasures
-from temporis.transformation.features.extraction import (
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.transformation.features.entropy import LocalEntropyMeasures
+from ceruleo.transformation.features.extraction import (
     EMD,
     ChangesDetector,
     Difference,
@@ -17,20 +17,20 @@ from temporis.transformation.features.extraction import (
     SimpleEncodingCategorical,
     SlidingNonOverlappingEMD,
 )
-from temporis.transformation.features.outliers import (
+from ceruleo.transformation.features.outliers import (
     EWMAOutOfRange,
     IQROutlierRemover,
     ZScoreOutlierRemover,
     IsolationForestOutlierRemover,
 )
-from temporis.transformation.features.resamplers import IntegerIndexResamplerTransformer
-from temporis.transformation.features.selection import (
+from ceruleo.transformation.features.resamplers import IntegerIndexResamplerTransformer
+from ceruleo.transformation.features.selection import (
     ByNameFeatureSelector,
     NullProportionSelector,
 )
-from temporis.transformation.features.transformation import Accumulate
-from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
-from temporis.transformation.utils import QuantileEstimator
+from ceruleo.transformation.features.transformation import Accumulate
+from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
+from ceruleo.transformation.utils import QuantileEstimator
 
 
 def manual_expanding(df: pd.DataFrame, min_points: int = 1):

@@ -1,6 +1,6 @@
 
 from typing import List
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 import pandas as pd
 from functools import reduce 
 

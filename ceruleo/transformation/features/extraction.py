@@ -16,10 +16,10 @@ import pywt
 #    from temporis.transformation.features.hurst import hurst_exponent
 # except:
 #    pass
-from temporis.transformation import TransformerStep
-from temporis.transformation.features.rolling_windows import apply_rolling_data
-from temporis.transformation.functional.transformers import Transformer
-from temporis.transformation.utils import SKLearnTransformerWrapper
+from ceruleo.transformation import TransformerStep
+from ceruleo.transformation.features.rolling_windows import apply_rolling_data
+from ceruleo.transformation.functional.transformers import Transformer
+from ceruleo.transformation.utils import SKLearnTransformerWrapper
 
 logger = logging.getLogger(__name__)
 

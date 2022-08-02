@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from temporis.transformation.functional.graph_utils import edges, nodes
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.graph_utils import edges, nodes
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 def encode_tuple(tup: Tuple):
@@ -19,7 +19,7 @@ def decode_tuple(s: str):
 
 
 def make_pipeline(*steps):
-    from temporis.transformation.functional.pipeline.pipeline import \
+    from ceruleo.transformation.functional.pipeline.pipeline import \
         TemporisPipeline
 
     for s in range(1, len(steps)):
@@ -29,7 +29,7 @@ def make_pipeline(*steps):
 
 def plot_pipeline(pipe: "TemporisPipeline", name: str):
     import graphviz
-    from temporis.transformation.functional.pipeline.pipeline import \
+    from ceruleo.transformation.functional.pipeline.pipeline import \
         TemporisPipeline
 
     dot = graphviz.Digraph(name, comment="Transformation graph")

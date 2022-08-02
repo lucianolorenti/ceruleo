@@ -5,4 +5,18 @@ theme:
 plugins:
 - search
 - mkdocstrings
+- autorefs
 - mkdocs-jupyter
+
+watch:
+  - ceruleo
+
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

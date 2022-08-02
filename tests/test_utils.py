@@ -1,7 +1,7 @@
 
 
 import numpy as np
-from temporis.iterators.iterators import windowed_signal_generator
+from ceruleo.iterators.iterators import windowed_signal_generator
 
 
 class TestWindowGeneratorTest:

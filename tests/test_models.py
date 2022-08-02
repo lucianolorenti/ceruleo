@@ -3,20 +3,20 @@ import pandas as pd
 from numpy.random import seed
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import make_pipeline
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.iterators import WindowedDatasetIterator
-from temporis.iterators.shufflers import AllShuffled
-from temporis.iterators.utils import true_values
-from temporis.models.keras import tf_regression_dataset
-from temporis.models.scikitlearn import (
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.shufflers import AllShuffled
+from ceruleo.iterators.utils import true_values
+from ceruleo.models.keras.keras import tf_regression_dataset
+from ceruleo.models.scikitlearn import (
     EstimatorWrapper,
     SKLearnTimeSeriesWindowTransformer,
     predict,
     train_model,
 )
-from temporis.transformation import Transformer
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.transformation import Transformer
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Flatten
 from xgboost import XGBRegressor

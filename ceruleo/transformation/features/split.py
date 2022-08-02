@@ -2,12 +2,12 @@ from copy import deepcopy
 from typing import Any, List, Optional, Tuple, Union
 
 import pandas as pd
-from temporis.transformation.functional.graph_utils import (
+from ceruleo.transformation.functional.graph_utils import (
     root_nodes,
     topological_sort_iterator,
 )
-from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class Joiner(TransformerStep):

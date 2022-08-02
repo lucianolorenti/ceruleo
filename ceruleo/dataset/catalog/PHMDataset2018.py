@@ -12,7 +12,7 @@ from typing import List, Optional, Union
 import gdown
 import numpy as np
 import pandas as pd
-from ceruleo import CACHE_PATH, DATASET_PATH
+from ceruleo import CACHE_PATH, DATA_PATH
 from ceruleo.dataset.lives_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 
@@ -87,7 +87,7 @@ def merge_data_with_faults(
         Dataframe indexed by time with the raw sensors and faults
         The dataframe contains also a fault_number column
     """
-    data = pd.read_csv(data_file).dropna().set_index("time")
+    data = pd.read_csv(data_file).set_index("time")
 
     fault_data = (
         pd.read_csv(fault_data_file).drop_duplicates(subset=["time"]).set_index("time")
@@ -142,7 +142,7 @@ class PHMDataset2018(AbstractLivesDataset):
         self,
         failure_types: Union[FailureType, List[FailureType]] = [l for l in FailureType],
         tools: Union[str, List[str]] = "all",
-        path: Path = DATASET_PATH,
+        path: Path = DATA_PATH,
     ):
         super().__init__()
         if not isinstance(failure_types, list):
@@ -198,11 +198,7 @@ class PHMDataset2018(AbstractLivesDataset):
             DataFrame with the data of the life i
         """
         df = self._load_life(self.lives.iloc[i]["Filename"])
-
-        # df = df[df['FIXTURESHUTTERPOSITION'] == 1].copy().dropna()
-        # df = df[df['ETCHAUXSOURCETIMER'].diff() != 0]
-        # df = df[df['ETCHSOURCEUSAGE'].diff() != 0]
-
+        df.index = pd.to_timedelta(df.index, unit='s')
         df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
         return df

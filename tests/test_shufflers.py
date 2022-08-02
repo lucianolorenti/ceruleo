@@ -1,8 +1,8 @@
 import math
 
 import numpy as np
-from temporis.iterators.iterators import RelativeToEnd, RelativeToStart, WindowedDatasetIterator
-from temporis.iterators.shufflers import (
+from ceruleo.iterators.iterators import RelativeToEnd, RelativeToStart, WindowedDatasetIterator
+from ceruleo.iterators.shufflers import (
     AbstractShuffler,
     AllShuffled,
     IntraTimeSeriesShuffler,

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from temporis.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.iterators import WindowedDatasetIterator
 import numpy as np
 
 def tf_regression_dataset(iterator: WindowedDatasetIterator):

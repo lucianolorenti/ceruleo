@@ -3,13 +3,13 @@ from multiprocessing import JoinableQueue, Manager, Process, Queue
 from typing import Iterable, Union
 
 import pandas as pd
-from temporis.transformation.functional.graph_utils import (
+from ceruleo.transformation.functional.graph_utils import (
     root_nodes,
     topological_sort_iterator,
 )
-from temporis.transformation.functional.pipeline.cache_store import CacheStoreType
-from temporis.transformation.functional.pipeline.traversal import CachedGraphTraversal
-from temporis.transformation.functional.transformerstep import TransformerStep
+from ceruleo.transformation.functional.pipeline.cache_store import CacheStoreType
+from ceruleo.transformation.functional.pipeline.traversal import CachedGraphTraversal
+from ceruleo.transformation.functional.transformerstep import TransformerStep
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)

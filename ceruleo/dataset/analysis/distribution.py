@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import kl_div
 from scipy.stats import wasserstein_distance
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from tqdm.auto import  tqdm 
 
 

@@ -3,14 +3,13 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.batcher import Batcher
+from ceruleo.iterators.iterators import (NotWeighted, SampleWeight,
+                                         WindowedDatasetIterator)
+from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import mean_squared_error
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.batcher import Batcher
-from temporis.iterators.iterators import (NotWeighted, SampleWeight,
-                                          WindowedDatasetIterator)
-from temporis.iterators.shufflers import AbstractShuffler, NotShuffled
-
 from xgboost import XGBRegressor
 
 

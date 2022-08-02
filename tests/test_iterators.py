@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.iterators.batcher import Batcher
-from temporis.iterators.iterators import WindowedDatasetIterator
-from temporis.transformation import TemporisPipeline, Transformer
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.batcher import Batcher
+from ceruleo.iterators.iterators import WindowedDatasetIterator
+from ceruleo.transformation import TemporisPipeline, Transformer
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
 
 
 class SimpleDataset(AbstractTimeSeriesDataset):

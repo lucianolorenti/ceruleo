@@ -2,9 +2,9 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from temporis.transformation import TransformerStep
-from temporis.transformation.features.tdigest import TDigest
-from temporis.transformation.utils import QuantileComputer, QuantileEstimator
+from ceruleo.transformation import TransformerStep
+from ceruleo.transformation.features.tdigest import TDigest
+from ceruleo.transformation.utils import QuantileComputer, QuantileEstimator
 
 
 class RobustMinMaxScaler(TransformerStep):

@@ -4,7 +4,7 @@ import uuid
 from enum import Enum
 from pathlib import Path
 
-from temporis import CACHE_PATH
+from ceruleo import CACHE_PATH
 
 
 class GraphTraversalAbstractStore:

@@ -1,9 +1,8 @@
 from typing import Optional
 
 import numpy as np
-from temporis.transformation import TransformerStep
-
 import pandas as pd
+from ceruleo.transformation import TransformerStep
 
 
 class TargetToClasses(TransformerStep):

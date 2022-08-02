@@ -1,1 +1,1 @@
-from temporis.transformation.functional.pipeline.pipeline import TemporisPipeline
+from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline

@@ -8,9 +8,9 @@ from typing import Optional, Union
 
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-from temporis.transformation.functional.transformers import Transformer
-from temporis.utils.lrucache import LRUDataCache
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.transformation.functional.transformers import Transformer
+from ceruleo.utils.lrucache import LRUDataCache
 from tqdm.auto import tqdm
 import numpy as np
 
