@@ -1,0 +1,8 @@
+site_name: CERULEo
+theme:
+  name: "material"
+
+plugins:
+- search
+- mkdocstrings
+- mkdocs-jupyter
