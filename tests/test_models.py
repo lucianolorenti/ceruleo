@@ -149,7 +149,7 @@ class TestModels:
             val_dataset.map(transformer), window_size=window_size, step=1
         )
 
-        input = Input(shape=train_iterator.input_shape)
+        input = Input(shape=train_iterator.shape)
         x = input
         x = Flatten()(x)
         x = Dense(8, activation="relu")(x)

@@ -32,7 +32,7 @@ def true_values(
     np.array
          target values after the transformation
     """
-    from temporis.transformation.functional.transformers import TransformerIdentity
+    from ceruleo.transformation.functional.transformers import TransformerIdentity
     if isinstance(dataset_iterator, Batcher):
         dataset_iterator = dataset_iterator.iterator
 

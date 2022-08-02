@@ -39,25 +39,17 @@ def seq_to_seq_signal_generator(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Generator for sequence to sequence models
 
-    Parameters
-    ----------
-    signal_X : np.ndarray
-        The input signal
-    signal_Y : np.ndarray
-        The output signal
-    i : int
-        Current index
-    window_size : int
-        Window size
-    output_size : int, optional
-        Output sequence length, by default 1
-    right_closed : bool, optional
-        Wether the lsat input of the windwo is included or not, by default True
+    Parameters:
+        signal_X: The input signal
+        signal_Y: The output signal
+        i: Current index
+        window_size: indow size
+        output_size: Output sequence length, by default 1
+        right_closed: Wether the lsat input of the windwo is included or not, by default True
 
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray]
+    Returns:    
         Input and ouput sequences
+        
     """
     initial = max(i - window_size + 1, 0)
 
@@ -327,7 +319,7 @@ class WindowedDatasetIterator:
         return self.dataset.transformer.n_features
 
     @property
-    def input_shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:
         """Tuple containing (window_size, n_features)
 
         Returns

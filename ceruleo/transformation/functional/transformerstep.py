@@ -33,11 +33,11 @@ class TransformerStep(TransformerStepMixin, TransformerMixin):
 
 
     def __add__(self, other):
-        from temporis.transformation.features.operations import Sum
-        from temporis.transformation.utils import ensure_step
+        from ceruleo.transformation.features.operations import Sum
+        from ceruleo.transformation.utils import ensure_step
         return Sum()([self, ensure_step(other)])
 
     def __truediv__(self, other):
-        from temporis.transformation.features.operations import Divide
-        from temporis.transformation.utils import ensure_step
+        from ceruleo.transformation.features.operations import Divide
+        from ceruleo.transformation.utils import ensure_step
         return Divide()([self, ensure_step(other)])
