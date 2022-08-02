@@ -11,7 +11,7 @@ BASEPATH = Path(__file__).resolve().parent
 
 
 setup(
-    name="rul_pm",
+    name="ceruleo",
     packages=find_packages(),
     version="1.1.0",
     description="Remaining useful life estimation utilities",
@@ -21,13 +21,10 @@ setup(
         "numpy",
         "tqdm",
         "scikit-learn",
-        "seaborn",
-        "xgboost",
         "gwpy",
         "emd",
         "dill",
         "mmh3",
-        "temporis",
         "pyarrow",
         "fastparquet",
         "sphinxcontrib.bibtex",
