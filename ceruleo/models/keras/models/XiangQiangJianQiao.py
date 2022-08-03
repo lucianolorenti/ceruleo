@@ -29,25 +29,21 @@ def XiangQiangJianQiaoModel(
     Dropout rate:	0.5
     batch_size: 512
 
-    Parameters
-    ----------
-    input_shape : Tuple[int, int]
-        [description]
-    convolutional_layers : List[Tuple[int, int]], optional
-        List of tuples with the convolutional dimensions, by default [(10, 10), (10, 10), (10, 10)]
-        Each element of the list is a tuple that contains
-        (number of filter, kernel size)
+    Parameters:
 
-    dropout : float, optional
-        Dropout rate, by default 0.5
-    dense_dimension : int, optional
-        Dimension of the fully connected layer, by default 100
-    convolutional_activation : str, optional
-        Activation of the convolutional layers, by default "tanh"
+        input_shape: input shape of the iterator
+            
+        convolutional_layers : List[Tuple[int, int]], optional
+            List of tuples with the convolutional dimensions
+            Each element of the list is a tuple that contains
+            (number of filter, kernel size)
+        dropout: Dropout rate
+        dense_dimension: Dimension of the fully connected layer
+        convolutional_activation: Activation of the convolutional layers
 
-    Returns
-    -------
-    tf.keras.Model
+    Return:
+    
+        model: tf.keras.Model
         
     """
 

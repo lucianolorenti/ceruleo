@@ -1,6 +1,6 @@
 from typing import Tuple
 import tensorflow as tf
-from ceruleo.models.keras.keras import KerasTrainableModel
+
 from ceruleo.models.keras.layers import ExpandDimension
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import (

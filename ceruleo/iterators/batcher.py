@@ -1,23 +1,33 @@
+"""Batching capabilities
+
+Many machine learning models require data to be provided in the form of mini batches.
+This module interacts with iterators to generate batches.
+In particular, this module was created to be used with pytorch models.
+
+Take a look at the pytorch example to see its usage.
+"""
 import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
 from numpy.lib.arraysetops import isin
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
-from ceruleo.iterators.iterators import NotWeighted, SampleWeight, WindowedDatasetIterator
+from ceruleo.iterators.iterators import (
+    NotWeighted,
+    SampleWeight,
+    WindowedDatasetIterator,
+)
 from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 
 
 class Batcher:
     """WindowedIterator Batcher
 
-    Parameters
-    ----------
-    iterator: WindowedDatasetIterator
-              Dataset iterator
-    batch_size: int
-                Batch size to use
+    Parameters:
+
+        iterator: Dataset iterator
+        batch_size: int
 
     """
 
@@ -39,9 +49,9 @@ class Batcher:
         step: int,
         horizon: int = 1,
         shuffler: AbstractShuffler = NotShuffled(),
-        sample_weight:  SampleWeight= NotWeighted(),
+        sample_weight: SampleWeight = NotWeighted(),
         right_closed: bool = True,
-        padding: bool = False
+        padding: bool = False,
     ):
         """Batcher constructor from a dataset
 
@@ -49,25 +59,20 @@ class Batcher:
         then a Batcher from the iterator.
         Most of the parameters come from the WindowedDatasetIterator,
 
-        Parameters
-        ----------
-        dataset : AbstractTimeSeriesDataset
-            Dataset from which the batcher will be created
-        batch_size : int
-            Batch size
-        step: int 
-            strides
-        horizon: int
-            Size of the horizon to predict. By default 1
-        shuffle: AbstractShuffler
-        sample_weight: SampleWeight
-        right_closed: bool
-        padding: bool
+        Parameters:
 
-        Returns
-        -------
-        Batcher
-            A new constructed batcher
+            dataset: Dataset from which the batcher will be created
+            batch_size: Batch size
+            step: strides
+            horizon: Size of the horizon to predict. By default 1
+            shuffle: AbstractShuffler
+            sample_weight: SampleWeight
+            right_closed: bool
+            padding: bool
+
+        Returns:
+
+            batcher: A new constructed batcher
         """
         iterator = WindowedDatasetIterator(
             dataset,
@@ -77,7 +82,7 @@ class Batcher:
             shuffler=shuffler,
             sample_weight=sample_weight,
             right_closed=right_closed,
-            padding=padding
+            padding=padding,
         )
         b = Batcher(iterator, batch_size)
         return b
@@ -85,14 +90,13 @@ class Batcher:
     def __len__(self) -> int:
         """Number of batches
 
-        Returns
-        -------
-        int
-            Number of batches in the iterator
+        Returns:
+
+            batches: Number of batches in the iterator
         """
         if len(self.iterator) is None:
             return None
-        q =  math.ceil(len(self.iterator) / self.batch_size)
+        q = math.ceil(len(self.iterator) / self.batch_size)
         return q
 
     def __iter__(self):
@@ -107,10 +111,9 @@ class Batcher:
         This is a helper method to obtain the transformed
         dataset information from the WindowedDatasetIterator
 
-        Returns
-        -------
-        int
-            Number of features of the transformed dataset
+        Returns:
+
+            features: Number of features of the transformed dataset
         """
         return self.iterator.n_features
 
@@ -121,10 +124,9 @@ class Batcher:
         This is a helper method to obtain the WindowedDatasetIterator
         information
 
-        Returns
-        -------
-        int
-            Lookback window size
+        Returns:
+
+            window: Lookback window size
         """
         return self.iterator.window_size
 
@@ -132,10 +134,9 @@ class Batcher:
     def output_shape(self) -> int:
         """Number of values returned as target by each sample
 
-        Returns
-        -------
-        int
-            Number of values returned as target by each sample
+        Returns:
+
+            output_size: Number of values returned as target by each sample
         """
         return self.iterator.output_size
 
@@ -143,10 +144,9 @@ class Batcher:
     def input_shape(self) -> Tuple[int, int]:
         """Tuple containing (window_size, n_features)
 
-        Returns
-        -------
-        Tuple[int, int]
-            Tuple containing (window_size, n_features)
+        Returns:
+
+            window_size, n_features
         """
         return self.iterator.input_shape
 
@@ -203,7 +203,7 @@ class Batcher:
             if isinstance(d, tuple):
                 return tuple(slice_batch_data_element(q, actual_batch_size) for q in d)
             else:
-                return d[:actual_batch_size-1, :]
+                return d[: actual_batch_size - 1, :]
 
         if actual_batch_size == self.batch_size:
             return self.batch_data
@@ -228,4 +228,3 @@ class Batcher:
             self.stop = True
 
         return self._slice_data(actual_batch_size)
-

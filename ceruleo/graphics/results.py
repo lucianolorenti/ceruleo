@@ -1,3 +1,31 @@
+"""Visualization utilities for RUL estimation models
+
+One of the most important issues regarding PM is the ability to compare and evaluate different methods.
+
+The main data structure used in the results module is a dictionary in which each of the keys is the model name, 
+and the elements are a list of PredictionResult. 
+Each element of the model array is interpreted as a Fold in CV settings. 
+
+Additionally to the regression error, it is possible to compute some metrics more easily interpretable. In this context, two metrics were defined in [1], namely:
+
+- Frequency of Unexpected Breaks (ρUB) - the percentage of failures not prevented;
+- Amount of Unexploited Lifetime (ρUL) - the average number of time that could have been run before failure if the preventative maintenance suggested by the maintenance management mod-ule had not been performed.
+
+A comparison between the predicted end of life with respect to the true end of that particular life is made. 
+
+In that case, three scenarios can happen:
+- The predicted end of life occurs before the true one. In that case, the predictions were pessimistic and the tool could have been used more time.
+- The remaining useful life arrives at zero after the true remaining useful life. In that case, we incur the risk of the tool breaking.  
+- The predicted line coincides with the true line. In that case, we don’t have unexploited time, and the risk of breakage can be considered 0.
+
+
+Since usually the breakages are considered more harmful, a possible approach to preventing unexpected failures is to consider a more conservative maintenance approach, providing maintenance tasks recommendations some time before the end of life predicted. In that way, a conservative window can be defined in which the recommendation of making maintenance task should be performed at time T-predicted - conservative window size.
+
+It is possible to visualize how it grows the unexploited lifetime grows as the conservative window size grows and how the unexpected breaks decrease as the conservative window size grows.
+
+[1] Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
+    Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015). 
+"""
 import math
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -16,6 +44,10 @@ from ceruleo.results.results import (FittedLife, PredictionResult,
 def plot_lives(ds: TransformedDataset):
     """
     Plot each life
+
+    Parameters:
+
+        ds: A transformed dataset
     """
     fig, ax = plt.subplots()
     it = ds
@@ -140,29 +172,21 @@ def boxplot_errors_wrt_RUL(
     """Boxplots of difference between true and predicted RUL over Cross-validated results
 
 
-    Parameters
-    ----------
-    results_dict: Dict[str, List[PredictionResult]]
-                  Dictionary with the results of the fitted models
-    nbins: int
-           Number of bins to divide the
-    y_axis_label: Optional[str]. Default None,
-                  Optional string to be added to the y axis
-    x_axis_label: Optional[str]=None
-                  Optional string to be added to the x axis
-    fig:
-       Optional figure in which the plot will be
-    ax: Optional. Default None
-        Optional axis in which the plot will be drawed.
-        If an axis is not provided, it will create one.
+    Parameters:
+    
+        results_dict: Dictionary with the results of the fitted models
+        nbins: Number of bins to divide the
+        y_axis_label: Optional string to be added to the y axis
+        x_axis_label: Optional string to be added to the x axis
+        ax: Optional axis in which the plot will be drawed.
+            If an axis is not provided, it will create one.
 
-    Keyword arguments
-    -----------------
-    **kwargs
+    Keyword arguments:
 
-    Return
-    -------
-    fig, ax:
+        **kwargs
+
+    Return:
+        ax
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -183,7 +207,6 @@ def boxplot_errors_wrt_RUL(
 def _cv_barplot_errors_wrt_RUL_multiple_models(
     bin_edges,
     model_results: dict,
-    fig=None,
     ax=None,
     y_axis_label: Optional[str] = None,
     x_axis_label: Optional[str] = None,
@@ -193,26 +216,22 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
 ):
     """Plot the barplots given the errors
 
-    Parameters
-    ----------
+    Parameters:
+
         bin_edges: np.ndarray:
 
-        model_results: dict
-            Dictionary with the results
-        fig: Optional[plt.Figure]
-            Figure
-        ax: Optional[ax.Axis] Defaults to None.
-            Axis
-        y_axis_label: Optional[str] Defaults to None.
-            Y Label
-        x_axis_label:Optional[str]
-            X Label
+        model_results: Dictionary with the results
+        ax: Axis
+        y_axis_label: Y Label
+        x_axis_label: X Label
 
     Returns:
+
         Tuple[fig, axis]
     """
-    if fig is None:
+    if ax is None:
         fig, ax = plt.subplots(**kwargs)
+    fig  = ax.figure
     labels = []
     n_models = len(model_results)
     nbins = len(bin_edges) - 1
@@ -278,17 +297,21 @@ def barplot_errors_wrt_RUL(
     nbins: int,
     y_axis_label=None,
     x_axis_label=None,
-    fig=None,
     ax=None,
     color_palette: str = "hls",
     **kwargs,
 ):
     """Boxplots of difference between true and predicted RUL
 
-    Parameters
-    ----------
-    nbins: int
-           Number of boxplots
+    Parameters:
+
+        results_dict: Dictionary with the results for each model
+        nbins: Number of bins in wich divide the RUL target
+        y_axis_label: Y label
+        x_axis_label: X label
+        ax: Axis
+        color_palette: 
+
     """
     if fig is None:
         fig, ax = plt.subplots(**kwargs)
@@ -297,7 +320,6 @@ def barplot_errors_wrt_RUL(
     return _cv_barplot_errors_wrt_RUL_multiple_models(
         bin_edges,
         model_results,
-        fig=fig,
         ax=ax,
         y_axis_label=y_axis_label,
         x_axis_label=x_axis_label,
@@ -655,8 +677,8 @@ def plot_predictions_grid(
 ):
     """Plot a matrix of predictions
 
-    Parameters
-    ----------
+    Parameters:
+    
     results : dict
         Dictionary with the results
     ncols : int, optional
@@ -715,30 +737,25 @@ def plot_predictions_grid(
 
 def plot_predictions(
     result: PredictionResult,
-    ax=None,
+    ax:Optional[matplotlib.axes.Axes]=None,
     units: str = "Hours [h]",
     markersize: float = 0.7,
     plot_fitted: bool  = True,
     model_name:str = '',
     **kwargs,
-):
+) -> matplotlib.axes.Axes:
     """Plots the predicted and the true remaining useful lives
 
-    Parameters
-    ----------
-    results_dict : dict
-        Dictionary with an interface conforming the requirements of the module
-    ax : optional
-        Axis to plot. If it is missing a new figure will be created, by default None
-    units : str, optional
-       Units of time to be used in the axis labels, by default 'Hours [h]'
-    cv : int, optional
-        Number of the CV results, by default 0
+    Parameters:
+    
+        result: A PredictionResult object
+        ax:  Axis to plot. If it is missing a new figure will be created
+        units: str
+            Units of time to be used in the axis labels, by default 'Hours [h]'
+        cv: Number of the CV results, by default 0
 
-    Returns
-    -------
-    ax
-        The axis on which the plot has been made
+    Returns:
+        ax: The axis on which the plot has been made
     """
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
@@ -755,8 +772,11 @@ def plot_predictions(
     if plot_fitted:
         try:
             fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
+            print(fitted.shape)
             ax.plot(fitted)
+            
         except:
+            
             pass
     ax.set_ylabel(units)
     ax.set_xlabel(units)

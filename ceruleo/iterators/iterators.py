@@ -1,3 +1,15 @@
+"""Windowed iteration capabilites
+
+Usually time series data is divided in a contigous periods
+of a determined window size, with some arbitray overlapping.
+How the time series is iterated constitutes a very important
+aspect when building a PdM model.
+
+This module provides utilities to iterate the dataset
+
+
+
+"""
 from abc import abstractmethod
 from enum import Enum
 import logging
@@ -17,11 +29,17 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractSampleWeights:
+    """The base class for the sample weight provider
+    """
     def __call__(self, y, i: int, metadata):
         raise NotImplementedError
 
 
 class NotWeighted(AbstractSampleWeights):
+    """Simplest sample weight provvider
+
+    Provide 1 as a sample weight for every sample
+    """
     def __call__(self, y, i: int, metadata):
         return 1
 
@@ -47,9 +65,9 @@ def seq_to_seq_signal_generator(
         output_size: Output sequence length, by default 1
         right_closed: Wether the lsat input of the windwo is included or not, by default True
 
-    Returns:    
+    Returns:
         Input and ouput sequences
-        
+
     """
     initial = max(i - window_size + 1, 0)
 
@@ -70,27 +88,19 @@ def windowed_signal_generator(
     """
     Return a lookback window and the value to predict.
 
-    Parameters
-    ----------
-    data:
-             Matrix of size (life_length, n_features) with the information of the life
-    target:
-             Target feature of size (life_length)
-    i: int
-       Position of the value to predict
+    Parameters:
 
-    window_size: int
-                 Size of the lookback window
-
-    output_size: int
-                 Number of points of the target
-
-    right_closed: bool
+        data: Matrix of size (life_length, n_features) with the information of the life
+        target: Target feature of size (life_length)
+        i: Position of the value to predict
+        window_size: Size of the lookback window
+        output_size: Number of points of the target
+        right_closed: Wether the las sample of the window should be included or not
 
 
-    Returns
-    -------
-    tuple (np.array, float)
+    Returns:
+
+        tuple (np.array, float)
     """
     initial = max(i - window_size + 1, 0)
     is_df = isinstance(data, pd.DataFrame)
@@ -135,6 +145,8 @@ def windowed_signal_generator(
 
 
 class IterationType(Enum):
+    """Iteration type
+    """
     SEQ_TO_SEQ = 1
     FORECAST = 2
 
@@ -152,6 +164,12 @@ def valid_sample(
 
 
 class RelativePosition:
+    """Relative position selector base class
+    
+    The relative position selectors allow specifying
+    the iteration starts and end relative to the beginning
+    or the end of the run-to-cycle failure
+    """
     def __init__(self, i: int):
         self.i = i
 
@@ -161,18 +179,70 @@ class RelativePosition:
 
 
 class RelativeToEnd(RelativePosition):
+    """Specify positions relative to the end of the run-to-failure cycle
+
+    Example:
+
+        An iterator that iterate each run-to-failure cycle starting
+        in the last 500 samples of each cycle.
+
+        iterator = WindowedDatasetIterator(
+                transformed_ds,
+                window_size=3,
+                step=1,
+                start_index=RelativeToEnd(500),
+                horizon=1)
+    """
     def get(self, time_series_length: int):
-        
         return max(time_series_length - self.i, 0)
-        
+
 
 
 class RelativeToStart(RelativePosition):
+    """Specify positions relative to the start of the run-to-failure cycle
+
+    Example:
+
+        An iterator that iterate each run-to-failure cycle skipping the first 
+        200 samples of each cycle.
+
+        iterator = WindowedDatasetIterator(
+                transformed_ds,
+                window_size=3,
+                step=1,
+                start_index=RelativeToStart(25),
+                horizon=1)
+    """
     def get(self, time_series_length: int):
         return self.i
 
 
 class WindowedDatasetIterator:
+    """Iterate a dataset using windows
+
+    Parameters:
+
+        dataset: The transformed dataset
+        window_size: Size of the loockback window
+        step: Separation between two consecutive size
+            If step == window_size there are not overlapping
+            between two consecutive windows
+        horizon: Horizon to be predicted.
+            If this value is 3, for each window, 3 elements
+            of the target are expected to be predicted
+        shuffler: How the data should be shuffled
+        sample_weight: Which are the sample weight for each sample
+        right_closed: Wether the last poinf of the window should be included or not
+        pdding: Wether to pad elements if the samples are not enough to fill the window
+            Usually this happes at the beggining of the window
+        iteration_type: Specify its the underlying model its a forecasting in which
+             an scalar is predicted, or a sequence to sequence model similar
+             to an autoencoder in wich 
+        start_index: Initial index of each run-tu-failure cycle
+        end_index: Final index of each run-to-failure cycle
+        valid_sample: A callable that returns wether a sample is valid or not
+        last_
+    """
     def __init__(
         self,
         dataset: TransformedDataset,
@@ -187,8 +257,7 @@ class WindowedDatasetIterator:
         start_index: Union[int, RelativePosition] = 0,
         end_index: Optional[Union[int, RelativePosition]] = None,
         valid_sample: Callable[[int, int, int, int, int], bool] = valid_sample,
-        last_point: bool = True
-        
+
     ):
 
         if isinstance(start_index, int):
@@ -198,7 +267,6 @@ class WindowedDatasetIterator:
             end_index = RelativeToEnd(0)
         elif isinstance(end_index, int):
             end_index = RelativeToStart(end_index)
-        self.last_point = last_point
         self.end_index = end_index
         self.dataset = dataset
         self.shuffler = shuffler
@@ -206,7 +274,7 @@ class WindowedDatasetIterator:
         self.step = step
         self.shuffler.initialize(self)
         self.iteration_type = iteration_type
-        
+
 
 
         if self.iteration_type == IterationType.FORECAST:

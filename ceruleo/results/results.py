@@ -2,7 +2,7 @@
 
 The main structure used on this functions is a dictionary in which
 each the keys are the model name, and the elements are list of dictionaries.
-Each of the dictionaries contain two keys: true, predicted. 
+Each of the dictionaries contain two keys: true, predicted.
 Those elements are list of the predictions
 
 
@@ -41,6 +41,13 @@ class PredictionResult:
     def compute_metrics(self):
         self.metrics.mae = mae(self.true_RUL, self.predicted_RUL)
         self.metrics.mse = mse(self.true_RUL, self.predicted_RUL)
+
+
+    def __init__(self, name:str,     true_RUL: np.ndarray, predicted_RUL: np.ndarray):
+        self.name = name
+        self.true_RUL = np.squeeze(true_RUL)
+        self.predicted_RUL = np.squeeze(predicted_RUL)
+        self.compute_metrics()
 
 
 def compute_sample_weight(sample_weight, y_true, y_pred, c: float = 0.9):
@@ -165,21 +172,15 @@ def models_cv_results(
 
 
 class FittedLife:
-    """Represent a Fitted Life
+    """Represent a Fitted run-to-cycle failure
 
-    Parameters
-    ----------
+    Parameters:
 
-    y_true: np.array
-        The true RUL target
-    y_pred: np.array
-        The predicted target
-    time: Optional[Union[np.array, int]]
-        Time feature
-    fit_line_not_increasing: Optional[bool] = False,
-        Wether the fitted line can increase or not.
-    RUL_threshold: Optional[float]
-        Indicates the thresholding value used during  de fit, By default None
+        y_true: The true RUL target
+        y_pred: The predicted target
+        time: Time feature
+        fit_line_not_increasing: Wether the fitted line can increase or not.
+        RUL_threshold: Indicates the thresholding value used during  de fit
 
     """
 
@@ -200,7 +201,9 @@ class FittedLife:
             if isinstance(time, np.ndarray):
                 self.time = time
             else:
+
                 self.time = np.array(np.linspace(0, y_true[0], n=len(y_true)))
+
         else:
             self.degrading_start, self.time = FittedLife.compute_time_feature(
                 y_true, RUL_threshold
@@ -222,7 +225,19 @@ class FittedLife:
         self.y_true_fitted = p(self.time)
 
     @staticmethod
-    def compute_time_feature(y_true: np.array, RUL_threshold: Optional[float] = None):
+    def compute_time_feature(y_true: np.array, RUL_threshold: Optional[float] = None) -> Tuple[float, np.ndarray]:
+        """Compute the time feature based on the target
+
+        Parameters:
+
+            y_true: RUL target
+            RUL_threshold:
+
+        Returns
+        -------
+
+            Degradint start time and time
+        """
         degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
         time = FittedLife._compute_time(y_true, degrading_start)
         return degrading_start, time
@@ -233,17 +248,15 @@ class FittedLife:
     ) -> float:
         """Obtain the index when the life value is lower than the RUL_threshold
 
-        Parameters
-        ----------
-        y_true : np.array
-            Array of true values of the RUL of the life
-        RUL_threshold : float
+        Parameters:
+
+            y_true: Array of true values of the RUL of the life
+            RUL_threshold: float
 
 
-        Returns
-        -------
-        float
-            if RUL_threshold is None, the degradint start if the first index.
+        Return:
+
+            degrading_start: if RUL_threshold is None, the degradint start if the first index.
             Otherwise it is the first index in which y_true < RUL_threshold
         """
         degrading_start = 0
@@ -251,6 +264,10 @@ class FittedLife:
             degrading_start_i = np.where(y_true < RUL_threshold)
             if len(degrading_start_i[0]) > 0:
                 degrading_start = degrading_start_i[0][0]
+        else:
+            d = np.diff(y_true) == 0
+            while (degrading_start< len(d)) and (d[degrading_start]):
+                degrading_start += 1
         return degrading_start
 
     @staticmethod
@@ -262,20 +279,18 @@ class FittedLife:
         the time steps of the thresholded zone is assumed to be as the median values
         of the time steps computed of the zones of the life in which we have information.
 
-        Parameters
-        ----------
-        y_true : np.array
-            The true RUL labels
-        degrading_start : int
-            The index in which the true RUL values starts to be lower than the treshold
+        Parameters:
 
-        Returns
-        -------
-        np.array
-            [description]
+            y_true: The true RUL labels
+            degrading_start : The index in which the true RUL values starts to be lower than the treshold
+
+        Returns:
+
+            t: Time component
         """
         if len(y_true) == 1:
             return np.array([0])
+        
         time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
@@ -284,6 +299,7 @@ class FittedLife:
             else:
                 time[0 : degrading_start + 1] = 1
         time[degrading_start + 1 :] = time_diff
+        
         return np.cumsum(time)
 
     def _fit_picewise_linear_regression(self, y: np.array) -> PiecewesieLinearFunction:
@@ -389,15 +405,13 @@ class FittedLife:
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
         Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
-        Parameters
-        ----------
-            m: float, optional
-                Fault horizon windpw. Defaults to 0.
+        Parameters:
 
-        Returns
-        -------
-            bool
-                Unexploited lifetime
+            m: Fault horizon windpw.
+
+        Returns:
+
+            Unexploited lifetime
         """
         if self.maintenance_point(m) - tolerance < self.end_of_life():
             return False
@@ -405,18 +419,14 @@ class FittedLife:
             return True
 
 
-def split_lives_indices(y_true: np.array):
+def split_lives_indices(y_true: np.array) -> List[List[int]]:
     """Obtain a list of indices for each life
 
-    Parameters
-    ----------
-    y_true : np.array
-        True vector with the RUL
+    Parameters:
+        y_true: True vector with the RUL
 
-    Returns
-    -------
-    List[List[int]]
-        A list with the indices belonging to each life
+    Returns:
+         l: A list with the indices belonging to each life
     """
     assert len(y_true) >= 2
     lives_indices = (
@@ -441,21 +451,15 @@ def split_lives(
 ) -> List[FittedLife]:
     """Divide an array of predictions into a list of FittedLife Object
 
-    Parameters
-    ----------
-    y_true : np.array
-        The true RUL target
-    y_pred : np.array
-        The predicted RUL
-    fit_line_not_increasing : Optional[bool], optional
-        Wether the fit line can increase, by default False
-    time : Optional[int], optional
-        A vector with timestamps. If omitted wil be computed from y_true, by default None
+    Parameters:
+        y_true: The true RUL target
+        y_pred: The predicted RUL
+        fit_line_not_increasing : Optional[bool], optional
+            Wether the fit line can increase, by default False
+        time:  A vector with timestamps. If omitted wil be computed from y_true
 
-    Returns
-    -------
-    List[FittedLife]
-        FittedLife list
+    Returns:
+        lives: FittedLife list
     """
     lives = []
     for r in split_lives_indices(results.true_RUL):
@@ -603,7 +607,7 @@ def cv_regression_metrics_single_model(
         if len(np.unique(y_pred)) == 1:
             continue
 
-        
+
         sw = compute_sample_weight(
             "relative",
             y_true,
@@ -647,7 +651,7 @@ def cv_regression_metrics_single_model(
         errors["MSE"].append(MSE)
         errors["MSE SW"].append(MSE_SW)
         errors["MAPE"].append(MAPE)
-        
+
     errors1 = {}
     for k in errors.keys():
         errors1[k] = ufloat(np.mean(errors[k]), np.std(errors[k]))

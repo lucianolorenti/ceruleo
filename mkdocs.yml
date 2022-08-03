@@ -9,6 +9,8 @@ plugins:
 - mkdocstrings
 - autorefs
 - mkdocs-jupyter
+- bibtex:
+    bib_file: "docs/refs.bib"
 
 watch:
   - ceruleo
@@ -24,3 +26,4 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       toc_depth: 3
+  - footnotes
