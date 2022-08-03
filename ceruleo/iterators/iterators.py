@@ -179,7 +179,6 @@ class WindowedDatasetIterator:
         window_size: int,
         step: int = 1,
         horizon: int = 1,
-        output_dimension: int = 1,
         shuffler: AbstractShuffler = NotShuffled(),
         sample_weight: SampleWeight = NotWeighted(),
         right_closed: bool = True,
@@ -226,7 +225,6 @@ class WindowedDatasetIterator:
 
         self.i = 0
         self.horizon = horizon
-        self.output_dimension = output_dimension
         self.right_closed = right_closed
         self.length = None
         self.padding = padding

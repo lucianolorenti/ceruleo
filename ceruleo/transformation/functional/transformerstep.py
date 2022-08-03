@@ -1,3 +1,8 @@
+"""Transformer step is the base class of all transformers
+
+The pipeline will use the steps to fit and transform the run-to-failure
+cycles
+"""
 from copy import copy
 from typing import List, Optional
 
@@ -7,19 +12,46 @@ from sklearn.base import TransformerMixin
 
 
 class TransformerStep(TransformerStepMixin, TransformerMixin):
-    def partial_fit(self, X, y=None):
+    """Base class of all transformation step
+
+    """
+    def partial_fit(self, X:pd.DataFrame, y=None) -> "TransformerStep":
+        """Fit a single run-to-failure cycle
+
+        Parameters:
+
+            X: Features of the run-to-failure cycle
+
+
+        Returns:
+            TransformerStep: The same step
+        """
         return self
 
-    def fit(self, X, y=None):
-        return self
+    def fit(self, X, y=None)  -> "TransformerStep":
+        """Fit the complete set of run-to-failure cycles
 
-    def column_name(self, df: pd.DataFrame, cname: str):
-        columns = [c for c in df.columns if cname in c]
-        if len(columns) == 0:
-            raise ValueError("{cname} is not present in the dataset")
-        return columns[0]
+        Parameters:
+
+            X: Features of the all the run-to-failure cycles
+
+
+        Returns:
+            TransformerStep: The same step
+        """
+        return self
 
     def find_feature(self, X: pd.DataFrame, name: str) -> Optional[str]:
+        """Find the feature that best maches the columns in X
+
+        Parameters:
+            X: A run-to-failure cycle
+            name: The name of the feature to find
+
+        Returns:
+            The name of the columns if it was found, else None
+        
+        """
         matches = [c for c in X.columns if name in c]
         if len(matches) > 0:
             return matches[0]

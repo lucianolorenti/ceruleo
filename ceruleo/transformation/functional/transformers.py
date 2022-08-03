@@ -1,10 +1,11 @@
 """
 
 The transformer is a high-level class that hold at least two transformation pipelines
-* One related to the transformation of the input of the model
-* The other related to the target of the model.
 
-Allows accessing the information of the transformed data and is the object that uses the 
+  * One related to the transformation of the input of the model
+  * The other related to the target of the model.
+
+It allows accessing the information of the transformed data and is the object that uses the
 dataset iterators to transform the data before feeding it to the model.
 """
 import copy
@@ -25,15 +26,12 @@ from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 logger = logging.getLogger(__name__)
 
-RESAMPLER_STEP_NAME = "resampler"
-
-
 
 
 def transformer_info(transformer : Optional[TemporisPipeline]):
     """Obtains the transformer information in a serializable format
 
-    Parameters:   
+    Parameters:
 
         transformer: The transformer step, or pipeline to obtain their underlying information
 
@@ -41,7 +39,7 @@ def transformer_info(transformer : Optional[TemporisPipeline]):
         dict
 
     Raises:
-    
+
         ValueError
             If the transformer passed as an argument doesn't have
             the get_params method.
@@ -54,10 +52,10 @@ def transformer_info(transformer : Optional[TemporisPipeline]):
     for q in Q:
         data.append(q.description())
     return data
-    
 
 
-    
+
+
 
 
 
@@ -70,14 +68,11 @@ class Transformer:
     and provides mechanism to inspect the structure of the transformed data.
 
     Parameters:
-    
-    transformerX : LivesPipeline
-        Transformer that will be applied to the life data
-    transformerY : LivesPipeline
-        Transformer that will be applied to the target.
-    transformerMetadata : Optional[LivesPipeline], optional
-        Transformer that will be used to extract additional
-        data from the lives information, by default None
+
+        transformerX: Transformer that will be applied to the run-to-cycle data
+        transformerY: Transformer that will be applied to the target.
+        transformerMetadata: Transformer that will be used to extract additional
+                            data from the lives information, by default None
     """
 
     def __init__(
@@ -86,7 +81,7 @@ class Transformer:
         transformerY: Optional[Union[TemporisPipeline, TransformerStep]] = None,
         transformerMetadata: Optional[Union[TemporisPipeline, TransformerStep]] = None,
         cache_type: CacheStoreType = CacheStoreType.SHELVE,
-        
+
     ):
         def ensure_pipeline(x, cache_type: CacheStoreType):
             if isinstance(x, TemporisPipeline):

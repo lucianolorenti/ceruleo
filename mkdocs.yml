@@ -1,6 +1,8 @@
 site_name: CERULEo
 theme:
   name: "material"
+  features:
+    - navigation.tabs
 
 plugins:
 - search
@@ -20,3 +22,5 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - toc:
+      toc_depth: 3
