@@ -1,4 +1,5 @@
 
+import logging
 from typing import Optional, Tuple
 
 import numpy as np
@@ -10,7 +11,8 @@ from ceruleo.iterators.iterators import (NotWeighted, SampleWeight,
 from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import mean_squared_error
-from xgboost import XGBRegressor
+
+logger = logging.getLogger(__name__)
 
 
 class EstimatorWrapper(TransformerMixin, BaseEstimator):
@@ -90,9 +92,13 @@ def train_model(model, train_iterator: WindowedDatasetIterator, val_windowed_ite
     X, y, sample_weight = train_iterator.get_data()
 
     params = {}
-    if val_windowed_iterator is not None and isinstance(model, XGBRegressor):
-        X_val, y_val, _ = val_windowed_iterator.get_data()
-        fit_kwargs.update({'eval_set': [(X_val, y_val)]})
+    try:
+        from xgboost import XGBRegressor
+        if val_windowed_iterator is not None and isinstance(model, XGBRegressor):
+            X_val, y_val, _ = val_windowed_iterator.get_data()
+            fit_kwargs.update({'eval_set': [(X_val, y_val)]})
+    except Exception as e:
+        logger.error(e)
 
     return model.fit(X, y.ravel(), **fit_kwargs, sample_weight=sample_weight)
 

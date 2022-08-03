@@ -10,14 +10,10 @@ from ceruleo.transformation import TransformerStep
 class SavitzkyGolayTransformer(TransformerStep):
     """Filter each feature using LOESS
 
-    Parameters
-    ----------
-    window : int
-        Window size of the filter
-    order : int, optional
-        Order of the filter, by default 2
-    name : Optional[str], optional
-        Step name, by default None
+    Parameters:    
+        window: window size of the filter
+        order:  Order of the filter, by default 2
+        name: Step name
     """
 
     def __init__(self, window: int, order: int = 2, name: Optional[str] = None):

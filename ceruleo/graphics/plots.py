@@ -4,7 +4,7 @@ from typing import Dict, Iterable, List, Optional, Union
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+
 import seaborn as sns
 from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.graphics.utils.curly_brace import curlyBrace
