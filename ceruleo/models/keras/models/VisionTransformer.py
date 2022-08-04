@@ -1,7 +1,7 @@
 
 import numpy as np
 import tensorflow as tf
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from ceruleo.models.keras.layers import ExpandDimension, RemoveDimension
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (Layer, LayerNormalization, MultiHeadAttention,

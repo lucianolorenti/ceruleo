@@ -129,6 +129,23 @@ class CMAPSS2PreProcessor:
 
 
 class CMAPSS2Dataset(AbstractLivesDataset):
+    """C-MAPSS-2 Dataset
+
+    The dataset provides a new realistic dataset of run-to-failure trajectories for a small fleet of aircraft
+    engines under realistic flight conditions.
+
+    The damage propagation modelling used for the generation of this synthetic dataset builds on
+    the modeling strategy from previous work .
+    The dataset was generated with the Commercial Modular Aero-Propulsion System Simulation (C-MAPSS) dynamical model.
+    The data set is been provided by the Prognostics CoE at NASA Ames in collaboration with ETH Zurich and PARC.
+
+    [Dataset reference](https://data.phmsociety.org/2021-phm-conference-data-challenge/)
+
+    Parameters:
+
+        train: Wether to obtain the train data provided
+        models: Names of the models
+    """
     def __init__(
         self,
         path: Path = DATASET_PATH,
@@ -147,15 +164,8 @@ class CMAPSS2Dataset(AbstractLivesDataset):
             self.lives = self.lives[self.lives["Train"] == train]
 
     def get_time_series(self, i):
-        """
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
         df_path = self.lives.iloc[i]["Output Dir"]
-        df = pd.read_parquet(self.path / df_path)        
+        df = pd.read_parquet(self.path / df_path)
         return df
 
     @property

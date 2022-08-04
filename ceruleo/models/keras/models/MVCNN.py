@@ -1,7 +1,7 @@
 
 
 from typing import Tuple
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (Concatenate, Conv2D, Dense, Dropout,
                                      Flatten, Permute, Reshape)

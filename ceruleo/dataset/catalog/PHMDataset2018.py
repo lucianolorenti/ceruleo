@@ -52,6 +52,17 @@ def prepare_raw_dataset(path: Path):
 
 
 class FailureType(Enum):
+    """Failure types availables for the dataset.
+
+    Possible values are
+
+    ```py
+    FailureType.FlowCoolPressureDroppedBelowLimit
+    FailureType.FlowcoolPressureTooHighCheckFlowcoolPump
+    FailureType.FlowcoolLeak
+    ```
+
+    """
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
     FlowcoolPressureTooHighCheckFlowcoolPump = (
         "Flowcool Pressure Too High Check Flowcool Pump"
@@ -74,18 +85,15 @@ def merge_data_with_faults(
 ) -> pd.DataFrame:
     """Merge the raw sensor data with the fault information
 
-    Parameters
-    ----------
-    data_file : Union[str, Path]
-        Path where the raw sensor data is located
-    fault_data_file : Union[str, Path]
-        Path where the fault information is located
+    Parameters:
 
-    Returns
-    -------
-    pd.DataFrame
-        Dataframe indexed by time with the raw sensors and faults
-        The dataframe contains also a fault_number column
+        data_file: Path where the raw sensor data is located
+        fault_data_file: Path where the fault information is located
+
+    Returns:
+
+        df: Dataframe indexed by time with the raw sensors and faults
+            The dataframe contains also a fault_number column
     """
     data = pd.read_csv(data_file).set_index("time")
 
@@ -138,6 +146,37 @@ def prepare_dataset(dataset_path: Path):
 
 
 class PHMDataset2018(AbstractLivesDataset):
+    """PHM 2018 Dataset
+
+    The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different 
+    ion milling machines. They distinguish three different failure causes and provide 22 features, 
+    including user-defined variables and sensors. 
+
+    Three faults are present in the dataset
+
+    * Fault mode 1 occurs when flow-cool pressure drops.
+    * Fault mode 2 occurs when flow-cool pressure becomes too high.
+    * Fault mode 3 represents flow-cool leakage.
+
+    [Dataset reference](https://phmsociety.org/conference/annual-conference-of-the-phm-society/annual-conference-of-the-prognostics-and-health-management-society-2018-b/phm-data-challenge-6/)
+
+    Example:
+ 
+    ```py
+    dataset = PHMDataset2018(
+       failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
+        tools=['01_M02']
+    )
+    ```
+
+
+    
+    Parameters:
+
+        failure_types: List of failure types
+        tools: List of tools
+        path: Path where the dataset is located
+    """
     def __init__(
         self,
         failure_types: Union[FailureType, List[FailureType]] = [l for l in FailureType],
@@ -186,17 +225,6 @@ class PHMDataset2018(AbstractLivesDataset):
         return df
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        """
-        Paramters
-        ---------
-        i:int
-
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
         df = self._load_life(self.lives.iloc[i]["Filename"])
         df.index = pd.to_timedelta(df.index, unit='s')
         df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)

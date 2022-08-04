@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from ceruleo.models.keras.losses import weighted_categorical_crossentropy
 from ceruleo.models.keras.weibull import WeibullLayer
 from sklearn.base import BaseEstimator, TransformerMixin

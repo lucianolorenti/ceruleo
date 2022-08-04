@@ -1,5 +1,5 @@
 import tensorflow as tf
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from tcn import TCN
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (AveragePooling1D, Concatenate, Conv1D,

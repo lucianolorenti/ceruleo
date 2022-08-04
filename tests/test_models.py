@@ -7,7 +7,7 @@ from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
-from ceruleo.models.keras.keras import tf_regression_dataset
+from ceruleo.models.keras.dataset import tf_regression_dataset
 from ceruleo.models.scikitlearn import (
     EstimatorWrapper,
     SKLearnTimeSeriesWindowTransformer,

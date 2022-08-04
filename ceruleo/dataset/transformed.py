@@ -56,13 +56,6 @@ class TransformedDataset(AbstractTimeSeriesDataset):
         
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        """
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
         if i not in self.cache.data:
             data = self.dataset[i]
             X, y, metadata = self.transformer.transform(data)
@@ -111,14 +104,6 @@ class TransformedSerializedDataset(TransformedDataset):
             return pickle.load(file)
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        """
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
-
         if i not in self.cache.data:
             X, y, metadata = self._open_file(i)
             self.cache.add(i, (X, y, metadata))
@@ -129,10 +114,4 @@ class TransformedSerializedDataset(TransformedDataset):
         return len(self.files)
 
     def __len__(self):
-        """
-        Return
-        ------
-        int:
-            The number of time-series in the dataset
-        """
         return self.n_time_series

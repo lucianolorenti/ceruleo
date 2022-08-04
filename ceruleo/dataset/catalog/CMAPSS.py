@@ -43,6 +43,12 @@ engines = ["FD001", "FD002", "FD003", "FD004"]
         
 
 def obtain_raw_files(raw_data_path: Path = DATASET_PATH, ):
+    """Download and unzip the raw files
+
+    Parameters:
+    
+        raw_data_path: Path where to store the dataset
+    """
     raw_data_path = raw_data_path / "files"
     logger.info("Dataset not processed.")
     if not raw_data_path.is_dir():
@@ -85,14 +91,6 @@ def process_file_test(file):
 
 
 def prepare_train_data(data, factor: float = 0):
-    """
-    Paramaters
-    ----------
-    data: pd.DataFrame
-          Dataframe with the file content
-    cutoff: float.
-             RUL cutoff
-    """
     df = data.copy()
     fdRUL = df.groupby("UnitNumber")["Cycle"].max().reset_index()
     fdRUL = pd.DataFrame(fdRUL)
@@ -117,6 +115,32 @@ def process_file_train(file):
 
 
 class CMAPSSDataset(AbstractLivesDataset):
+    """C-MAPSS Dataset
+
+    C-MAPSS stands for 'Commercial Modular Aero-Propulsion System Simulation' and it is a tool for the simulation 
+    of realistic large commercial turbofan engine data. Each flight is a combination of a 
+    series of flight conditions with a reasonable linear transition period to allow the 
+    engine to change from one flight condition to the next. The flight conditions are arranged
+    to cover a typical ascent from sea level to 35K ft and descent back down to sea level. 
+     
+    The fault was injected at a given time in one of the flights and persists throughout the 
+    remaining flights, effectively increasing the age of the engine. The intent is to identify which 
+    flight and when in the flight the fault occurred.
+
+    [Dataset reference](https://data.nasa.gov/dataset/C-MAPSS-Aircraft-Engine-Simulator-Data/xaut-bemq)
+
+    Example:
+    
+        ``` py
+        train_dataset = CMAPSSDataset(train=True, models='FD001')
+
+        validation_dataset = CMAPSSDataset(train=False, models='FD001')
+        ```
+
+    Parameters:
+        train: Wether to obtain the train data provided
+        models: Names of the models
+    """
     def __init__(
         self, train: bool = True, models: Optional[Union[str, List[str]]] = None
     ):
@@ -148,13 +172,6 @@ class CMAPSSDataset(AbstractLivesDataset):
                     )
 
     def get_time_series(self, i):
-        """
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with the data of the life i
-        """
         return self.lives[i]
 
     @property

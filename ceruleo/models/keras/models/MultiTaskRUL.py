@@ -2,7 +2,7 @@
 from typing import List
 
 import tensorflow as tf
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from ceruleo.models.keras.losses import time_to_failure_rul
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import LSTM, Dense

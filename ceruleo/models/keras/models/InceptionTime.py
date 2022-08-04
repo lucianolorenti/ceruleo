@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.keras.layers  import (BatchNormalization, Concatenate, MaxPool1D, Activation)
-from ceruleo.models.keras.keras import KerasTrainableModel
+from ceruleo.models.keras.dataset import KerasTrainableModel
 from ceruleo.models.keras.layers import ExpandDimension, RemoveDimension
 from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (
