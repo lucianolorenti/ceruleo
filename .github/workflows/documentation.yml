@@ -25,7 +25,6 @@ jobs:
         run: |
           sudo apt-get install -y pandoc                 
           python -m pip install --upgrade pip          
-          pip install --upgrade Pygments sphinx nbsphinx sphinx_rtd_theme pandoc
           python -m pip install flake8 pytest coverage
           python -m pip install wheel setuptools cython
           python -m pip install tensorflow
@@ -33,8 +32,7 @@ jobs:
           python -m pip install  jinja2
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
           python -m pip install -e $GITHUB_WORKSPACE
-          pip install markupsafe==2.0.1
-          python -m pip install ipython
+
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
