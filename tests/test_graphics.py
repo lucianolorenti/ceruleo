@@ -1,9 +1,9 @@
 import numpy as np
-from rul_pm.graphics.plots import (barplot_errors_wrt_RUL,
+from ceruleo.graphics.results import (barplot_errors_wrt_RUL,
                                    boxplot_errors_wrt_RUL, plot_predictions,
                                    plot_predictions_grid,
                                    shadedline_plot_errors_wrt_RUL)
-from rul_pm.results.results import PredictionResult
+from ceruleo.results.results import PredictionResult
 
 
 def create_predictions(name:str, number_of_lives: int) -> PredictionResult:
@@ -26,13 +26,13 @@ class TestGraphics:
         y_true = np.linspace(500, 0, num=500)
         y_pred = y_true + np.random.rand(500)*15
         r = PredictionResult('Example', y_true, y_pred)
-        fig, ax = plot_predictions_grid(r, ncols=1)
+        ax = plot_predictions_grid(r, ncols=1)
         assert ax.shape == (1, 1)
 
         y_true = np.hstack((y_true, y_true))
         y_pred = np.hstack((y_pred, y_pred))
         r = PredictionResult('Example', y_true, y_pred)
-        fig, ax = plot_predictions_grid(r, ncols=2)
+        ax = plot_predictions_grid(r, ncols=2)
         assert ax.shape == (1, 2)
         
         y_true = np.linspace(500, 0, num=500)
@@ -40,7 +40,7 @@ class TestGraphics:
         y_true = np.hstack((y_true, y_true))
         y_pred = np.hstack((y_pred, y_pred))
         r = PredictionResult('Example', y_true, y_pred)
-        fig, ax = plot_predictions_grid(r, ncols=1)
+        ax = plot_predictions_grid(r, ncols=1)
         assert ax.shape == (2, 1)
 
     def test_boxplot(self):
@@ -55,28 +55,28 @@ class TestGraphics:
             ]
         }
 
-        fig, ax = boxplot_errors_wrt_RUL(results, nbins=5)
-        assert fig is not None
+        ax = boxplot_errors_wrt_RUL(results, nbins=5)
+        assert ax is not None
 
-        fig, ax = barplot_errors_wrt_RUL(results, nbins= 5)
-        assert fig is not None
+        ax = barplot_errors_wrt_RUL(results, nbins= 5)
+        assert ax is not None
 
-        fig, ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
-        assert fig is not None
+        ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
+        assert ax is not None
 
         results = { 'Model A':[
                 create_predictions('Model A', 5),
             ]
 
         }
-        fig, ax = boxplot_errors_wrt_RUL(results, nbins=5)
-        assert fig is not None
+        ax = boxplot_errors_wrt_RUL(results, nbins=5)
+        assert ax is not None
 
 
-        fig, ax = barplot_errors_wrt_RUL(results, nbins= 5)
-        assert fig is not None
+        ax = barplot_errors_wrt_RUL(results, nbins= 5)
+        assert ax is not None
         
-        fig, ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
-        assert fig is not None
+        ax = shadedline_plot_errors_wrt_RUL(results, nbins=5)
+        assert ax is not None
 
     

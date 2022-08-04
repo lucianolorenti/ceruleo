@@ -1,5 +1,5 @@
 import numpy as np
-from rul_pm.transformation.target import PicewiseRUL
+from ceruleo.transformation.target import PicewiseRUL
 
 
 class TestTargetTransformers():

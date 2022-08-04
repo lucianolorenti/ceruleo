@@ -1,60 +1,40 @@
-import random
-
 import numpy as np
 import pandas as pd
-from temporis.iterators.shufflers import AllShuffled
+from numpy.random import seed
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.shufflers import AllShuffled
+from ceruleo.iterators.utils import true_values
+from ceruleo.models.keras.dataset import tf_regression_dataset
+from ceruleo.models.scikitlearn import (
+    EstimatorWrapper,
+    SKLearnTimeSeriesWindowTransformer,
+    predict,
+    train_model,
+)
+from ceruleo.transformation import Transformer
+from ceruleo.transformation.features.scalers import MinMaxScaler
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Dense, Dropout, Flatten
+from xgboost import XGBRegressor
 
-from rul_pm.models.baseline import BaselineModel
+seed(1)
+import tensorflow as tf
 
-
-from sklearn.linear_model import ElasticNet
-from temporis.dataset.ts_dataset import AbstractTimeSeriesDataset
-
-from temporis.iterators.utils import true_values
-from temporis.models.keras import tf_regression_dataset
-from temporis.transformation import Transformer
-from temporis.transformation.features.scalers import MinMaxScaler
-from temporis.transformation.features.selection import ByNameFeatureSelector
-
-
-
-random.seed(42)
-
-
-import numpy as np
-
-np.random.seed(42)
-
-
-from tensorflow.python.framework import random_seed
-
-random_seed.set_seed(42)
+tf.random.set_seed(2)
 
 
-class MockDataset(AbstractTimeSeriesDataset):
-    def __init__(self, nlives: int):
+class SimpleDataset(AbstractTimeSeriesDataset):
+    def __init__(self):
 
         self.lives = [
             pd.DataFrame(
-                {
-                    "feature1": np.linspace(0, 100, 50),
-                    "feature2": np.linspace(-25, 500, 50),
-                    "RUL": np.linspace(100, 0, 50),
-                }
+                {"feature1": np.array(range(0, 100)), "RUL": np.array(range(0, 100))}
             )
-            for i in range(nlives - 1)
         ]
-
-        self.lives.append(
-            pd.DataFrame(
-                {
-                    "feature1": np.linspace(0, 100, 50),
-                    "feature2": np.linspace(-25, 500, 50),
-                    "feature3": np.linspace(-25, 500, 50),
-                    "RUL": np.linspace(100, 0, 50),
-                }
-            )
-        )
 
     def get_time_series(self, i: int):
         return self.lives[i]
@@ -68,14 +48,14 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset1(AbstractTimeSeriesDataset):
+class MockDataset(AbstractTimeSeriesDataset):
     def __init__(self, nlives: int):
 
         self.lives = [
             pd.DataFrame(
                 {
-                    "feature1": np.linspace(0, 100, 50),
-                    "feature2": np.linspace(-25, 500, 50),
+                    "feature1": np.linspace(0, 5 * 100, 50),
+                    "feature2": np.linspace(-25, 5 * 500, 50),
                     "RUL": np.linspace(100, 0, 50),
                 }
             )
@@ -85,10 +65,10 @@ class MockDataset1(AbstractTimeSeriesDataset):
         self.lives.append(
             pd.DataFrame(
                 {
-                    "feature1": np.linspace(0, 100, 50),
-                    "feature2": np.linspace(-25, 500, 50),
-                    "feature3": np.linspace(-25, 500, 50),
-                    "RUL": np.linspace(5000, 0, 50),
+                    "feature1": np.linspace(0, 5 * 100, 50),
+                    "feature2": np.linspace(-25, 5 * 500, 50),
+                    "feature3": np.linspace(-25, 5 * 500, 50),
+                    "RUL": np.linspace(100, 0, 50),
                 }
             )
         )
@@ -106,9 +86,48 @@ class MockDataset1(AbstractTimeSeriesDataset):
 
 
 class TestModels:
+    def test_models(self):
+        features = ["feature1", "feature2"]
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
 
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
+        batch_size = 15
+        window_size = 5
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        iterator = WindowedDatasetIterator(
+            ds.map(transformer),
+            window_size,
+            step=1,
+            horizon=1,
+        )
 
-    def test_baselines(self):
+        b1 = tf_regression_dataset(iterator).batch(15)
+        assert b1.take(1)
+
+    def test_sklearn(self):
+        features = ["feature1", "feature2"]
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
+
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = lambda: Transformer(x, y)
+        ds = MockDataset(5)
+
+        transformer = SKLearnTimeSeriesWindowTransformer(transformer, window_size=5)
+        pipe = make_pipeline(transformer, EstimatorWrapper(LinearRegression()))
+        pipe.fit(ds)
+
+        y_pred = pipe.predict(ds)
+        y_true = transformer.true_values(ds)
+
+        mse = np.sum((y_pred - y_true) ** 2)
+        assert mse < 0.01
+
+    def test_keras(self):
+
         features = ["feature1", "feature2"]
         pipe = ByNameFeatureSelector(features=features)
         pipe = MinMaxScaler(range=(-1, 1))(pipe)
@@ -116,41 +135,62 @@ class TestModels:
         transformer = Transformer(pipe, rul_pipe)
         ds = MockDataset(5)
         transformer.fit(ds)
-        ds_transformed = ds.map(transformer)
-        model = BaselineModel(mode="mean")
-        model.fit(ds_transformed)
+        train_dataset = ds[range(0, 4)]
+        val_dataset = ds[range(4, 5)]
+        window_size = 6
+        train_iterator = WindowedDatasetIterator(
+            train_dataset.map(transformer),
+            window_size=window_size,
+            step=1,
+            shuffler=AllShuffled(),
+        )
 
-        y_pred = model.predict(ds_transformed[[0]])
-        assert np.all(np.diff(y_pred) < 0)
+        val_iterator = WindowedDatasetIterator(
+            val_dataset.map(transformer), window_size=window_size, step=1
+        )
 
-        y_pred = model.predict(ds_transformed)
-        y_true = true_values(ds_transformed)
+        input = Input(shape=train_iterator.shape)
+        x = input
+        x = Flatten()(x)
+        x = Dense(8, activation="relu")(x)
+        x = Dense(5, activation="relu")(x)
+        x = Dense(1)(x)
+        model = Model(inputs=[input], outputs=[x])
+        model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.01))
+        y_true = true_values(val_iterator)
+        y_pred_before_fit = model.predict(tf_regression_dataset(val_iterator).batch(64))
+        mae_before_fit = np.mean(np.abs(y_pred_before_fit.ravel() - y_true.ravel()))
+        model.fit(
+            tf_regression_dataset(train_iterator).batch(4),
+            validation_data=tf_regression_dataset(val_iterator).batch(64),
+            epochs=15,
+        )
+        y_pred = model.predict(tf_regression_dataset(val_iterator).batch(64))
+        
 
-        assert y_pred.shape[0] == y_true.shape[0]
+        mae = np.mean(np.abs(y_pred.ravel() - y_true.ravel()))
 
-        assert np.mean(np.abs(np.squeeze(y_pred) - np.squeeze(y_true))) < 0.001
+        assert mae < mae_before_fit
 
-        model = BaselineModel(mode="median")
-        model.fit(ds_transformed)
+    def test_xgboost(self):
+        features = ["feature1", "feature2"]
 
-        y_pred = model.predict(ds_transformed)
-        y_true = true_values(ds_transformed)
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
 
-        assert y_pred.shape[0] == y_true.shape[0]
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
 
-        ds = MockDataset1(5)
+        ds = MockDataset(5)
         transformer.fit(ds)
         transformed_ds = ds.map(transformer)
-        model = BaselineModel(mode="mean")
-        model.fit(transformed_ds)
+        ds_iterator = WindowedDatasetIterator(
+            transformed_ds, window_size=5, step=2, shuffler=AllShuffled()
+        )
+        model = XGBRegressor(n_estimators=500)
+        train_model(model, ds_iterator)
 
-        assert model.fitted_RUL > 100
+        y_pred = predict(model, ds_iterator)
+        y_true = true_values(ds_iterator)
 
-        model = BaselineModel(mode="median")
-        model.fit(transformed_ds)
-
-        assert model.fitted_RUL == 100
-
-
-
-
+        assert np.sum(y_pred - y_true) < 0.001

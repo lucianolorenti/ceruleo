@@ -1,5 +1,5 @@
 import numpy as np 
-from rul_pm.results.results import split_lives_indices
+from ceruleo.results.results import split_lives_indices
 import pytest
 
 class TestResults:
