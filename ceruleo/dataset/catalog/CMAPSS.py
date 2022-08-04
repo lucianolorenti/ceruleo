@@ -3,7 +3,7 @@ import zipfile
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.lives_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from ceruleo import DATA_PATH
 from pathlib import Path 
 import logging

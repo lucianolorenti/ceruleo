@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from ceruleo import DATA_PATH
-from ceruleo.dataset.lives_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 
 from ceruleo.utils.download import download

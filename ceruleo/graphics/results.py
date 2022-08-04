@@ -313,9 +313,8 @@ def barplot_errors_wrt_RUL(
         color_palette: 
 
     """
-    if fig is None:
+    if ax is None:
         fig, ax = plt.subplots(**kwargs)
-
     bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _cv_barplot_errors_wrt_RUL_multiple_models(
         bin_edges,
@@ -732,7 +731,7 @@ def plot_predictions_grid(
 
     for a in ax.flatten():
         a.legend()
-    return fig, ax
+    return ax
 
 
 def plot_predictions(

@@ -962,19 +962,15 @@ class ExpandingStatistics(TransformerStep):
 class Difference(TransformerStep):
     """Compute the difference between two set of features
 
-    .. highlight:: python
-    .. code-block:: python
+    Example:
 
         X[features1] - X[features2]
 
     Parameters
-    ----------
-    feature_set1 : list
-        Feature list of the first group to substract
-    feature_set2 : list
-        Feature list of the second group to substract
-    name : Optional[str], optional
-        Name of the step, by default None
+    
+        feature_set1: Feature list of the first group to substract
+        feature_set2:Feature list of the second group to substract
+        name: Name of the step, by default None
 
     """
 
@@ -992,8 +988,8 @@ class Difference(TransformerStep):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if not self.feature_names_computed:
-            self.feature_set1 = [self.column_name(X, c) for c in self.feature_set1]
-            self.feature_set2 = [self.column_name(X, c) for c in self.feature_set2]
+            self.feature_set1 = [self.find_feature(X, c) for c in self.feature_set1]
+            self.feature_set2 = [self.find_feature(X, c) for c in self.feature_set2]
             feature_names_computed = True
         new_X = X[self.feature_set1].copy()
         new_X = new_X - X[self.feature_set2].values

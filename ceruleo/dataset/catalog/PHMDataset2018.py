@@ -13,7 +13,7 @@ import gdown
 import numpy as np
 import pandas as pd
 from ceruleo import CACHE_PATH, DATA_PATH
-from ceruleo.dataset.lives_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)

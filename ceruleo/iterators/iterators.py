@@ -241,7 +241,7 @@ class WindowedDatasetIterator:
         start_index: Initial index of each run-tu-failure cycle
         end_index: Final index of each run-to-failure cycle
         valid_sample: A callable that returns wether a sample is valid or not
-        last_
+        last_point: Wether to add the last point
     """
     def __init__(
         self,
@@ -257,9 +257,10 @@ class WindowedDatasetIterator:
         start_index: Union[int, RelativePosition] = 0,
         end_index: Optional[Union[int, RelativePosition]] = None,
         valid_sample: Callable[[int, int, int, int, int], bool] = valid_sample,
+        last_point: bool = True
 
     ):
-
+        self.last_point = last_point
         if isinstance(start_index, int):
             start_index = RelativeToStart(start_index)
         self.start_index = start_index
@@ -274,6 +275,7 @@ class WindowedDatasetIterator:
         self.step = step
         self.shuffler.initialize(self)
         self.iteration_type = iteration_type
+        
 
 
 
