@@ -1,8 +1,8 @@
-# CERULEo
+# CeRULEo
 
-## Welcome tu CERULEo
+## Welcome tu CeRULEo
 
-Compound of Elements for Remaining Useful Life Estimation Methods
+Cool utilitiEs for Remaining Useful Life Estimation methOds
 
 ### Predictive Maintenance
 
