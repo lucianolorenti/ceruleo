@@ -13,13 +13,13 @@ This module provides utilities to iterate the dataset
 from abc import abstractmethod
 from enum import Enum
 import logging
-import random
 from signal import signal
 from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from ceruleo.dataset.transformed import TransformedDataset
+from ceruleo.iterators.sample_weight import AbstractSampleWeights, NotWeighted, SampleWeight
 from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 from tqdm.auto import tqdm
 import functools
@@ -27,26 +27,6 @@ import functools
 
 logger = logging.getLogger(__name__)
 
-
-class AbstractSampleWeights:
-    """The base class for the sample weight provider
-    """
-    def __call__(self, y, i: int, metadata):
-        raise NotImplementedError
-
-
-class NotWeighted(AbstractSampleWeights):
-    """Simplest sample weight provvider
-
-    Provide 1 as a sample weight for every sample
-    """
-    def __call__(self, y, i: int, metadata):
-        return 1
-
-"""The Sample Weight type can be
-
-"""
-SampleWeight = Union[AbstractSampleWeights, Callable[[np.ndarray, int, Any], float]]
 
 
 def seq_to_seq_signal_generator(
@@ -156,17 +136,19 @@ def windowed_signal_generator(
 class IterationType(Enum):
     """Iteration type
     
-    The forecast iterator produces as target the values of the Y transformers 
-    that start where the X data ends.
+    Possible values are
 
-    The seq to seq iterator will return as a target a window of a same size 
-    as the input aligned with it
+    - SEQ_TO_SEQ = 1:
 
+        The seq to seq iterator will return as a target a window of a same size 
+        as the input aligned with it
+        
+
+    - FORECAST = 2
     
-    Values:
-
-        SEQ_TO_SEQ = 1
-        FORECAST = 2
+        The forecast iterator produces as target the values of the Y transformers 
+        that start where the X data ends.
+        
 
     """
     SEQ_TO_SEQ = 1
@@ -208,12 +190,14 @@ class RelativeToEnd(RelativePosition):
         An iterator that iterate each run-to-failure cycle starting
         in the last 500 samples of each cycle.
 
+        ``` py
         iterator = WindowedDatasetIterator(
                 transformed_ds,
                 window_size=3,
                 step=1,
                 start_index=RelativeToEnd(500),
                 horizon=1)
+        ```
     """
     def get(self, time_series_length: int):
         return max(time_series_length - self.i, 0)
@@ -228,12 +212,14 @@ class RelativeToStart(RelativePosition):
         An iterator that iterate each run-to-failure cycle skipping the first
         200 samples of each cycle.
 
+        ``` py
         iterator = WindowedDatasetIterator(
                 transformed_ds,
                 window_size=3,
                 step=1,
                 start_index=RelativeToStart(25),
                 horizon=1)
+        ```
     """
     def get(self, time_series_length: int):
         return self.i

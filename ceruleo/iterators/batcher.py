@@ -73,6 +73,21 @@ class Batcher:
         then a Batcher from the iterator.
         Most of the parameters come from the WindowedDatasetIterator,
 
+
+        Example:
+
+            ``` py 
+            batcher = Batcher.new(transformed_dataset,
+                                window=150,
+                                batch_size=64,
+                                step=1,
+                                horizon=1)
+            X, y, data = next(batcher)     
+            X.shape
+
+            (64, 150, n_features)       
+            ```                  
+
         Parameters:
 
             dataset: Dataset from which the batcher will be created
@@ -82,7 +97,8 @@ class Batcher:
             shuffle: AbstractShuffler
             sample_weight: SampleWeight
             right_closed: bool
-            padding: bool
+            padding: wheter to pad data if there are not enough points
+                     to fill the window
 
         Returns:
 

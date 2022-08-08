@@ -3,18 +3,18 @@ from typing import Optional
 import numpy as np
 from ceruleo.results.results import FittedLife
 
-from temporis.dataset.transformed import TransformedDataset
+from ceruleo.dataset.transformed import TransformedDataset
+
 
 
 class BaselineModel:
     """Predict the RUL using the mean of the median value of the duration
        of the dataset
 
-    Parameters
-    ----------
-    mode: str
-        Method for computing the duration of the dataset
-        Possible values are: 'mean' and 'median'
+    Parameters:
+
+        mode: Method for computing the duration of the dataset
+              Possible values are: 'mean' and 'median'
     """
 
     def __init__(self, mode: str = "mean", RUL_threshold: Optional[float] = None):
