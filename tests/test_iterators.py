@@ -87,12 +87,11 @@ class TestIterators():
         pipe = ByNameFeatureSelector(features=['feature1'])
         y_pipe = ByNameFeatureSelector(features=['RUL'])
         transformer_raw = Transformer(
-            transformerX=pipe,    
-            transformerY=y_pipe
+            pipelineX=pipe,    
+            pipelineY=y_pipe
         )
         transformer_raw.fit(dataset)
         it  = WindowedDatasetIterator(dataset.map(transformer_raw), 5)
         X, y, sw = next(it)
         assert np.all(X == np.array([[0,1,2,3,4]]).T)
         assert y[0][0] == 4
-

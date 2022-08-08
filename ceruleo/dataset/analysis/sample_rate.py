@@ -19,6 +19,7 @@ def sample_rate(ds: AbstractTimeSeriesDataset, unit: Optional[str] = "s") -> np.
         unit: Unit to convert the timestamps differences
 
     Returns:
+    
         sample_rates: np.ndarray
 
     """

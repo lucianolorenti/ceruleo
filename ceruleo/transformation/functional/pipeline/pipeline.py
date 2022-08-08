@@ -67,3 +67,10 @@ class TemporisPipeline(TransformerMixin):
         for node in topological_sort_iterator(self):
             data.append(node.description())
         return data
+
+
+def make_pipeline(*steps) -> TemporisPipeline:
+    step = steps[0]
+    for next_step in steps[1:]:
+        step = step(next_step)
+    return step

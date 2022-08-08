@@ -4,46 +4,48 @@ from itertools import combinations
 from typing import List, Optional, Tuple
 
 import pandas as pd
+from ceruleo.dataset.transformed import TransformedDataset, iterate_over_features
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 
 
 def correlation_analysis(
     dataset: AbstractTimeSeriesDataset,
-    corr_threshold: float = 0,
+    corr_threshold: float = 0.7,
     features: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     """
     Correlation Analysis
     Compute the correlation between all the features given an Iterable of executions.
-    Parameters
-    ---------
-    dataset: AbstractTimeSeriesDataset
-        Dataset of time series
-    corr_threshold: float
-        Treshold to consider two features of a single execution higly correlated
-    features: Optional[List[str]], default None
-        List of features to consider when computing the correlations
-    Returns
-    -------
-    pd.DataFrame:
-    * A DataFrame with three columns:
-        * Feature name 1
-        * Feature name 2
-        * Percentage of time-series with a high correlation
-        * Mean correlation across the time-series
-        * Std correlation across the time-series
-        * Mean Abs correlation across the time-series
-        * Std Abs correlation across the time-series
-        * Max correlation across the time-series
-        * Min correlation across the time-series
+
+    Parameters:
+    
+        dataset: Dataset of time series
+        corr_threshold: Threshold to consider two features of a single execution highly correlated
+        features: List of features to consider when computing the correlations
+
+    Returns:
+
+        pd.DataFrame: A DataFrame indexed with the column names with the following columns:
+
+                    - Mean Correlation
+                    - Std Correlation
+                    - Percentage of lives with a high correlation
+                    - Abs mean correlation
+                    - Std mean correlation
+                    - Max correlation
+                    - Min correlation
     """
     if features is None:
         features = sorted(list(dataset.common_features()))
     else:
         features = sorted(list(set(features).intersection(dataset.common_features())))
-    features = dataset[0][features].corr().columns
+    features = dataset.get_features_of_life(0)[features].corr().columns
     correlated_features = []
-    for ex in dataset:
+    if isinstance(dataset, TransformedDataset):
+        dataset_iterator = iterate_over_features(dataset)
+    else:
+        dataset_iterator = dataset
+    for ex in dataset_iterator:
         ex = ex[features]
         corr_m = ex.corr().fillna(0)
 

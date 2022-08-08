@@ -1,27 +1,29 @@
-
 import functools
 import gzip
-from multiprocessing import Pool
 import pickle
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Optional, Union
 
+import numpy as np
 import pandas as pd
-from sklearn.utils.validation import check_is_fitted
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.transformation.functional.transformers import Transformer
 from ceruleo.utils.lrucache import LRUDataCache
+from sklearn.utils.validation import check_is_fitted
 from tqdm.auto import tqdm
-import numpy as np
 
 
-def _transform(transformer, dataset, i:int):
+def _transform(transformer, dataset, i: int):
     data = dataset[i]
     return (i, transformer.transform(data))
 
 
 class TransformedDataset(AbstractTimeSeriesDataset):
-    def __init__(self, dataset, transformer:Transformer, cache_size:Optional[int]=None):
+    def __init__(
+        self, dataset, transformer: Transformer, cache_size: Optional[int] = None
+    ):
+        super().__init__()
         self.transformer = transformer
         self.dataset = dataset
         if cache_size is None:
@@ -29,15 +31,14 @@ class TransformedDataset(AbstractTimeSeriesDataset):
         self.cache = LRUDataCache(cache_size)
         check_is_fitted(transformer)
 
-
     @property
     def n_time_series(self) -> int:
         return self.dataset.n_time_series
 
-    def __call__(self, i:int):
+    def __call__(self, i: int):
         return self[i]
 
-    def number_of_samples_of_time_series(self, i:int) -> int:
+    def number_of_samples_of_time_series(self, i: int) -> int:
         _, y, _ = self[i]
         return y.shape[0]
 
@@ -46,14 +47,13 @@ class TransformedDataset(AbstractTimeSeriesDataset):
         with Pool(6) as p:
             values = list(
                 tqdm(
-                    p.imap(transform, range(self.n_time_series)), 
+                    p.imap(transform, range(self.n_time_series)),
                     total=self.n_time_series,
-                    desc='Preloading'
-                    )
+                    desc="Preloading",
+                )
             )
         for i, (X, y, metadata) in values:
-             self.cache.add(i, (X, y, metadata))
-        
+            self.cache.add(i, (X, y, metadata))
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         if i not in self.cache.data:
@@ -63,44 +63,46 @@ class TransformedDataset(AbstractTimeSeriesDataset):
         X, y, metadata = self.cache.get(i)
         return X, y, metadata
 
-    def get_X(self, i:int, pandas:bool =True ) -> Union[np.ndarray, pd.DataFrame]:
-        X, _, _ = self.cache.get(i)
+    def get_features_of_life(
+        self, i: int, pandas: bool = True
+    ) -> Union[np.ndarray, pd.DataFrame]:
+        X, _, _ = self[i]
         if pandas:
             return X
         else:
             return X.values
 
-    def save(self, output_path:Path):
+    def save(self, output_path: Path):
         TransformedSerializedDataset.save(self, output_path)
 
 
 class TransformedSerializedDataset(TransformedDataset):
     @staticmethod
-    def save(dataset:TransformedDataset, output_path:Path):
+    def save(dataset: TransformedDataset, output_path: Path):
         if not output_path.is_dir():
             output_path.mkdir(parents=True, exist_ok=True)
         file_list = {}
         for i, life in enumerate(dataset):
-            file_list[i] = f'ts_{i}.pkl.gz'
-            with gzip.open(output_path / f'ts_{i}.pkl.gz', 'wb') as file:
+            file_list[i] = f"ts_{i}.pkl.gz"
+            with gzip.open(output_path / f"ts_{i}.pkl.gz", "wb") as file:
                 pickle.dump(life, file)
-        with open(output_path / 'transformer.pkl', 'wb') as file:
+        with open(output_path / "transformer.pkl", "wb") as file:
             pickle.dump(dataset.transformer, file)
-        with open(output_path / 'lives.pkl', 'wb') as file:
+        with open(output_path / "lives.pkl", "wb") as file:
             pickle.dump(file_list, file)
 
-    def __init__(self, dataset_path:Path, cache_size:Optional[int] = None):
+    def __init__(self, dataset_path: Path, cache_size: Optional[int] = None):
         self.dataset_path = dataset_path
-        with open(dataset_path / 'lives.pkl', 'rb') as file:
+        with open(dataset_path / "lives.pkl", "rb") as file:
             self.files = pickle.load(file)
-        with open(dataset_path / 'transformer.pkl', 'rb') as file:
+        with open(dataset_path / "transformer.pkl", "rb") as file:
             self.transformer = pickle.load(file)
         if cache_size is None:
             cache_size = len(self.files)
         self.cache = LRUDataCache(cache_size)
 
-    def _open_file(self, i:int):
-        with gzip.open(self.dataset_path / self.files[i], 'rb') as file:
+    def _open_file(self, i: int):
+        with gzip.open(self.dataset_path / self.files[i], "rb") as file:
             return pickle.load(file)
 
     def get_time_series(self, i: int) -> pd.DataFrame:
@@ -115,3 +117,19 @@ class TransformedSerializedDataset(TransformedDataset):
 
     def __len__(self):
         return self.n_time_series
+
+
+def iterate_over_features(ds: TransformedDataset):
+    """Helper function to iterate over the features in a Transformed dataset
+    Example:
+        for X, y, metadata in df:
+            pass
+        for X in iterate_over_features(ds):
+            pass
+    Parameters:
+        ds: The dataset
+    Returns:
+
+        it: The iterator
+    """
+    return map(lambda x: x[0], ds)
