@@ -8,7 +8,7 @@
 
 # CeRULEo: Cool utilitiEs for Remaining Useful Life Estimation methOds
 
-[![Coverage Status](https://coveralls.io/repos/github/lucianolorenti/rul_pm/badge.svg?branch=main&t=dYuRdM)](https://coveralls.io/github/lucianolorenti/ceruleo?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/lucianolorenti/ceruleo/badge.svg?branch=main)](https://coveralls.io/github/lucianolorenti/ceruleo?branch=main)
 [![Documentation](https://img.shields.io/badge/documentation-dev-brightgreen)](https://lucianolorenti.github.io/ceruleo/)
 
 ## What is it?
