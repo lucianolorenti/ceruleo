@@ -218,7 +218,7 @@ class AbstractTimeSeriesDataset:
         """
 
         features = self.common_features(show_progress=show_progress)
-        df = self.get_time_series(0)
+        df = self.get_features_of_life(0)
         return list(
             df.loc[:, features]
             .select_dtypes(include=[np.number], exclude=["datetime", "timedelta"])

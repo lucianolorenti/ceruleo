@@ -24,6 +24,20 @@ from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 class Batcher:
     """WindowedIterator Batcher
 
+    Example:
+
+        ``` py 
+        batcher = Batcher.new(transformed_dataset,
+                              window=150,
+                              batch_size=64,
+                              step=1,
+                              horizon=1)
+        X, y, data = next(batcher)     
+        X.shape
+
+        (64, 150, n_features)       
+        ```                  
+
     Parameters:
 
         iterator: Dataset iterator

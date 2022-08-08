@@ -5,26 +5,43 @@ from ceruleo.transformation import TransformerStep
 
 
 class Subsample(TransformerStep):
-    def __init__(self, * ,steps:int, **kwargs):
+    def __init__(self, *, steps: int, **kwargs):
         super().__init__(**kwargs)
-        self.steps = steps 
+        self.steps = steps
 
     def transform(self, X: pd.DataFrame):
-        return X.iloc[::self.steps, :]
+        return X.iloc[:: self.steps, :]
+
+
+class IndexMeanResampler(TransformerStep):
+    """Resample 
+
+
+    When the index of the run-to-failure cycle is a time feature
+
+    Parameters:
+
+        rule: 
+    """
+    def __init__(self, *, rule,  **kwargs):
+        super().__init__(**kwargs)
+        self.rule = rule
+    
+    def transform(self, X: pd.DataFrame):
+        return X.resample(self.rule).mean().dropna()
         
+
+
 class SubsamplerTransformer(TransformerStep):
     """IntegerIndexResamplerTransformer
 
     Resample the time series with an integer index and interpolate linearly the values
 
-    Parameters
-    ----------
-    time_feature : str
-        Time feature
-    steps : int
-        Number of steps
-    drop_time_feature: bool
-        Drop the time feature
+    Parameters:
+
+        time_feature: Time feature
+        steps:  Number of steps
+        drop_time_feature: Drop the time feature
     """
 
     def __init__(self, *args, time_feature: str, steps: int, drop_time_feature: bool):
@@ -50,16 +67,17 @@ class SubsamplerTransformer(TransformerStep):
         if self._time_feature is None:
             self._time_feature = self.find_feature(X, self._time_feature_name)
             if self._time_feature is None:
-                raise ValueError('Time feature not found')
+                raise ValueError("Time feature not found")
 
         return self
 
     def transform(self, X: pd.DataFrame):
         X = X.groupby(X[self._time_feature] // self.steps, sort=False).mean()
         if self.drop_time_feature:
-            X = X.drop(columns=[self._time_feature])           
-        
+            X = X.drop(columns=[self._time_feature])
+
         return X
+
 
 class IntegerIndexResamplerTransformer(TransformerStep):
     """IntegerIndexResamplerTransformer

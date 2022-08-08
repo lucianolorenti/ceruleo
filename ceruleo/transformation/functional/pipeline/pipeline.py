@@ -70,7 +70,25 @@ class TemporisPipeline(TransformerMixin):
 
 
 def make_pipeline(*steps) -> TemporisPipeline:
+    """Build a pipeline 
+
+    Example:
+
+        make_pipeline(
+            ByNameFeatureSelector(features=FEATURES), 
+            Clip(lower=-2, upper=2),
+            IndexMeanResampler(rule='500s')
+        )
+
+    Parameters:
+
+        steps: List of steps
+
+    Returns:
+    
+        TemporisPipeline: The created pipeline
+    """
     step = steps[0]
     for next_step in steps[1:]:
-        step = step(next_step)
+        step = next_step(step)
     return step

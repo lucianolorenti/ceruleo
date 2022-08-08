@@ -14,7 +14,12 @@ from ceruleo.iterators.iterators import (
 
 
 class SliceRows(TransformerStep):
-    """Center the data with respect to the mean"""
+    """Slice portion of the run-to-failure cycle
+    
+    Parameters:
+        initial: Initial position of the slice
+        final: Final position of the slice
+    """
 
     def __init__(
         self,
@@ -30,19 +35,6 @@ class SliceRows(TransformerStep):
         self.final = final
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Center the input life
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with the same index as the input with the
-            data centered with respect to the mean of the fiited dataset
-        """
         if isinstance(self.initial, RelativePosition):
             initial = self.initial.get(X.shape[0])
         else:

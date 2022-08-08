@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import kl_div
 from scipy.stats import wasserstein_distance
+from ceruleo.dataset.transformed import TransformedDataset, iterate_over_features
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from tqdm.auto import tqdm
 import itertools
@@ -33,9 +34,13 @@ def histogram_per_life(
 
 
 def compute_bins(ds: AbstractTimeSeriesDataset, feature: str, number_of_bins: int = 15):
-    min_value = ds[0][feature].min()
-    max_value = ds[0][feature].max()
-    for life in ds:
+    min_value = ds.get_features_of_life(0)[feature].min()
+    max_value = ds.get_features_of_life(0)[feature].max()
+    if isinstance(ds, TransformedDataset):
+        iterator = iterate_over_features(ds)
+    else:
+        iterator = ds
+    for life in iterator:
         min_value = min(np.min(life[feature]), min_value)
         max_value = max(np.max(life[feature]), max_value)
     bins_to_use = np.linspace(min_value, max_value, number_of_bins + 1)
@@ -78,16 +83,19 @@ def features_divergeces(
 
     for feature in iterator:
         features_bins[feature] = compute_bins(ds, feature, number_of_bins)
-
+    if isinstance(ds, TransformedDataset):
+        ds_iterator = iterate_over_features(ds)
+    else:
+        ds_iterator = ds
     histograms = {}
-    for life in ds:
+    for life in ds_iterator:
         for feature in columns:
             if feature not in histograms:
                 histograms[feature] = []
             histograms[feature].append(
                 histogram_per_life(life, feature, features_bins[feature])
             )
-
+    
     df_data = []
     for feature in columns:
         data = {}

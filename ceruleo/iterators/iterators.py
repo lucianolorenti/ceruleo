@@ -43,7 +43,9 @@ class NotWeighted(AbstractSampleWeights):
     def __call__(self, y, i: int, metadata):
         return 1
 
+"""The Sample Weight type can be
 
+"""
 SampleWeight = Union[AbstractSampleWeights, Callable[[np.ndarray, int, Any], float]]
 
 
@@ -70,9 +72,16 @@ def seq_to_seq_signal_generator(
 
     """
     initial = max(i - window_size + 1, 0)
+    is_df = isinstance(signal_X, pd.DataFrame)
+    if is_df:
+        signal_X_1 = signal_X.iloc[initial : i + (1 if right_closed else 0), :]
+    else:
+        signal_X_1 = signal_X[initial : i + (1 if right_closed else 0), :]
 
-    signal_X_1 = signal_X[initial : i + (1 if right_closed else 0), :]
-    signal_y_1 = signal_Y[initial : i + (1 if right_closed else 0), :]
+    if is_df:
+        signal_y_1 = signal_Y.iloc[initial : i + (1 if right_closed else 0), :]
+    else:
+        signal_y_1 = signal_Y[initial : i + (1 if right_closed else 0), :]
 
     return (signal_X_1, signal_y_1)
 
@@ -146,6 +155,19 @@ def windowed_signal_generator(
 
 class IterationType(Enum):
     """Iteration type
+    
+    The forecast iterator produces as target the values of the Y transformers 
+    that start where the X data ends.
+
+    The seq to seq iterator will return as a target a window of a same size 
+    as the input aligned with it
+
+    
+    Values:
+
+        SEQ_TO_SEQ = 1
+        FORECAST = 2
+
     """
     SEQ_TO_SEQ = 1
     FORECAST = 2
@@ -165,7 +187,7 @@ def valid_sample(
 
 class RelativePosition:
     """Relative position selector base class
-    
+
     The relative position selectors allow specifying
     the iteration starts and end relative to the beginning
     or the end of the run-to-cycle failure
@@ -203,7 +225,7 @@ class RelativeToStart(RelativePosition):
 
     Example:
 
-        An iterator that iterate each run-to-failure cycle skipping the first 
+        An iterator that iterate each run-to-failure cycle skipping the first
         200 samples of each cycle.
 
         iterator = WindowedDatasetIterator(
@@ -223,7 +245,7 @@ class WindowedDatasetIterator:
     Parameters:
 
         dataset: The transformed dataset
-        window_size: Size of the loockback window
+        window_size: Size of the lookback window
         step: Separation between two consecutive size
             If step == window_size there are not overlapping
             between two consecutive windows
@@ -232,12 +254,12 @@ class WindowedDatasetIterator:
             of the target are expected to be predicted
         shuffler: How the data should be shuffled
         sample_weight: Which are the sample weight for each sample
-        right_closed: Wether the last poinf of the window should be included or not
-        pdding: Wether to pad elements if the samples are not enough to fill the window
-            Usually this happes at the beggining of the window
+        right_closed: Wether the last point of the window should be included or not
+        padding: Wether to pad elements if the samples are not enough to fill the window
+            Usually this happens at the beginning of the window
         iteration_type: Specify its the underlying model its a forecasting in which
              an scalar is predicted, or a sequence to sequence model similar
-             to an autoencoder in wich 
+             to an autoencoder 
         start_index: Initial index of each run-tu-failure cycle
         end_index: Final index of each run-to-failure cycle
         valid_sample: A callable that returns wether a sample is valid or not
@@ -275,7 +297,7 @@ class WindowedDatasetIterator:
         self.step = step
         self.shuffler.initialize(self)
         self.iteration_type = iteration_type
-        
+
 
 
 
@@ -343,6 +365,16 @@ class WindowedDatasetIterator:
         return curr_X, curr_y, [self.sample_weight(y, timestamp, metadata)]
 
     def get_data(self, flatten: bool = True, show_progress: bool = False):
+        """Obtain a 
+
+        Parameters:
+        
+            flatten: Wether to flatten data
+            show_progress: Wether to show progress
+
+        Returns:
+            X, y, sw: Data, target and sample weights
+        """
         N_points = len(self)
 
         if flatten:

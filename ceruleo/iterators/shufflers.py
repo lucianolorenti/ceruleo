@@ -1,3 +1,16 @@
+"""Shufflers are helpers classes used by the iterator to change
+the order of the run-to-failure cycles and the timestamps inside
+each cycle
+
+There are six types of shuffles
+
+- NotShuffled: All the cycles are processed in order
+- AllShuffled: 
+- IntraTimeSeriesShuffler
+- InverseOrder: 
+- TimeSeriesOrderIntraSignalShuffling
+- TimeSeriesOrderShuffling
+"""
 from typing import Callable, Optional, Tuple
 
 import numpy as np
@@ -5,6 +18,8 @@ import math
 
 
 class AbstractShuffler:
+    """A Shuffler is used by the iterator to interleave samples of different run-to-fail cycles"""
+
     class Iterator:
         def __init__(self, shuffler, iterator):
             self.iterator = iterator
@@ -21,31 +36,75 @@ class AbstractShuffler:
         return AbstractShuffler.Iterator(self, iterator)
 
     def at_end(self) -> bool:
+        """Determines wether the iterator reached to its end
+
+        Returns:
+
+            bool: Wether the iterator is at its end
+        """
         return self.current_time_series == self.wditerator.dataset.n_time_series
 
     def next_element(self) -> Tuple[int, int]:
+        """Iterating function
+
+        The method takes the current time serie, and the current time stamp
+        and calls the advance method
+
+        Returns:
+            ts_index, timestamp: Index of the current run-to-failure cycle and
+                          current timestamp of that cycle
+
+        Raises:
+
+            StopIteration: When the iteration reached to an end
+
+        """
 
         if self.at_end():
             raise StopIteration
         ts_index = self.time_series()
         timestamp = self.timestamp()
         self.advance()
-        
+
         return ts_index, timestamp
 
     def start(self, iterator: "WindowedDatasetIterator"):
+        """start the shuffler given an iterator
+
+        Parameters:
+
+            iterator: An Windowed iterator
+        """
         self.initialize(iterator)
 
     def time_series(self) -> int:
+        """Current time series
+
+        Returns:
+
+            current_time_series: Current Time Series
+        """
         return self.current_time_series
 
     def initialize(self, iterator: "WindowedDatasetIterator"):
+        """Initialize the current shuffler
+
+        This method is in charge of initializing everything to
+        allow the correct iteration
+
+        Parameters:
+
+            iterator: WindowedDatasetIterator
+
+        """
         self.wditerator = iterator
         self._samples_per_time_series = (
-            np.ones(self.wditerator.dataset.n_time_series, dtype=np.int64) * np.iinfo(np.int64).max
+            np.ones(self.wditerator.dataset.n_time_series, dtype=np.int64)
+            * np.iinfo(np.int64).max
         )
         self._time_series_sizes = (
-            np.ones(self.wditerator.dataset.n_time_series, dtype=np.int64) * np.iinfo(np.int64).max
+            np.ones(self.wditerator.dataset.n_time_series, dtype=np.int64)
+            * np.iinfo(np.int64).max
         )
         self.current_time_series = 0
 
@@ -55,27 +114,37 @@ class AbstractShuffler:
         )
         start_index = self.wditerator.start_index.get(total_length)
         end_index = self.wditerator.end_index.get(total_length)
- 
+
         N = end_index - start_index
         samples_per_step = N / self.wditerator.step
-        self._samples_per_time_series[time_series_index] = math.ceil(
-            samples_per_step
+        self._samples_per_time_series[time_series_index] = math.ceil(samples_per_step)
+        last_part_missing = (
+            math.ceil((N - 1) / self.wditerator.step) - ((N - 1) / self.wditerator.step)
+            > 0
         )
-        last_part_missing = math.ceil((N-1) / self.wditerator.step) - ((N-1) / self.wditerator.step)  > 0
         if self.wditerator.last_point and last_part_missing:
             self._samples_per_time_series[time_series_index] += 1
 
         self._time_series_sizes[time_series_index] = total_length
 
     def number_samples_of_time_series(self, time_series_index: int) -> int:
-        if self._samples_per_time_series[time_series_index] ==  np.iinfo(np.int64).max:
+        if self._samples_per_time_series[time_series_index] == np.iinfo(np.int64).max:
             self.load_time_series(time_series_index)
         return self._samples_per_time_series[time_series_index]
 
-    def number_of_samples_of_current_time_series(self):
+    def number_of_samples_of_current_time_series(self) -> int:
+        """Obtain the number of samples for the current time series
+
+        Returns:
+
+            int: Number of samples
+
+        """
+
         return self.number_samples_of_time_series(self.current_time_series)
 
-    def timestamp(self):
+    def timestamp(self) -> int:
+        """Obtain a timestamp for the current run-to-failure cycle"""
         raise NotImplementedError
 
     def time_series_size(self, time_series_index: int):
@@ -87,6 +156,7 @@ class AbstractShuffler:
         return self.time_series_size(self.current_time_series)
 
     def advance(self):
+        """Abstract method for obtain the new pair (time series, timestamp)"""
         raise NotImplementedError
 
 
@@ -94,10 +164,10 @@ class IntraTimeSeriesShuffler(AbstractShuffler):
     """
     Each point of the time series is shuffled, but the TS are kept in order
 
-    Iteration 1: | TS 1 | TS 1 | Life 1 | Life 2 | Life 2 | Life 2
-                    |   3    |  1     |  2     |   2    |   3    |   1
-    Iteration 2: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
-                    |   1    |  3     |  2     |   3    |   2    |   1
+        Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
+                     |   3  |  1   |  2   |   2  |   3  |   1
+        Iteration 2: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
+                     |   1  |  3   |  2   |   3  |   2  |   1
     """
 
     def time_series_changed(self):
@@ -110,7 +180,10 @@ class IntraTimeSeriesShuffler(AbstractShuffler):
             step=self.wditerator.step,
             dtype=np.int64,
         )
-        if self.wditerator.last_point and self.timestamps[-1] != self.current_time_series_size() - 1:
+        if (
+            self.wditerator.last_point
+            and self.timestamps[-1] != self.current_time_series_size() - 1
+        ):
             self.timestamps = np.append(
                 self.timestamps, self.current_time_series_size() - 1
             )
@@ -138,15 +211,14 @@ class IntraTimeSeriesShuffler(AbstractShuffler):
             self.time_series_changed()
 
 
-
 class TimeSeriesOrderShuffling(AbstractShuffler):
     """
     Time series are shuffled, but each point inside the time series kept  its order
 
-    Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | tS 2 |
-                 |   1  | 2    |  3   |   1  |   2  |   3  |
-    Iteration 2: | TS 2 | TS 2 | TS 2 | TS 1 | TS 1 | TS 1 |
-                 |   1  |  2   |  3   |   1  |   2  |   3  |
+        Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | tS 2 |
+                     |   1  | 2    |  3   |   1  |   2  |   3  |
+        Iteration 2: | TS 2 | TS 2 | TS 2 | TS 1 | TS 1 | TS 1 |
+                     |   1  |  2   |  3   |   1  |   2  |   3  |
     """
 
     def initialize(self, iterator: "WindowedDatasetIterator"):
@@ -167,12 +239,14 @@ class TimeSeriesOrderShuffling(AbstractShuffler):
         return ret
 
     def advance(self):
-        
+
         if self.current_timestamp == self.current_time_series_size() - 1:
             self.time_series_changed()
         else:
-            self.current_timestamp += self.wditerator.step        
-            self.current_timestamp = min(self.current_timestamp, self.current_time_series_size() - 1)
+            self.current_timestamp += self.wditerator.step
+            self.current_timestamp = min(
+                self.current_timestamp, self.current_time_series_size() - 1
+            )
 
     def time_series_changed(self):
         self.current_timestamp = 0
@@ -189,10 +263,12 @@ class TimeSeriesOrderIntraSignalShuffling(AbstractShuffler):
     """
      Each point in the ts is shuffled, and the ts order are shuffled also.
 
-    Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
-                 |   3  | 2    |  1   |   1  |   3  |   2
-    Iteration 2: | TS 2 | TS 2 | TS 2 | TS 1 | TS 1 | TS 1
-                  |   3 |  1   |  2   |   3  |   1  |   2
+    !!! note
+    
+        Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
+                     |   3  | 2    |  1   |   1  |   3  |   2
+        Iteration 2: | TS 2 | TS 2 | TS 2 | TS 1 | TS 1 | TS 1
+                     |   3 |  1   |  2   |   3  |   1  |   2
 
     """
 
@@ -225,7 +301,6 @@ class TimeSeriesOrderIntraSignalShuffling(AbstractShuffler):
         if self.available_time_stamps_index == len(self.available_time_stamps):
             self.time_series_changed()
 
-
     def time_series_changed(self):
         self.available_time_stamps_index = 0
         self.available_time_series_index += 1
@@ -248,8 +323,8 @@ class InverseOrder(AbstractShuffler):
     """
     The data points will be fed in RUL decreasing order
 
-    Iteration 1: | TS 2 | TS 1 | TS 2 | TS 1 | TS 2 | TS 1
-                 |   4  | 3    |  3   |   2  |   2  |   1
+        Iteration 1: | TS 2 | TS 1 | TS 2 | TS 1 | TS 2 | TS 1
+                     |   4  | 3    |  3   |   2  |   2  |   1
     """
 
     def initialize(self, iterator: "WindowedDatasetIterator"):
@@ -282,8 +357,8 @@ class AllShuffled(AbstractShuffler):
     """
     Everything is shuffled
 
-    Iteration 1: | TS 1 | TS 2 | TS 2 | TS 1 | TS 1 | TS 2
-                 |   3  | 2    |  1   |   1  |   2  |   3
+        Iteration 1: | TS 1 | TS 2 | TS 2 | TS 1 | TS 1 | TS 2
+                     |   3  | 2    |  1   |   1  |   2  |   3
     """
 
     def initialize(
@@ -303,7 +378,7 @@ class AllShuffled(AbstractShuffler):
         while (
             self.number_samples_of_time_series(l) == self.timestamps_per_ts_indices[l]
         ):
-            
+
             l = np.random.randint(self.wditerator.dataset.n_time_series)
         self.current_time_series = l
 
@@ -319,14 +394,13 @@ class AllShuffled(AbstractShuffler):
 
     def advance(self):
         self.timestamps_per_ts_indices[self.current_time_series] += 1
-        
 
     def load_time_series(self, time_series_index: int):
         super().load_time_series(time_series_index)
         if self.evenly_sampled:
             total_length = self.time_series_size(time_series_index)
             final_index = self.wditerator.end_index.get(total_length)
-            
+
             self.timestamps_per_ts[time_series_index] = np.arange(
                 start=self.wditerator.start_index.get(total_length),
                 stop=final_index,
@@ -337,7 +411,7 @@ class AllShuffled(AbstractShuffler):
                 self.timestamps_per_ts[time_series_index] = np.append(
                     self.timestamps_per_ts[time_series_index], final_index - 1
                 )
-            
+
         else:
             N = self.time_series_size(time_series_index)
             step = self.wditerator.step
@@ -345,13 +419,17 @@ class AllShuffled(AbstractShuffler):
                 0, 1, num=math.ceil(N / step), base=N
             ).astype("int")
         np.random.shuffle(self.timestamps_per_ts[time_series_index])
-        
+
 
 class NotShuffled(AbstractShuffler):
     """
-    Not Shuffled
-    Iteration 1: | Life 1 | Life 1  | Life 1 | Life 2 | Life 3 | Life 3
-                  |   1    | 2      |  3     |   1    |   2    |   1
+    Nothing is shuffled. Each sample of each run-to-failure cycle
+    are iterated in order
+
+        Iteration 1: | Life 1 | Life 1  | Life 1 | Life 2 | Life 3 | Life 3
+                     |   1    | 2       |  3     |   1    |   2    |   1
+        Iteration 2: | Life 1 | Life 1  | Life 1 | Life 2 | Life 3 | Life 3
+                     |   1    | 2       |  3     |   1    |   2    |   1
     """
 
     def initialize(self, iterator: "WindowedDatasetIterator"):
@@ -377,6 +455,5 @@ class NotShuffled(AbstractShuffler):
         if self.current_timestamp == final_timestamp - 1:
             self.time_series_changed()
         else:
-            self.current_timestamp += self.wditerator.step        
+            self.current_timestamp += self.wditerator.step
             self.current_timestamp = min(self.current_timestamp, final_timestamp - 1)
-        
