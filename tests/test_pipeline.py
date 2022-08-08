@@ -139,7 +139,7 @@ class TestPipeline:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        test_transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        test_transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         test_transformer.fit(dataset)
 
@@ -149,7 +149,7 @@ class TestPipeline:
         df_dataset = dataset.to_pandas()
 
         centered_df = df_dataset[["a", "b"]] - df_dataset[["a", "b"]].mean()
-        scaler = test_transformer.transformerX.find_node("Scaler")
+        scaler = test_transformer.pipelineX.find_node("Scaler")
         assert scaler.data_min.equals(centered_df.min(axis=0))
         assert scaler.data_max.equals(centered_df.max(axis=0))
 
@@ -170,7 +170,7 @@ class TestPipeline:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        test_transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        test_transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         test_transformer.fit(dataset)
 
@@ -197,7 +197,7 @@ class TestPipeline:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        test_transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        test_transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         test_transformer.fit(dataset)
 
@@ -231,7 +231,7 @@ class TestPipeline:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        test_transformer = Transformer(transformerX=pipe)
+        test_transformer = Transformer(pipelineX=pipe)
         test_transformer.fit(dataset)
 
         q = np.hstack([d[d["Categorical"] == "a"]["feature1"] for d in dataset])
@@ -277,7 +277,7 @@ class TestPipeline:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        test_transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        test_transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         test_transformer.fit(dataset)
 

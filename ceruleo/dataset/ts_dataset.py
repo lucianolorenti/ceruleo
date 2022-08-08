@@ -82,6 +82,9 @@ class AbstractTimeSeriesDataset:
     def __call__(self, i):
         return self[i]
 
+    def get_features_of_life(self, i:int ) -> pd.DataFrame:
+        return self[i]
+
     def __getitem__(self, i: Union[int, Iterable]):
         """Obtain a time-series or an splice of the dataset using a FoldedDataset
 
@@ -184,7 +187,7 @@ class AbstractTimeSeriesDataset:
         for i in bar(range(self.n_time_series)):
             if proportion_of_lives < 1.0 and np.random.rand() > proportion_of_lives:
                 continue
-            life = self[i]
+            life = self.get_features_of_life(i)
             common_features.append(set(life.columns.values))
         return sorted(list(common_features[0].intersection(*common_features)))
 

@@ -65,7 +65,7 @@ class TestImputers():
 
         df_result = (df1/2 + df1/3)[['a', 'b']]
 
-        test_transformer = Transformer(transformerX=pipe)
+        test_transformer = Transformer(pipelineX=pipe)
         test_transformer.fit([df1])
         result = test_transformer.transform(df1)[0]
 

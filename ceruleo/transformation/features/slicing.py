@@ -1,20 +1,20 @@
-from typing import Optional, Union
-
+from typing import Union
 
 import pandas as pd
+from ceruleo.iterators.iterators import (RelativePosition, RelativeToEnd,
+                                         RelativeToStart)
 from ceruleo.transformation import TransformerStep
-from ceruleo.transformation.features.tdigest import TDigest
-import numpy as np
-from scipy.signal import find_peaks
-from ceruleo.iterators.iterators import (
-    RelativePosition,
-    RelativeToEnd,
-    RelativeToStart,
-)
 
 
 class SliceRows(TransformerStep):
-    """Center the data with respect to the mean"""
+    """Slice the run-to-failure cycle 
+    
+    Parameters:
+
+        initial: The initial position
+        final: The final position
+    
+    """
 
     def __init__(
         self,
@@ -30,19 +30,7 @@ class SliceRows(TransformerStep):
         self.final = final
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Center the input life
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with the same index as the input with the
-            data centered with respect to the mean of the fiited dataset
-        """
         if isinstance(self.initial, RelativePosition):
             initial = self.initial.get(X.shape[0])
         else:

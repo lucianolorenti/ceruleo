@@ -69,18 +69,18 @@ class Transformer:
 
     Parameters:
 
-        transformerX: Transformer that will be applied to the run-to-cycle data
-        transformerY: Transformer that will be applied to the target.
-        transformerMetadata: Transformer that will be used to extract additional
+        pipelineX: Pipeline that will be applied to the run-to-cycle data
+        pipelineY: Pipeline that will be applied to the target.
+        pipelineMetadata: Pipeline that will be used to extract additional
                             data from the lives information, by default None
     """
 
     def __init__(
         self,
-        transformerX: Union[TemporisPipeline, TransformerStep],
-        transformerY: Optional[Union[TemporisPipeline, TransformerStep]] = None,
-        transformerMetadata: Optional[Union[TemporisPipeline, TransformerStep]] = None,
-        cache_type: CacheStoreType = CacheStoreType.SHELVE,
+        pipelineX: Union[TemporisPipeline, TransformerStep],
+        pipelineY: Optional[Union[TemporisPipeline, TransformerStep]] = None,
+        pipelineMetadata: Optional[Union[TemporisPipeline, TransformerStep]] = None,
+        cache_type: CacheStoreType = CacheStoreType.MEMORY,
 
     ):
         def ensure_pipeline(x, cache_type: CacheStoreType):
@@ -88,22 +88,22 @@ class Transformer:
                 return x
             return TemporisPipeline(x, cache_type=cache_type)
 
-        self.transformerX = ensure_pipeline(transformerX, cache_type)
-        if transformerY is not None:
-            self.transformerY = ensure_pipeline(transformerY, cache_type)
+        self.pipelineX = ensure_pipeline(pipelineX, cache_type)
+        if pipelineY is not None:
+            self.pipelineY = ensure_pipeline(pipelineY, cache_type)
         else:
-            self.transformerY = None
-        self.transformerMetadata = (
-            ensure_pipeline(transformerMetadata, cache_type)
-            if transformerMetadata is not None
+            self.pipelineY = None
+        self.pipelineMetadata = (
+            ensure_pipeline(pipelineMetadata, cache_type)
+            if pipelineMetadata is not None
             else None
         )
         self.features = None
         self.fitted_ = False
 
     def _process_selected_features(self):
-        if self.transformerX["selector"] is not None:
-            selected_columns = self.transformerX["selector"].get_support(indices=True)
+        if self.pipelineX["selector"] is not None:
+            selected_columns = self.pipelineX["selector"].get_support(indices=True)
             self.features = [self.features[i] for i in selected_columns]
 
     def clone(self):
@@ -126,17 +126,17 @@ class Transformer:
         """
         logger.debug("Fitting Transformer")
 
-        self.transformerX.fit(dataset, show_progress=show_progress)
-        if self.transformerY is not None:
-            self.transformerY.fit(dataset, show_progress=show_progress)
-        if self.transformerMetadata is not None:
-            self.transformerMetadata.fit(dataset)
+        self.pipelineX.fit(dataset, show_progress=show_progress)
+        if self.pipelineY is not None:
+            self.pipelineY.fit(dataset, show_progress=show_progress)
+        if self.pipelineMetadata is not None:
+            self.pipelineMetadata.fit(dataset)
 
         if not isinstance(dataset, pd.DataFrame):
             self.minimal_df = dataset[0].head(n=20)
         else:
             self.minimal_df = dataset.head(n=20)
-        X = self.transformerX.transform(self.minimal_df)
+        X = self.pipelineX.transform(self.minimal_df)
         self.number_of_features_ = X.shape[1]
         self.fitted_ = True
         self.column_names = self._compute_column_names()
@@ -169,8 +169,8 @@ class Transformer:
         return dataset.map(self)
 
     def transformMetadata(self, df: pd.DataFrame) -> Optional[any]:
-        if self.transformerMetadata is not None:
-            return self.transformerMetadata.transform(df)
+        if self.pipelineMetadata is not None:
+            return self.pipelineMetadata.transform(df)
         else:
             return None
 
@@ -187,8 +187,8 @@ class Transformer:
         np.array
             Target obtained from the life
         """
-        if self.transformerY is not None:
-            return self.transformerY.transform(life)
+        if self.pipelineY is not None:
+            return self.pipelineY.transform(life)
         else:
             return None
 
@@ -205,7 +205,7 @@ class Transformer:
         np.array
             Input data transformed
         """
-        return self.transformerX.transform(life)
+        return self.pipelineX.transform(life)
 
     def columns(self) -> List[str]:
         """Columns names after transformation
@@ -227,13 +227,13 @@ class Transformer:
         return self.number_of_features_
 
     def _compute_column_names(self):
-        return self.transformerX.column_names
+        return self.pipelineX.column_names
 
     def description(self):
         return {
             "features": self.features,
-            "transformerX": transformer_info(self.transformerX),
-            "transformerY": transformer_info(self.transformerY),
+            "transformerX": transformer_info(self.pipelineX),
+            "transformerY": transformer_info(self.pipelineY),
         }
 
     def __str__(self):

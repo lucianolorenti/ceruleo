@@ -90,18 +90,18 @@ class TestDataset:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         transformer.fit(dataset)
 
         transformed_dataset = dataset.map(transformer)
         transformed_dataset.preload()
 
-        X = transformed_dataset.get_X(0, pandas=True)
+        X = transformed_dataset.get_features_of_life(0, pandas=True)
         assert isinstance(X, pd.DataFrame)
 
 
-        X = transformed_dataset.get_X(0, pandas=False)
+        X = transformed_dataset.get_features_of_life(0, pandas=False)
         assert isinstance(X, np.ndarray)
 
         path = Path('./saved_dataset').resolve()
@@ -126,7 +126,7 @@ class TestDataset:
 
         target_pipe = ByNameFeatureSelector(features=["RUL"])
 
-        transformer = Transformer(transformerX=pipe, transformerY=target_pipe)
+        transformer = Transformer(pipelineX=pipe, pipelineY=target_pipe)
 
         transformer.fit(train_ds)
 

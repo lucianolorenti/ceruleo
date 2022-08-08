@@ -4,7 +4,7 @@ import gzip
 from multiprocessing import Pool
 import pickle
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
@@ -22,6 +22,7 @@ def _transform(transformer, dataset, i:int):
 
 class TransformedDataset(AbstractTimeSeriesDataset):
     def __init__(self, dataset, transformer:Transformer, cache_size:Optional[int]=None):
+        super().__init__()
         self.transformer = transformer
         self.dataset = dataset
         if cache_size is None:
@@ -55,7 +56,7 @@ class TransformedDataset(AbstractTimeSeriesDataset):
              self.cache.add(i, (X, y, metadata))
         
 
-    def get_time_series(self, i: int) -> pd.DataFrame:
+    def get_time_series(self, i: int) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         if i not in self.cache.data:
             data = self.dataset[i]
             X, y, metadata = self.transformer.transform(data)
@@ -63,8 +64,8 @@ class TransformedDataset(AbstractTimeSeriesDataset):
         X, y, metadata = self.cache.get(i)
         return X, y, metadata
 
-    def get_X(self, i:int, pandas:bool =True ) -> Union[np.ndarray, pd.DataFrame]:
-        X, _, _ = self.cache.get(i)
+    def get_features_of_life(self, i:int, pandas:bool =True ) -> Union[np.ndarray, pd.DataFrame]:
+        X, _, _ = self[i]
         if pandas:
             return X
         else:
@@ -115,3 +116,26 @@ class TransformedSerializedDataset(TransformedDataset):
 
     def __len__(self):
         return self.n_time_series
+
+
+def iterate_over_features(ds: TransformedDataset):
+    """Helper function to iterate over the features in a Transformed dataset 
+
+    Example:
+
+        for X, y, metadata in df:
+            pass
+
+        for X in iterate_over_features(ds):
+            pass
+
+
+    Parameters:
+
+        ds: The dataset
+
+    Returns:
+        
+        it: The iterator
+    """
+    return map(lambda x:x[0], ds)
