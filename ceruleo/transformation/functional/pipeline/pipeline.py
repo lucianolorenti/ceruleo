@@ -69,7 +69,7 @@ class TemporisPipeline(TransformerMixin):
         return data
 
 
-def make_pipeline(*steps) -> TemporisPipeline:
+def make_pipeline(*steps, cache_type: CacheStoreType = CacheStoreType.MEMORY) -> TemporisPipeline:
     """Build a pipeline 
 
     Example:
@@ -83,6 +83,7 @@ def make_pipeline(*steps) -> TemporisPipeline:
     Parameters:
 
         steps: List of steps
+        cache_type: Where to store the pipeline intermediate steps
 
     Returns:
     
@@ -91,4 +92,5 @@ def make_pipeline(*steps) -> TemporisPipeline:
     step = steps[0]
     for next_step in steps[1:]:
         step = next_step(step)
-    return step
+     
+    return TemporisPipeline(step, cache_type=cache_type)

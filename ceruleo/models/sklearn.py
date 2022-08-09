@@ -1,4 +1,3 @@
-
 import logging
 from typing import Optional, Tuple
 
@@ -6,20 +5,38 @@ import numpy as np
 import pandas as pd
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.iterators.batcher import Batcher
-from ceruleo.iterators.iterators import (NotWeighted, SampleWeight,
-                                         WindowedDatasetIterator)
+from ceruleo.iterators.iterators import (
+    NotWeighted,
+    SampleWeight,
+    WindowedDatasetIterator,
+)
 from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
-from sklearn.base import BaseEstimator, TransformerMixin
+from ceruleo.transformation.functional.transformers import Transformer
+
+import sklearn.pipeline as sk_pipeline
+from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.metrics import mean_squared_error
 
 logger = logging.getLogger(__name__)
 
 
 class EstimatorWrapper(TransformerMixin, BaseEstimator):
+    """Wrapper around sklearn estimators to allow calling the fit and predict
+
+    The transformer keeps the X and y together.
+
+    Parameters
+    ----------
+    TransformerMixin : _type_
+        _description_
+    BaseEstimator : _type_
+        _description_
+    """
+
     def __init__(self, estimator: BaseEstimator):
         self.estimator = estimator
 
-    def fit(self, Xy : Tuple[np.ndarray, np.ndarray], y=None, **fit_params):
+    def fit(self, Xy: Tuple[np.ndarray, np.ndarray], y=None, **fit_params):
         X, y = Xy
         self.estimator.fit(X, y, **fit_params)
         return self
@@ -30,25 +47,28 @@ class EstimatorWrapper(TransformerMixin, BaseEstimator):
 
 
 class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
-    def __init__(self, transformer, 
-                 window_size: int,
-                 step: int = 1,
-                 output_size: int = 1,
-                 shuffler: AbstractShuffler = NotShuffled(),
-                 sample_weight:  SampleWeight= NotWeighted(),
-                 right_closed: bool = True):
+    def __init__(
+        self,
+        transformer: Transformer,
+        window_size: int,
+        step: int = 1,
+        output_size: int = 1,
+        shuffler: AbstractShuffler = NotShuffled(),
+        sample_weight: SampleWeight = NotWeighted(),
+        right_closed: bool = True,
+    ):
         self.transformer = transformer
-        self.window_size=window_size
+        self.window_size = window_size
         self.output_size = output_size
         self.step = step
-        self.shuffler = shuffler 
+        self.shuffler = shuffler
         self.sample_weight = sample_weight
         self.right_closed = right_closed
 
     def fit(self, dataset: AbstractTimeSeriesDataset):
         self.transformer.fit(dataset)
         return self
-       
+
     def _iterator(self, dataset: AbstractTimeSeriesDataset):
         return WindowedDatasetIterator(
             dataset.map(self.transformer),
@@ -57,7 +77,7 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
             self.output_size,
             shuffler=self.shuffler,
             sample_weight=self.sample_weight,
-            right_closed=self.right_closed
+            right_closed=self.right_closed,
         )
 
     def transform(self, dataset: AbstractTimeSeriesDataset):
@@ -69,9 +89,33 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
         return y
 
 
+class CeruleoRegressor(RegressorMixin, BaseEstimator):
+    def __init__(
+        self, features_transformer: TimeSeriesWindowTransformer, regressor, **kwargs
+    ):
+        self.features_transformer = features_transformer
+        self.regressor = regressor
+        self.pipe = sk_pipeline.make_pipeline(
+            features_transformer, EstimatorWrapper(regressor)
+        )
+
+    def fit(self, dataset):
+        self.pipe.fit(dataset)
+        return self
+
+    def predict(self, dataset):
+        return self.pipe.predict(dataset)
+
+    def get_params(self, *args, **kwargs):
+        return self.pipe.get_params(*args, **kwargs)
 
 
-def train_model(model, train_iterator: WindowedDatasetIterator, val_windowed_iterator: Optional[WindowedDatasetIterator] = None, **fit_kwargs):
+def train_model(
+    model,
+    train_iterator: WindowedDatasetIterator,
+    val_windowed_iterator: Optional[WindowedDatasetIterator] = None,
+    **fit_kwargs
+):
     """Fit the model with the given dataset iterator
 
     Parameters
@@ -94,9 +138,10 @@ def train_model(model, train_iterator: WindowedDatasetIterator, val_windowed_ite
     params = {}
     try:
         from xgboost import XGBRegressor
+
         if val_windowed_iterator is not None and isinstance(model, XGBRegressor):
             X_val, y_val, _ = val_windowed_iterator.get_data()
-            fit_kwargs.update({'eval_set': [(X_val, y_val)]})
+            fit_kwargs.update({"eval_set": [(X_val, y_val)]})
     except Exception as e:
         logger.error(e)
 
@@ -142,9 +187,7 @@ def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
     history = []
     for r in range(n_epochs):
         for X, y in train_batcher:
-            model.partial_fit(
-                np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2])), y
-            )
+            model.partial_fit(np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2])), y)
         y_true, y_pred = predict(val_batcher)
         history.append(mean_squared_error(y_true, y_pred))
     return model, history
@@ -168,9 +211,7 @@ def predict_batch(model, dataset_batcher: Batcher):
     for X, y in dataset_batcher:
         y_pred.extend(
             np.squeeze(
-                model.predict(
-                    np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2]))
-                )
+                model.predict(np.reshape(X, (X.shape[0], X.shape[1] * X.shape[2])))
             )
         )
     return np.squeeze(np.array(y_pred))

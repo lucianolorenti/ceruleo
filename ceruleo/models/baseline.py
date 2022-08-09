@@ -67,12 +67,11 @@ class BaselineModel:
 
 
 class FixedValueBaselineModel:
-    """[summary]
+    """A model that predicts always  the same duration for each run-to-failure cycle
 
-    Parameters
-    ----------
-    value: float
-        Fixed RUL
+    Parameters:
+    
+        value: Fixed RUL
     """
 
     def __init__(self, value: float):
@@ -83,15 +82,13 @@ class FixedValueBaselineModel:
     ):
         """Predict the whole life using the fixed values
 
-        Parameters
-        ----------
-        ds : LifeDatasetIterator
-            Dataset iterator from which obtain the true RUL
+        Parameters: 
 
-        Returns
-        -------
-        np.array
-            Predicted target
+            ds: Dataset iterator from which obtain the true RUL
+
+        Returns:
+
+            true_RUL: Predicted target
         """
         output = []
         for _, y, _ in ds:
