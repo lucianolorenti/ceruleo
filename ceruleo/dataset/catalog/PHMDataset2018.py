@@ -227,6 +227,7 @@ class PHMDataset2018(AbstractLivesDataset):
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
         df.index = pd.to_timedelta(df.index, unit='s')
+        df = df[df['FIXTURESHUTTERPOSITION'] == 1]
         df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
         return df

@@ -25,7 +25,8 @@ from typing import Tuple
 def MSWRLRCN(input_shape: Tuple[int, int]):
     """MSWR-LRCN: A new deep learning approach to remaining useful life estimation of bearings
         Yongyi Chen, Dan Zhang, Wen-an Zhang
-    https://doi.org/10.1016/j.conengprac.2021.104969
+    
+    [Reference](https://doi.org/10.1016/j.conengprac.2021.104969)
     """
 
     def ConvBlock(n_filters: int, kernel_size: int):
