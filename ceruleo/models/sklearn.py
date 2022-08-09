@@ -29,15 +29,15 @@ class EstimatorWrapper(TransformerMixin, BaseEstimator):
         return self.estimator.predict(X, **transform_params)
 
 
-class SKLearnTimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
-    def __init__(self, transformer_builder, 
+class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
+    def __init__(self, transformer, 
                  window_size: int,
                  step: int = 1,
                  output_size: int = 1,
                  shuffler: AbstractShuffler = NotShuffled(),
                  sample_weight:  SampleWeight= NotWeighted(),
                  right_closed: bool = True):
-        self.transformer = transformer_builder()
+        self.transformer = transformer
         self.window_size=window_size
         self.output_size = output_size
         self.step = step
