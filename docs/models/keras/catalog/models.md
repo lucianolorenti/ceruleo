@@ -11,8 +11,8 @@
 
 ::: ceruleo.models.keras.models.MVCNN
 
-::: ceruleo.models.keras.models.XiangQiangJianQiao.XiangQiangJianQiaoModel
+::: ceruleo.models.keras.models.XiangQiangJianQiao
 
-::: ceruleo.models.keras.models.XCM.XCM
+::: ceruleo.models.keras.models.XCM
 
 
