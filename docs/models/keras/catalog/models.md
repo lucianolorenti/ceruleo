@@ -13,4 +13,6 @@
 
 ::: ceruleo.models.keras.models.XiangQiangJianQiao.XiangQiangJianQiaoModel
 
+::: ceruleo.models.keras.models.XCM.XCM
+
 

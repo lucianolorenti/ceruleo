@@ -23,14 +23,12 @@ logger = logging.getLogger(__name__)
 class EstimatorWrapper(TransformerMixin, BaseEstimator):
     """Wrapper around sklearn estimators to allow calling the fit and predict
 
-    The transformer keeps the X and y together.
+    The transformer keeps the X and y together. This wrapper 
+    divide the X,y and call the fit(X,y) and predict(X,y) of the estimator
 
-    Parameters
-    ----------
-    TransformerMixin : _type_
-        _description_
-    BaseEstimator : _type_
-        _description_
+    Parameters:
+    
+        estimator: A scikit-learn estimator
     """
 
     def __init__(self, estimator: BaseEstimator):
@@ -47,19 +45,31 @@ class EstimatorWrapper(TransformerMixin, BaseEstimator):
 
 
 class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
+    """A scikit-learn transformer for obtaining a windowed time-series from the run-to-cycle failures
+
+    Parameters:
+
+        transformer: 
+        window_size: Window size of the iterator
+        step: Stride of the iterators
+        horizon: Horizon of the predictions
+        shuffler: Shuffler of the data
+        sample_weight: Sample weights callable
+        right_closed: Wether to include the last point in each sliding window
+    """
     def __init__(
         self,
         transformer: Transformer,
         window_size: int,
         step: int = 1,
-        output_size: int = 1,
+        horizon: int = 1,
         shuffler: AbstractShuffler = NotShuffled(),
         sample_weight: SampleWeight = NotWeighted(),
         right_closed: bool = True,
     ):
         self.transformer = transformer
         self.window_size = window_size
-        self.output_size = output_size
+        self.horizon = horizon
         self.step = step
         self.shuffler = shuffler
         self.sample_weight = sample_weight
@@ -74,7 +84,7 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
             dataset.map(self.transformer),
             self.window_size,
             self.step,
-            self.output_size,
+            self.horizon,
             shuffler=self.shuffler,
             sample_weight=self.sample_weight,
             right_closed=self.right_closed,
@@ -90,6 +100,14 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
 
 
 class CeruleoRegressor(RegressorMixin, BaseEstimator):
+    """A regressor wrapper similar to sklearn.compose.TransformedTargetRegressor
+    
+
+    Parameters:
+
+        features_transformer: The transformer
+        regressor: A scikit-learn regressor
+    """
     def __init__(
         self, features_transformer: TimeSeriesWindowTransformer, regressor, **kwargs
     ):
@@ -118,20 +136,18 @@ def train_model(
 ):
     """Fit the model with the given dataset iterator
 
-    Parameters
-    ----------
-    train_iterator : WindowedDatasetIterator
-        Dataset iterator from which obtain data to fit
+    Parameters:
+    
+        train_iterator: 
+        
 
-    Keyword arguments
-    -----------------
-    fit_kwargs:
-        Arguments for the fit method
+    Keyword arguments:
 
-    Returns
-    -------
-    SKLearn model
-        self
+        fit_kwargs: Arguments for the fit method
+
+    Returns:
+    
+        model: SKLearn model
     """
     X, y, sample_weight = train_iterator.get_data()
 
@@ -151,15 +167,13 @@ def train_model(
 def predict(model, dataset_iterator: WindowedDatasetIterator):
     """Get the predictions for the given iterator
 
-    Parameters
-    ----------
-    dataset_iterator : WindowedDatasetIterator
-        Dataset iterator from which obtain data to predict
+    Parameters:
+    
+        dataset_iterator: Dataset iterator from which obtain data to predict
 
-    Returns
-    -------
-    np.array
-        Array with the predictiosn
+    Returns:
+
+        array: Array with the predictiosn
     """
     X, _, _ = dataset_iterator.get_data()
     return model.predict(X)
@@ -168,20 +182,17 @@ def predict(model, dataset_iterator: WindowedDatasetIterator):
 def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
     """Fit the model using the given batcher
 
-    Parameters
-    ----------
-    model: SKLearn Model
-    train_batcher : Batcher
-        Train dataset batcher
-    val_batcher : Batcher
-        Validation dataset batcher
-    n_epochs : int, optional
-        Number of epochs, by default 15
+    Parameters:
 
-    Returns
-    -------
-    SKLearn model
-        self
+        model: SKLearn Model
+        train_batcher: Train dataset batcher
+        val_batcher: Validation dataset batcher
+        n_epochs: Number of epochs, by default 15
+
+    Returns:
+
+        model: the model
+        history: history of errors
     """
 
     history = []
@@ -196,16 +207,15 @@ def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
 def predict_batch(model, dataset_batcher: Batcher):
     """Predict the values using the given batcher
 
-    Parameters
-    ----------
-    model: SKLearn model
-    dataset_batcher : Batcher
+    Parameters:
+
+        model: SKLearn model
+        dataset_batcher: The batcher 
 
 
-    Returns
-    -------
-    np.array
-        Predictions array
+    Returns:
+
+        RUL_predicted: Predictions array
     """
     y_pred = []
     for X, y in dataset_batcher:

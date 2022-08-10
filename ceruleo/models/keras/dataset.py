@@ -3,7 +3,19 @@ import tensorflow as tf
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 import numpy as np
 
-def tf_regression_dataset(iterator: WindowedDatasetIterator):
+def tf_regression_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
+    """Create a forecast tf.data.Dataset from the iterator
+
+    The dataset is is constructed from a generator
+
+    Parameters:
+
+        iterator: The data iterator
+
+    Returns:
+    
+        d: A tensorlfow dataset
+    """
     n_features = iterator.n_features
 
     def generator_function():
@@ -24,7 +36,19 @@ def tf_regression_dataset(iterator: WindowedDatasetIterator):
     return a
 
 
-def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator):
+def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
+    """Create a sequence to sequence tf.data.Dataset from the iterator
+
+    The dataset is is constructed from a generator
+
+    Parameters:
+
+        iterator: The data iterator
+
+    Returns:
+    
+        d: A tensorlfow dataset
+    """    
     n_features = iterator.n_features
 
     def generator_function():
@@ -45,7 +69,19 @@ def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator):
     return a
 
 
-def tf_autoencoder_dataset(iterator: WindowedDatasetIterator):
+def tf_autoencoder_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
+    """Create an autoencoder tf.data.Dataset from the iterator
+
+    The dataset is is constructed from a generator
+
+    Parameters:
+
+        iterator: The data iterator
+
+    Returns:
+    
+        d: A tensorlfow dataset
+    """    
     n_features = iterator.n_features
 
     def gen_train():

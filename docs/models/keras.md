@@ -1,4 +1,0 @@
-# Keras
-
-
-::: ceruleo.models.keras

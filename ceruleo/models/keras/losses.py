@@ -1,138 +1,13 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
-from tensorflow.keras.losses import mse
-import numpy as np
+
+
 from tensorflow.python.keras.losses import LossFunctionWrapper
-from tensorflow.python.keras.utils import losses_utils
-from tensorflow.python.util.tf_export import keras_export
-from ceruleo.models.keras.weibull import NotCensoredWeibull
-
-
-def class_to_reg(y_true, y_pred, bins):
-
-    aa = tf.convert_to_tensor(np.array([bins]).T, dtype=tf.float32)
-    y_pred = tf.matmul(y_pred, aa)
-
-    y_true = tf.gather(aa, tf.cast(tf.squeeze(y_true), tf.int64))
-    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
-
-
-def weighted_binary_cross_entropy(weights: dict, from_logits: bool = False):
-    """
-    Return a function for calculating weighted binary cross entropy
-    It should be used for multi-hot encoded labels
-
-    # Example
-    y_true = tf.convert_to_tensor([1, 0, 0, 0, 0, 0], dtype=tf.int64)
-    y_pred = tf.convert_to_tensor(
-        [0.6, 0.1, 0.1, 0.9, 0.1, 0.], dtype=tf.float32)
-    weights = {
-        0: 1.,
-        1: 2.
-    }
-    # with weights
-    loss_fn = get_loss_for_multilabels(weights=weights, from_logits=False)
-    loss = loss_fn(y_true, y_pred)
-    # tf.Tensor(0.6067193, shape=(), dtype=float32)
-
-    # without weights
-    loss_fn = get_loss_for_multilabels()
-    loss = loss_fn(y_true, y_pred)
-    # tf.Tensor(0.52158177, shape=(), dtype=float32)
-
-    # Another example
-    y_true = tf.convert_to_tensor([[0., 1.], [0., 0.]], dtype=tf.float32)
-    y_pred = tf.convert_to_tensor([[0.6, 0.4], [0.4, 0.6]], dtype=tf.float32)
-    weights = {
-        0: 1.,
-        1: 2.
-    }
-    # with weights
-    loss_fn = get_loss_for_multilabels(weights=weights, from_logits=False)
-    loss = loss_fn(y_true, y_pred)
-    # tf.Tensor(1.0439969, shape=(), dtype=float32)
-
-    # without weights
-    loss_fn = get_loss_for_multilabels()
-    loss = loss_fn(y_true, y_pred)
-    # tf.Tensor(0.81492424, shape=(), dtype=float32)
-
-    @param weights A dict setting weights for 0 and 1 label. e.g.
-        {
-            0: 1.
-            1: 8.
-        }
-        For this case, we want to emphasise those true (1) label,
-        because we have many false (0) label. e.g.
-            [
-                [0 1 0 0 0 0 0 0 0 1]
-                [0 0 0 0 1 0 0 0 0 0]
-                [0 0 0 0 1 0 0 0 0 0]
-            ]
-
-
-
-    @param from_logits If False, we apply sigmoid to each logit
-    @return A function to calcualte (weighted) binary cross entropy
-    """
-    assert 0 in weights
-    assert 1 in weights
-
-    def weighted_cross_entropy_fn(y_true, y_pred):
-        tf_y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        tf_y_pred = tf.cast(y_pred, dtype=y_pred.dtype)
-
-        weights_v = tf.where(tf.equal(tf_y_true, 1), weights[1], weights[0])
-        ce = K.binary_crossentropy(tf_y_true, tf_y_pred, from_logits=from_logits)
-        loss = K.mean(tf.multiply(ce, weights_v))
-        return loss
-
-    return weighted_cross_entropy_fn
-
-
-def time_to_failure_rul(weights: dict):
-
-    binary_loss_fun = weighted_binary_cross_entropy(weights)
-
-    def time_to_failure_rul_fun(y_true, y_pred):
-        """ Final loss calculation function to be passed to optimizer"""
-        mse_loss = mse(y_true[:, 0], y_pred[:, 0])
-        binary_loss = binary_loss_fun(y_true[:, 1], y_pred[:, 1])
-        return binary_loss + mse_loss
-
-    return time_to_failure_rul_fun
-
-
-def weighted_categorical_crossentropy(weights):
-    """
-    A weighted version of keras.objectives.categorical_crossentropy
-
-    Variables:
-        weights: numpy array of shape (C,) where C is the number of classes
-
-    Usage:
-        # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
-        weights = np.array([0.5,2,10])
-        loss = weighted_categorical_crossentropy(weights)
-        model.compile(loss=loss,optimizer='adam')
-    """
-
-    weights = K.variable(weights)
-
-    def loss(y_true, y_pred):
-        # scale predictions so that the class probas of each sample sum to 1
-        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
-        # clip to prevent NaN's and Inf's
-        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
-        # calc
-        loss = y_true * K.log(y_pred) * weights
-        loss = -K.sum(loss, -1)
-        return loss
-
-    return loss
 
 
 def root_mean_squared_error(y_true, y_pred):
+    """Root mean squared error"""
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
 
@@ -148,6 +23,32 @@ def asymmetric_loss_pm(
     gamma_r,
     relative_weight: bool = True,
 ):
+    """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
+
+
+    Ehrig, L., Atzberger, D., Hagedorn, B., Klimke, J., & Döllner, J. (2020, October).
+    Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance.
+    In 2020 8th International Conference on Condition Monitoring and Diagnosis
+    (CMD) (pp. 250-253). IEEE.
+
+    [Reference](https://ieeexplore.ieee.org/document/9287246)
+
+    Parameters:
+
+        y_true: True RUL values
+        y_pred: Predicted RUL values
+        theta_l: theta parameter for underpredicting
+        alpha_l: alpha parameters for underpredicting
+        gamma_l: gamma parameters for underpredicting
+        theta_r:
+        alpha_r:
+        gamma_r:
+        relative_weight: Wether to use weigthing relative to the RUL
+
+    Returns:
+
+        l: the loss computed
+    """
 
     errors = y_true - y_pred
     weight = tf.abs(errors) / (
@@ -185,22 +86,22 @@ def asymmetric_loss_pm(
 class AsymmetricLossPM(LossFunctionWrapper):
     """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
 
-    Parameters
-    ----------
-    theta_l : float
-        [description]
-    alpha_l : float
-        [description]
-    gamma_l : float
-        [description]
-    theta_r : float
-        [description]
-    alpha_r : float
-        [description]
-    gamma_r : float
-        [description]
-    relative_weight : bool, optional
-        [description], by default Truename='asymmetric_loss_pm'
+
+    Ehrig, L., Atzberger, D., Hagedorn, B., Klimke, J., & Döllner, J. (2020, October).
+    Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance.
+    In 2020 8th International Conference on Condition Monitoring and Diagnosis
+    (CMD) (pp. 250-253). IEEE.
+
+    [Reference](https://ieeexplore.ieee.org/document/9287246)
+
+    Parameters:
+        theta_l: Linear component of the assymetric loss in the underprediction
+        alpha_l: alpha component of the assymetric loss in the underprediction
+        gamma_l: gamma component of the assymetric loss in the underprediction
+        theta_r: theta component of the assymetric loss in the overprediction
+        alpha_r: alpha component of the assymetric loss in the overprediction
+        gamma_r: gamma component of the assymetric loss in the overprediction
+        relative_weight:
     """
 
     def __init__(
@@ -229,6 +130,16 @@ class AsymmetricLossPM(LossFunctionWrapper):
 
 
 def relative_mae(C: float = 0.9):
+    """MAE weighted by the relative error
+
+    Parameters:
+
+        C: Minimal value for the RUL
+
+    Returns:
+
+        callable: The loss function
+    """
     mae = tf.keras.losses.MeanAbsoluteError()
 
     def concrete_relative_mae(y_true, y_pred):
@@ -242,6 +153,16 @@ def relative_mae(C: float = 0.9):
 
 
 def relative_mse(C: float = 0.9):
+    """MSE weighted by the relative error
+
+    Parameters:
+
+        C: Minimal value for the RUL
+
+    Returns:
+
+        callable: The loss function
+    """
     mse = tf.keras.losses.MeanSquaredError()
 
     def concrete_relative_mse(y_true, y_pred):
@@ -253,13 +174,3 @@ def relative_mse(C: float = 0.9):
 
     return concrete_relative_mse
 
-
-def get(loss_info: dict):
-    if "class_name" in loss_info:
-        return tf.keras.losses.get(**loss_info)
-    if loss_info["type"] == "weibull_not_censored":
-        return NotCensoredWeibull(**loss_info.get("config", {}))
-    elif loss_info["type"] == "asymmetric":
-        return AsymmetricLossPM(**loss_info.get("config", {}))
-    else:
-        return tf.keras.losses.get(loss_info["type"])
