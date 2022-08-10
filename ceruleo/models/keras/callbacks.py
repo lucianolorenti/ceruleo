@@ -4,15 +4,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from temporis.iterators.iterators import WindowedDatasetIterator
-from ceruleo.graphics.plots import plot_predictions
-
-from tensorflow.keras.callbacks import Callback
-from temporis.iterators.utils import true_values
 import tensorflow as tf
-from sklearn.metrics import mean_absolute_error as mae
-
+from ceruleo.graphics.plots import plot_predictions
+from ceruleo.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.utils import true_values
 from ceruleo.results.results import PredictionResult
+from sklearn.metrics import mean_absolute_error as mae
+from tensorflow.keras.callbacks import Callback
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +18,11 @@ logger = logging.getLogger(__name__)
 class PredictionCallback(Callback):
     """Generate a plot after each epoch with the predictions
 
-    Parameters
-    ----------
-    model : tf.keras.Model
-        The model used predict
-    output_path : Path
-        Path of the output image
-    dataset : [type]
-        The dataset that want to be plotted
+    Parameters:
+
+        model: The model used predict
+        output_path: Path of the output image
+        dataset: The dataset that want to be plotted
     """
 
     def __init__(

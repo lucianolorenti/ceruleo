@@ -1,6 +1,6 @@
 import torch
 from ceruleo.iterators.iterators import WindowedDatasetIterator
-
+import math 
 
 class IterableDataset(torch.utils.data.IterableDataset):
      def __init__(self, iterator:WindowedDatasetIterator):

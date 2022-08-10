@@ -8,9 +8,10 @@ from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
 from ceruleo.models.keras.dataset import tf_regression_dataset
-from ceruleo.models.scikitlearn import (
+from ceruleo.models.sklearn import (
+    CeruleoRegressor,
     EstimatorWrapper,
-    SKLearnTimeSeriesWindowTransformer,
+    TimeSeriesWindowTransformer,
     predict,
     train_model,
 )
@@ -113,18 +114,33 @@ class TestModels:
         x = MinMaxScaler(range=(-1, 1))(x)
 
         y = ByNameFeatureSelector(features=["RUL"])
-        transformer = lambda: Transformer(x, y)
+        transformer = Transformer(x, y)
         ds = MockDataset(5)
 
-        transformer = SKLearnTimeSeriesWindowTransformer(transformer, window_size=5)
-        pipe = make_pipeline(transformer, EstimatorWrapper(LinearRegression()))
+        window_transformer = TimeSeriesWindowTransformer(transformer, window_size=5)
+        pipe = make_pipeline(window_transformer, EstimatorWrapper(LinearRegression()))
         pipe.fit(ds)
 
         y_pred = pipe.predict(ds)
-        y_true = transformer.true_values(ds)
+        y_true = window_transformer.true_values(ds)
 
         mse = np.sum((y_pred - y_true) ** 2)
         assert mse < 0.01
+
+        regressor = CeruleoRegressor(
+            TimeSeriesWindowTransformer(
+                transformer,
+                window_size=15,
+                step=1),   
+            LinearRegression())
+
+        regressor.fit(ds)
+        y_pred = regressor.predict(ds)
+        y_true = regressor.features_transformer.true_values(ds)
+        mse = np.sum((y_pred - y_true) ** 2)
+        assert mse < 0.01
+
+
 
     def test_keras(self):
 

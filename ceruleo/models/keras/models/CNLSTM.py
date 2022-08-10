@@ -20,22 +20,24 @@ def CNLSTM(
     * Lahiru Jayasinghe∗, Tharaka Samarasinghe†, Chau Yuen∗, Jenny Chen Ni Low§, Shuzhi Sam Ge‡
 
 
-    Parameters
-    ----------
-    layers_convolutionals: list of int
-        Number of convolutional layers. Each convolutional layers is composed by:
-        * 1D-convolution:  kernelsize=2, strides=1,padding=same, activation=ReLu
-        * 1D-max-pooling   poolsize=2, strides=2, padding=same
-    layers_recurrent: list of int
-        Number of current layers. Each recurrent layer is composed by:
-        * LSTM
-    dropout:float
-    window: int
-    batch_size: int
-    step: int
-    transformer, shuffle, models_path,
-    patience:int. Default:4
-    cache_size:int. Default 30
+    Parameters:
+
+        input_shape: Input shape of the iterator
+
+        layers_convolutionals: list of int
+            Number of convolutional layers. Each convolutional layers is composed by:
+            * 1D-convolution:  kernelsize=2, strides=1,padding=same, activation=ReLu
+            * 1D-max-pooling   poolsize=2, strides=2, padding=same
+        layers_recurrent: list of int
+            Number of current layers. Each recurrent layer is composed by:
+            * LSTM
+        dropout:float
+        window: int
+        batch_size: int
+        step: int
+        transformer, shuffle, models_path,
+        patience:int. Default:4
+        cache_size:int. Default 30
     """
 
     model = Sequential()

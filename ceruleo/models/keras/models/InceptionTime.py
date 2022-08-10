@@ -1,157 +1,144 @@
+from typing import Tuple
+
 import numpy as np
 import tensorflow as tf
-
-from tensorflow.python.keras.layers  import (BatchNormalization, Concatenate, MaxPool1D, Activation)
-from ceruleo.models.keras.dataset import KerasTrainableModel
-from ceruleo.models.keras.layers import ExpandDimension, RemoveDimension
-from tensorflow.keras import Input, Model, optimizers
-from tensorflow.keras.layers import (
-    Layer,
-    LayerNormalization,
-    MultiHeadAttention,
-    Add,
-    Conv1D,
-    Conv2D,
-    Dense,
-    Embedding,
-    Dropout,
-    Flatten,
-    GlobalAveragePooling1D,
-)
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Add, Conv1D, Dense, GlobalAveragePooling1D
+from tensorflow.python.keras.layers import (Activation, BatchNormalization,
+                                            Concatenate, MaxPool1D)
 
 
-class InceptionTime(KerasTrainableModel):
-    def __init__(
-        self,
-        nb_filters=32,
-        use_residual=True,
-        use_bottleneck=True,
-        depth=6,
-        kernel_size=41,
-        bottleneck_size:int = 32,
-        inception_number:int = 3,
-        **kwargs
-    ):
-        super().__init__(**kwargs)
+def _inception_module(
+    input_tensor,
+    use_bottleneck: bool,
+    bottleneck_size: int,
+    kernel_size: int,
+    inception_number: int,
+    nb_filters: int,
+    stride=1,
+    activation="linear",
+):
 
-        self.nb_filters = nb_filters
-        self.use_residual = use_residual
-        self.use_bottleneck = use_bottleneck
-        self.depth = depth
-        self.kernel_size = kernel_size - 1
-        self.bottleneck_size = bottleneck_size
-        self.inception_number = inception_number
-
-    def compile(self):
-        self.compiled = True
-        self.model.compile(
-            loss=self.loss,
-            optimizer=optimizers.Adam(
-                lr=self.learning_rate,
-                beta_1=0.85,
-                beta_2=0.9,
-                epsilon=0.001,
-                amsgrad=True,
-            ),
-            metrics=self.metrics,
-        )
-
-    def _inception_module(self, input_tensor, stride=1, activation="linear"):
-        print(self.bottleneck_size)
-        if self.use_bottleneck and int(input_tensor.shape[-1]) > 1:
-            input_inception = Conv1D(
-                filters=self.bottleneck_size,
-                kernel_size=1,
-                padding="same",
-                activation=activation,
-                use_bias=False,
-            )(input_tensor)
-        else:
-            input_inception = input_tensor
-
-  
-        kernel_size_s = [self.kernel_size // (2 ** i) for i in range(self.inception_number)]
-
-        conv_list = []
-
-        for i in range(len(kernel_size_s)):
-            conv_list.append(
-                Conv1D(
-                    filters=self.nb_filters,
-                    kernel_size=kernel_size_s[i],
-                    strides=stride,
-                    padding="same",
-                    activation=activation,
-                    use_bias=False,
-                )(input_inception)
-            )
-
-        max_pool_1 = MaxPool1D(pool_size=3, strides=stride, padding="same")(
-            input_tensor
-        )
-
-        conv_6 = Conv1D(
-            filters=self.nb_filters,
+    if use_bottleneck and int(input_tensor.shape[-1]) > 1:
+        input_inception = Conv1D(
+            filters=bottleneck_size,
             kernel_size=1,
             padding="same",
             activation=activation,
             use_bias=False,
-        )(max_pool_1)
-
-        conv_list.append(conv_6)
-
-        x = Concatenate(axis=2)(conv_list)
-        x = BatchNormalization()(x)
-        x = Activation(activation="relu")(x)
-        return x
-
-    def _shortcut_layer(self, input_tensor, out_tensor):
-        shortcut_y = Conv1D(
-            filters=int(out_tensor.shape[-1]),
-            kernel_size=1,
-            padding="same",
-            use_bias=False,
         )(input_tensor)
-        shortcut_y = BatchNormalization()(shortcut_y)
+    else:
+        input_inception = input_tensor
 
-        x = Add()([shortcut_y, out_tensor])
-        x = Activation("relu")(x)
-        return x
+    kernel_size_s = [kernel_size // (2**i) for i in range(inception_number)]
 
-    def build_model(self, input_shape):
+    conv_list = []
+
+    for i in range(len(kernel_size_s)):
+        conv_list.append(
+            Conv1D(
+                filters=nb_filters,
+                kernel_size=kernel_size_s[i],
+                strides=stride,
+                padding="same",
+                activation=activation,
+                use_bias=False,
+            )(input_inception)
+        )
+
+    max_pool_1 = MaxPool1D(pool_size=3, strides=stride, padding="same")(input_tensor)
+
+    conv_6 = Conv1D(
+        filters=nb_filters,
+        kernel_size=1,
+        padding="same",
+        activation=activation,
+        use_bias=False,
+    )(max_pool_1)
+
+    conv_list.append(conv_6)
+
+    x = Concatenate(axis=2)(conv_list)
+    x = BatchNormalization()(x)
+    x = Activation(activation="relu")(x)
+    return x
 
 
-        input = Input(shape=input_shape)
+def _shortcut_layer(input_tensor, out_tensor):
+    shortcut_y = Conv1D(
+        filters=int(out_tensor.shape[-1]),
+        kernel_size=1,
+        padding="same",
+        use_bias=False,
+    )(input_tensor)
+    shortcut_y = BatchNormalization()(shortcut_y)
 
-        x = input
-        input_res = input
+    x = Add()([shortcut_y, out_tensor])
+    x = Activation("relu")(x)
+    return x
 
-        for d in range(self.depth):
 
-            x = self._inception_module(x)
+def InceptionTime(
+    input_shape: Tuple[int, int],
+    nb_filters: int = 32,
+    use_residual: bool = True,
+    use_bottleneck: bool = True,
+    depth: int = 6,
+    kernel_size: int = 41,
+    bottleneck_size: int = 32,
+    inception_number: int = 3,
+)-> tf.keras.Model:
+    """InceptionTime
 
-            if self.use_residual and d % 3 == 2:
-                x = self._shortcut_layer(input_res, x)
-                input_res = x
 
-        gap_layer = GlobalAveragePooling1D()(x)
+    Ismail Fawaz, H., Lucas, B., Forestier, G., Pelletier, C., Schmidt, D. F., Weber, J., ... & Petitjean, F. (2020). 
+    Inceptiontime: Finding alexnet for time series classification. 
+    Data Mining and Knowledge Discovery, 34(6), 1936-1962.
 
-        output_layer = Dense(1, activation="relu")(gap_layer)
+    [Reference](https://link.springer.com/article/10.1007/s10618-020-00710-y)
 
-        model = Model(inputs=input, outputs=output_layer)
 
-        return model
+    Parameters:
+    
+        input_shape: Input shape
+        nb_filters: number of fiters
+        use_residual: Wether to use residual connections
+        use_bottleneck : bool, optional
+            _description_, by default True
+        depth: max_depth
+        kernel_size: kernel size
+        bottleneck_size: bottleneck size
+        inception_number: iception number
 
-    def get_params(self, deep=False):
-        d = super().get_params()
-        d["nb_filters"] = self.nb_filters
-        d["use_residual"] = self.use_residual
-        d["use_bottleneck"] = self.use_bottleneck
-        d["depth"] = self.depth
-        d["kernel_size"] = self.kernel_size
-        d["bottleneck_size"] = self.bottleneck_size
-        return d
+    Returns:
 
-    @property
-    def name(self):
-        return "InceptionTime"
+        model: Model
+    """
+
+    input = Input(shape=input_shape)
+
+    x = input
+    input_res = input
+
+    for d in range(depth):
+
+        x = _inception_module(
+            x,
+            use_bottleneck,
+            bottleneck_size,
+            kernel_size,
+            inception_number,
+            nb_filters,
+        )
+
+        if use_residual and d % 3 == 2:
+            x = _shortcut_layer(input_res, x)
+            input_res = x
+
+    gap_layer = GlobalAveragePooling1D()(x)
+
+    output_layer = Dense(1, activation="relu")(gap_layer)
+
+    model = Model(inputs=input, outputs=output_layer)
+
+    return model

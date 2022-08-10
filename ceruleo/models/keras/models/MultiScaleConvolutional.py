@@ -21,16 +21,26 @@ def MultiScaleConvolutionalModel(
     n_hidden: int,
     l2: float = 0.5,
     dropout: float = 0.5,
-    activation: str = 'float'
+    activation: str = 'relu'
 ):
     """Remaining useful life prediction using multi-scale deep convolutional neural network
 
 
+    Li, H., Zhao, W., Zhang, Y., & Zio, E. (2020). 
+    Remaining useful life prediction using multi-scale deep convolutional neural network. 
+    Applied Soft Computing, 89, 106113.
+    
+    (Reference)[https://www.sciencedirect.com/science/article/pii/S1568494620300533?casa_token=wp27UPxwVTIAAAAA:e_fMuKsvfQf8VZ7DgsXKCi6mpnrcx2hI0tbfe5xrLRhxmc2vaR-uW_Qq23v5yBqziBoSM5gu]
+    
+    Parameters:
 
-    Han Li
-    Wei Zhao
-    Yuxi Zhanga
-    Enrico Zio
+        input_shape: Input shape of the iterator
+        n_msblocks: Number of scale blocks
+        scales: List of scales
+        n_hidden: Hidden convolutional dimensions
+        l2: regularization
+        dropout: Dropout factor
+        activation
     """
 
     def _create_scale_conv(hidden, scale):
