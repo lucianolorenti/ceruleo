@@ -1,7 +1,9 @@
 from typing import List, Tuple
+
 import tensorflow as tf
 from tensorflow.keras import Input, Sequential
-from tensorflow.keras.layers import Conv1D, Dense, Dropout, Flatten, MaxPool1D, Reshape
+from tensorflow.keras.layers import (LSTM, Conv1D, Dense, Dropout, Flatten,
+                                     MaxPool1D, Reshape)
 
 
 def CNLSTM(
@@ -60,7 +62,7 @@ def CNLSTM(
     for i, n_filters in enumerate(layers_recurrent):
 
         model.add(
-            tf.compat.v1.keras.layers.CuDNNLSTM(
+            LSTM(
                 n_filters, return_sequences=i < len(layers_recurrent) - 1
             )
         )

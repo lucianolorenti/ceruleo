@@ -125,7 +125,6 @@ class ResidualShrinkageBlock(tf.keras.layers.Layer):
 
     """
     def build(self, input_shape):
-        print(input_shape)
         self.blocks = []
         for i in range(2):
             self.blocks.append(
