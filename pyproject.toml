@@ -30,7 +30,8 @@ dependencies = [
         "pyinform",
         "pyts",
         "PyWavelets",
-        "seaborn"
+        "seaborn",
+        "antropy"
 
 ]
 dynamic = ["version"]
