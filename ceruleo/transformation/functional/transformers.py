@@ -243,18 +243,16 @@ class Transformer:
 def TransformerIdentity(rul_column: str = "RUL") -> Transformer:
     """Return the Transformer
 
-    Parameters
-    ----------
-    rul_column : str, default, RUL
-        Name of the RUL Column
+    Parameters:
+    
+        rul_column : Name of the RUL Column
 
-    Returns
-    -------
-    Transformer
-        [description]
+    Returns:
+
+        TransformerIdentity: An identity f(x)=x transformer
     """
-    from temporis.transformation.features.selection import \
+    from ceruleo.transformation.features.selection import \
         ByNameFeatureSelector
-    from temporis.transformation.utils import IdentityTransformerStep
+    from ceruleo.transformation.utils import IdentityTransformerStep
 
-    return Transformer(IdentityTransformerStep(), ByNameFeatureSelector([rul_column]))
+    return Transformer(IdentityTransformerStep(), ByNameFeatureSelector(features=[rul_column]))

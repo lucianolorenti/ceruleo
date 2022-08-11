@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import antropy as ant
 import numpy as np
@@ -10,6 +10,8 @@ from scipy.stats import spearmanr
 from ceruleo.dataset.transformed import TransformedDataset
 from tqdm.auto import tqdm
 from sklearn.feature_selection import mutual_info_regression
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.utils import iterate_over_features_and_target
 from uncertainties import ufloat
 
 
@@ -188,7 +190,7 @@ def merge_analysis(data: dict):
 
 
 def analysis(
-    transformed_dataset: TransformedDataset,
+    dataset: Union[TransformedDataset, AbstractLivesDataset],
     *,
     show_progress: bool = False,
     what_to_compute: List[str] = [],
@@ -216,13 +218,17 @@ def analysis(
     if len(what_to_compute) == 0:
         what_to_compute = list(sorted(metrics.keys()))
     data = defaultdict(lambda: defaultdict(list))
-    iterator = transformed_dataset
+    iterator = dataset
     if show_progress:
         iterator = tqdm(iterator)
 
-    for (X, y, _) in iterator:
+    if isinstance(dataset, TransformedDataset):
+        column_names = dataset.transformer.column_names
+    else:
+        column_names = dataset[0].columns
+    for X, y in iterate_over_features_and_target(dataset):
         y = np.squeeze(y)
         data = analysis_single_time_series(
-            X, y, transformed_dataset.transformer.column_names, data, what_to_compute
+            X, y, column_names, data, what_to_compute
         )
     return merge_analysis(data)

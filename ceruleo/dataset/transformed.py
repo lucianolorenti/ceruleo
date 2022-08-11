@@ -117,19 +117,3 @@ class TransformedSerializedDataset(TransformedDataset):
 
     def __len__(self):
         return self.n_time_series
-
-
-def iterate_over_features(ds: TransformedDataset):
-    """Helper function to iterate over the features in a Transformed dataset
-    Example:
-        for X, y, metadata in df:
-            pass
-        for X in iterate_over_features(ds):
-            pass
-    Parameters:
-        ds: The dataset
-    Returns:
-
-        it: The iterator
-    """
-    return map(lambda x: x[0], ds)

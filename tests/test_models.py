@@ -5,22 +5,19 @@ from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
+from ceruleo.models.baseline import BaselineModel, FixedValueBaselineModel
+from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
-from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
-    MultiScaleConvolutionalModel,
-)
+from ceruleo.models.keras.catalog.MultiScaleConvolutional import \
+    MultiScaleConvolutionalModel
 from ceruleo.models.keras.catalog.XCM import XCM
-from ceruleo.models.keras.catalog.XiangQiangJianQiao import XiangQiangJianQiaoModel
+from ceruleo.models.keras.catalog.XiangQiangJianQiao import \
+    XiangQiangJianQiaoModel
 from ceruleo.models.keras.dataset import tf_regression_dataset
-from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
-from ceruleo.models.sklearn import (
-    CeruleoRegressor,
-    EstimatorWrapper,
-    TimeSeriesWindowTransformer,
-    predict,
-    train_model,
-)
+from ceruleo.models.sklearn import (CeruleoRegressor, EstimatorWrapper,
+                                    TimeSeriesWindowTransformer, predict,
+                                    train_model)
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
@@ -266,3 +263,50 @@ class TestModels:
 
         model = XCM(ds_iterator.shape)
         test_model_basic(model)
+    
+    def test_baseline(self):
+        ds = MockDataset(5)
+        features = ["feature1", "feature2"]
+
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
+
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
+
+        transformer.fit(ds)
+        transformed_ds = ds.map(transformer)
+
+
+        model_mean = BaselineModel(mode='mean')
+        model_mean.fit(ds)
+        y_pred = model_mean.predict(ds)
+        assert isinstance(y_pred, np.ndarray)
+
+        model_median = BaselineModel(mode='median')
+        model_median.fit(ds)
+        y_pred = model_mean.predict(ds)
+        assert isinstance(y_pred, np.ndarray)
+
+
+        model_fixed = FixedValueBaselineModel(value=100)
+        model_fixed.fit(ds)
+        y_pred = model_mean.predict(ds)
+        assert isinstance(y_pred, np.ndarray)
+
+        model_mean = BaselineModel(mode='mean')
+        model_mean.fit(transformed_ds)
+        y_pred = model_mean.predict(transformed_ds)
+        assert isinstance(y_pred, np.ndarray)
+
+        model_median = BaselineModel(mode='median')
+        model_median.fit(transformed_ds)
+        y_pred = model_mean.predict(transformed_ds)
+        assert isinstance(y_pred, np.ndarray)
+
+
+        model_fixed = FixedValueBaselineModel(value=100)
+        model_fixed.fit(transformed_ds)
+        y_pred = model_mean.predict(transformed_ds)
+        assert isinstance(y_pred, np.ndarray)
+

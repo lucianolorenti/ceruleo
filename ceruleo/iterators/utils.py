@@ -6,6 +6,7 @@ from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from typing import Optional, Union
 
 import numpy as np
+from ceruleo.dataset.utils import iterate_over_target
 from ceruleo.iterators.batcher import Batcher
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 
@@ -17,35 +18,33 @@ except:
 
 
 def true_values(
-    dataset_iterator: Union[WindowedDatasetIterator, Batcher, AbstractTimeSeriesDataset],
+    dataset: Union[WindowedDatasetIterator, Batcher, AbstractTimeSeriesDataset],
     target_column: Optional[str] = None
 ) -> np.array:
     """Obtain the true RUL of the dataset after the transformation
 
-    Parameters
-    ----------
-    dataset_iterator : Union[WindowedDatasetIterator, Batcher, AbstractTimeSeriesDataset]
-        Iterator of the dataset
+    Parameters:
 
-    Returns
-    -------
-    np.array
-         target values after the transformation
+        dataset:  Iterator of the dataset
+
+    Returns:
+    
+        true_RUL: target values after the transformation
     """
     from ceruleo.transformation.functional.transformers import TransformerIdentity
-    if isinstance(dataset_iterator, Batcher):
-        dataset_iterator = dataset_iterator.iterator
+    if isinstance(dataset, Batcher):
+        dataset = dataset.iterator
 
-    elif isinstance(dataset_iterator, AbstractTimeSeriesDataset) and not isinstance(dataset_iterator, TransformedDataset):
+    elif isinstance(dataset, AbstractTimeSeriesDataset) and not isinstance(dataset, TransformedDataset):
         if target_column is None:
-            raise ValueError('Please provide a target column to access')
-        ti = TransformerIdentity(target_column)
-        ti.fit([dataset_iterator[0]])
-        dataset_iterator = WindowedDatasetIterator(
-            dataset_iterator.map(ti), window_size=1
-        )
-    if TENSORFLOW:
-        if isinstance(dataset_iterator, tf.data.Dataset):
-            dataset_iterator = dataset_iterator.as_numpy_iterator()
-    d = np.squeeze(np.concatenate([y for _, y, _ in dataset_iterator]))
-    return d
+            if not hasattr(dataset, 'rul_column'):
+                raise ValueError('Please provide a target column to access')
+            else:
+                target_column = dataset.rul_column
+        return np.squeeze(np.concatenate([y for y in iterate_over_target(dataset)]))
+    else:
+        if TENSORFLOW:
+            if isinstance(dataset, tf.data.Dataset):
+                dataset = dataset.as_numpy_iterator()
+        return np.squeeze(np.concatenate([y for _, y, _ in dataset]))
+    raise ValueError("Ivalid dataset used")

@@ -286,3 +286,7 @@ class AbstractLivesDataset(AbstractTimeSeriesDataset):
 
     def duration(self, life: pd.DataFrame) -> float:
         return life[self.rul_column].max()
+
+
+class AbstractLivesFoldedDataset(AbstractLivesDataset):
+    pass

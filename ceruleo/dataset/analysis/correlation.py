@@ -4,8 +4,8 @@ from itertools import combinations
 from typing import List, Optional, Tuple
 
 import pandas as pd
-from ceruleo.dataset.transformed import TransformedDataset, iterate_over_features
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.utils import iterate_over_features
 
 
 def correlation_analysis(
@@ -41,11 +41,8 @@ def correlation_analysis(
         features = sorted(list(set(features).intersection(dataset.common_features())))
     features = dataset.get_features_of_life(0)[features].corr().columns
     correlated_features = []
-    if isinstance(dataset, TransformedDataset):
-        dataset_iterator = iterate_over_features(dataset)
-    else:
-        dataset_iterator = dataset
-    for ex in dataset_iterator:
+    
+    for ex in iterate_over_features(dataset):
         ex = ex[features]
         corr_m = ex.corr().fillna(0)
 

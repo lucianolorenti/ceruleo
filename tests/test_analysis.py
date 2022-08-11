@@ -3,6 +3,7 @@
 from random import sample
 import numpy as np
 import pandas as pd
+from ceruleo.dataset.analysis.numerical_features import analysis
 
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.dataset.analysis.correlation import correlation_analysis
@@ -60,3 +61,8 @@ class TestAnalysis:
     def test_distribution(self):
         dataset = MockDataset(5)
         assert isinstance(features_divergeces(dataset), pd.DataFrame)
+
+    def test_analysis(self):
+        dataset = MockDataset(5)
+        df = analysis(dataset)
+        assert isinstance(df, pd.DataFrame)

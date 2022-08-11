@@ -1,18 +1,18 @@
 # Keras models
 
 
-::: ceruleo.models.keras.models.CNLSTM
+::: ceruleo.models.keras.catalog.CNLSTM
 
-::: ceruleo.models.keras.models.InceptionTime
+::: ceruleo.models.keras.catalog.InceptionTime
 
-::: ceruleo.models.keras.models.MSWRLRCN
+::: ceruleo.models.keras.catalog.MSWRLRCN
 
-::: ceruleo.models.keras.models.MultiScaleConvolutional
+::: ceruleo.models.keras.catalog.MultiScaleConvolutional
 
-::: ceruleo.models.keras.models.MVCNN
+::: ceruleo.models.keras.catalog.MVCNN
 
-::: ceruleo.models.keras.models.XiangQiangJianQiao
+::: ceruleo.models.keras.catalog.XiangQiangJianQiao
 
-::: ceruleo.models.keras.models.XCM
+::: ceruleo.models.keras.catalog.XCM
 
 

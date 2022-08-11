@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.utils import iterate_over_target
 from ceruleo.results.results import FittedLife
 
 from ceruleo.dataset.transformed import TransformedDataset
-
 
 
 class BaselineModel:
@@ -21,21 +22,19 @@ class BaselineModel:
         self.mode = mode
         self.RUL_threshold = RUL_threshold
 
-    def fit(self, ds: TransformedDataset):
+    def fit(self, ds: Union[TransformedDataset, AbstractLivesDataset]):
         """Compute the mean or median RUL using the given dataset
 
-        Parameters
-        ----------
-        ds : AbstractTimeSeriesDataset
-            Dataset  from which obtain the true RUL
+        Parameters:
+            ds:  Dataset from which obtain the true RUL
         """
         true = []
-        for _, y, _ in ds:
+        for y in iterate_over_target(ds):
             y = y
             degrading_start, time = FittedLife.compute_time_feature(
                 y, self.RUL_threshold
             )
-            
+
             true.append(y.iloc[0] + time[degrading_start])
 
         if self.mode == "mean":
@@ -46,21 +45,17 @@ class BaselineModel:
     def predict(self, ds: TransformedDataset):
         """Predict the whole life using the fitted values
 
-        Parameters
-        ----------
-        ds : AbstractTimeSeriesDataset
-            Dataset iterator from which obtain the true RUL
+        Parameters:
+        
+            ds: Dataset iterator from which obtain the true RUL
 
-        Returns
-        -------
-        np.array
-            Predicted target
+        Returns:
+        
+            d: Predicted target
         """
         output = []
-        for _, y, _ in ds:
-            _, time = FittedLife.compute_time_feature(
-                y, self.RUL_threshold
-            )
+        for y in iterate_over_target(ds):
+            _, time = FittedLife.compute_time_feature(y, self.RUL_threshold)
             y_pred = np.clip(self.fitted_RUL - time, 0, self.fitted_RUL)
             output.append(y_pred)
         return np.concatenate(output)
@@ -70,19 +65,20 @@ class FixedValueBaselineModel:
     """A model that predicts always  the same duration for each run-to-failure cycle
 
     Parameters:
-    
+
         value: Fixed RUL
     """
 
-    def __init__(self, value: float):
+    def __init__(self, *, value: float):
         self.value = value
 
-    def predict(
-        self, ds: TransformedDataset, RUL_threshold: Optional[float] = None
-    ):
+    def fit(self, *args):
+        return self
+
+    def predict(self, ds: TransformedDataset, RUL_threshold: Optional[float] = None):
         """Predict the whole life using the fixed values
 
-        Parameters: 
+        Parameters:
 
             ds: Dataset iterator from which obtain the true RUL
 
@@ -91,7 +87,7 @@ class FixedValueBaselineModel:
             true_RUL: Predicted target
         """
         output = []
-        for _, y, _ in ds:
+        for y in iterate_over_target(ds):
             _, time = FittedLife.compute_time_feature(y, RUL_threshold)
             y_pred = np.clip(self.value - time, 0, self.value)
             output.append(y_pred)
