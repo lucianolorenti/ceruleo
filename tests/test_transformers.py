@@ -255,7 +255,6 @@ class TestTransformers:
             }
         )
         df_new = remover.fit_transform(df)
-        print(df_new["a"][5])
         assert np.isposinf(df_new["a"][5])
         assert np.isneginf(df_new["b"][8])
 
@@ -267,7 +266,6 @@ class TestTransformers:
             }
         )
         df_new = remover.fit_transform(df)
-        print(df_new["a"][5])
         assert np.isposinf(df_new["a"][5])
         assert np.isneginf(df_new["b"][8])
 

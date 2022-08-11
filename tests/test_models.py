@@ -1,13 +1,19 @@
 import numpy as np
 import pandas as pd
-from numpy.random import seed
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import make_pipeline
+import tensorflow as tf
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
+from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
+from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
+from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
+    MultiScaleConvolutionalModel,
+)
+from ceruleo.models.keras.catalog.XCM import XCM
+from ceruleo.models.keras.catalog.XiangQiangJianQiao import XiangQiangJianQiaoModel
 from ceruleo.models.keras.dataset import tf_regression_dataset
+from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.sklearn import (
     CeruleoRegressor,
     EstimatorWrapper,
@@ -18,12 +24,15 @@ from ceruleo.models.sklearn import (
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
+from numpy.random import seed
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense, Dropout, Flatten
 from xgboost import XGBRegressor
 
 seed(1)
-import tensorflow as tf
+
 
 tf.random.set_seed(2)
 
@@ -128,19 +137,15 @@ class TestModels:
         assert mse < 0.01
 
         regressor = CeruleoRegressor(
-            TimeSeriesWindowTransformer(
-                transformer,
-                window_size=15,
-                step=1),   
-            LinearRegression())
+            TimeSeriesWindowTransformer(transformer, window_size=15, step=1),
+            LinearRegression(),
+        )
 
         regressor.fit(ds)
         y_pred = regressor.predict(ds)
-        y_true = regressor.features_transformer.true_values(ds)
+        y_true = regressor.ts_window_transformer.true_values(ds)
         mse = np.sum((y_pred - y_true) ** 2)
         assert mse < 0.01
-
-
 
     def test_keras(self):
 
@@ -182,7 +187,6 @@ class TestModels:
             epochs=15,
         )
         y_pred = model.predict(tf_regression_dataset(val_iterator).batch(64))
-        
 
         mae = np.mean(np.abs(y_pred.ravel() - y_true.ravel()))
 
@@ -210,3 +214,55 @@ class TestModels:
         y_true = true_values(ds_iterator)
 
         assert np.sum(y_pred - y_true) < 0.001
+
+    def test_catalog(self):
+        features = ["feature1", "feature2"]
+
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
+
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
+
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        transformed_ds = ds.map(transformer)
+        ds_iterator = WindowedDatasetIterator(
+            transformed_ds, window_size=5, step=2, shuffler=AllShuffled()
+        )
+
+        def test_model_basic(model):
+            model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.0001))
+            model.fit(tf_regression_dataset(ds_iterator).batch(15), verbose=False)
+            y_pred = model.predict(tf_regression_dataset(ds_iterator).batch(15)).ravel()
+            assert isinstance(y_pred, np.ndarray)
+
+        model = CNLSTM(
+            ds_iterator.shape,
+            n_conv_layers=2,
+            initial_convolutional_size=5,
+            layers_recurrent=[5, 5],
+            hidden_size=(15, 5),
+            dropout=0.3,
+        )
+        test_model_basic(model)
+
+        model = InceptionTime(
+            ds_iterator.shape,
+            nb_filters=3,
+        )
+        test_model_basic(model)
+
+        model = MSWRLRCN(ds_iterator.shape)
+        test_model_basic(model)
+
+        model = MultiScaleConvolutionalModel(
+            ds_iterator.shape, n_msblocks=1, scales=[2, 3], n_hidden=5
+        )
+        test_model_basic(model)
+
+        model = XiangQiangJianQiaoModel(ds_iterator.shape)
+        test_model_basic(model)
+
+        model = XCM(ds_iterator.shape)
+        test_model_basic(model)
