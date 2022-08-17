@@ -1,30 +1,9 @@
 """Visualization utilities for RUL estimation models
 
-One of the most important issues regarding PM is the ability to compare and evaluate different methods.
-
-The main data structure used in the results module is a dictionary in which each of the keys is the model name, 
-and the elements are a list of PredictionResult. 
-Each element of the model array is interpreted as a Fold in CV settings. 
-
-Additionally to the regression error, it is possible to compute some metrics more easily interpretable. In this context, two metrics were defined in [1], namely:
-
-- Frequency of Unexpected Breaks (ρUB) - the percentage of failures not prevented;
-- Amount of Unexploited Lifetime (ρUL) - the average number of time that could have been run before failure if the preventative maintenance suggested by the maintenance management mod-ule had not been performed.
-
-A comparison between the predicted end of life with respect to the true end of that particular life is made. 
-
-In that case, three scenarios can happen:
-- The predicted end of life occurs before the true one. In that case, the predictions were pessimistic and the tool could have been used more time.
-- The remaining useful life arrives at zero after the true remaining useful life. In that case, we incur the risk of the tool breaking.  
-- The predicted line coincides with the true line. In that case, we don’t have unexploited time, and the risk of breakage can be considered 0.
-
-
-Since usually the breakages are considered more harmful, a possible approach to preventing unexpected failures is to consider a more conservative maintenance approach, providing maintenance tasks recommendations some time before the end of life predicted. In that way, a conservative window can be defined in which the recommendation of making maintenance task should be performed at time T-predicted - conservative window size.
 
 It is possible to visualize how it grows the unexploited lifetime grows as the conservative window size grows and how the unexpected breaks decrease as the conservative window size grows.
 
-[1] Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
-    Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015). 
+
 """
 import math
 from typing import Dict, Iterable, List, Optional, Union
@@ -329,25 +308,15 @@ def barplot_errors_wrt_RUL(
 def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
     bin_edges,
     model_results,
-    fig=None,
     ax=None,
     y_axis_label=None,
     x_axis_label=None,
     **kwargs,
 ):
-    """Plot a error bar for each model
+    """Plot a shaded regions for each model
 
-    Args:
-        bin_edge ([type]): [description]
-        error_histograms ([type]): [description]
-        model_names ([type]): [description]
-        width (float, optional): [description]. Defaults to 0.5.
-        ax ([type], optional): [description]. Defaults to None.
-
-    Returns:
-        [type]: [description]
     """
-    if fig is None:
+    if ax is None:
         fig, ax = plt.subplots(**kwargs)
     labels = []
     n_models = len(model_results)
@@ -410,15 +379,15 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
     ax2.set_xlim(ax.get_xlim())
     ax2.set_ylim(ax.get_ylim())
     curlyBrace(
-        fig, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
+        ax2.figure, ax2, (max_x, 0), (max_x, min_value), str_text="Over estim.", c="#000"
     )
     ax2.get_xaxis().set_visible(False)
     ax2.get_yaxis().set_visible(False)
     curlyBrace(
-        fig, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
+        ax2.figure, ax2, (max_x, max_value), (max_x, 0), str_text="Under estim.", c="#000"
     )
 
-    return fig, ax
+    return ax
 
 
 def shadedline_plot_errors_wrt_RUL(
@@ -426,53 +395,29 @@ def shadedline_plot_errors_wrt_RUL(
     nbins: int,
     y_axis_label=None,
     x_axis_label=None,
-    fig=None,
     ax=None,
     **kwargs,
 ):
-    """Boxplots of difference between true and predicted RUL
-    The format of the input should be:
+    """Shaded line
 
-    .. highlight:: python
-    .. code-block:: python
+    Parameters:
+        results_dict: _description_
+        nbins:_description_
+        y_axis_label: _description_, by default None
+        x_axis_label:_description_, by default None
+        ax: _description_, by default None
 
-        {
-            'Model Name': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            'Model Name 2': [
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                {
-                    'true': np.array,
-                    'predicted': np.array
-                },
-                ...
-            ]
-        }
-
-    Parameters
-    ----------
-    nbins: int
-           Number of boxplots
+    Returns:
+        ax: The axis
     """
-    if fig is None:
+
+    if ax is None:
         fig, ax = plt.subplots(**kwargs)
 
     bin_edges, model_results = models_cv_results(results_dict, nbins)
     return _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
         bin_edges,
         model_results,
-        fig=fig,
         ax=ax,
         bins=nbins,
         y_axis_label=y_axis_label,
@@ -516,23 +461,16 @@ def plot_unexpected_breaks(
 ) -> matplotlib.axes.Axes:
     """Plot the risk of unexpected breaks with respect to the maintenance window
 
-    Parameters
-    ----------
-    results_dict : dict
-        Dictionary with the results
-    max_window : int
-        Maximum size of the maintenance windows
-    n : int
-        Number of points used to evaluate the window size
-    ax : Optional[matplotlib.axes.Axes], optional
-        axis on which to draw, by default None
-    units : Optional[str], optional
-        Units to use in the xlabel, by default ""
+    Parameters:
+        results_dict: Dictionary with the results
+        max_window: Maximum size of the maintenance windows
+        n: Number of points used to evaluate the window size
+        ax: axis on which to draw, by default None
+        units: Units to use in the xlabel, by default ""
 
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axis in which the plot was made
+    Returns:
+
+        ax: The axis in which the plot was made
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -622,6 +560,24 @@ def plot_life(
     label:str = '',
     **kwargs,
 ):
+    """Plot a single life
+
+    Parameters:
+        life: A fitted life
+        ax: The axis where to plot
+        units : Optional[str], optional
+            _description_, by default ""
+        markersize: Size of the marker
+        add_fitted: Wether to add the LS fitted line to the points
+        plot_target: Wether to plot the true RUL values
+        add_regressed:
+        start_x: Initial point of the time-indepedent feature to plot
+        label: 
+
+    Returns:
+    
+        ax: Axis
+    """
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
@@ -678,21 +634,15 @@ def plot_predictions_grid(
 
     Parameters:
     
-    results : dict
-        Dictionary with the results
-    ncols : int, optional
-        Number of colmns in the plot, by default 3
-    alpha : float, optional
-        Opacity of the predicted curves, by default 1.0
-    xlabel : Optional[str], optional
-        Xlabel, by default None
-    ylabel : Optional[str], optional
-        YLabel, by default None
+        results: Dictionary with the results
+        ncols: Number of colmns in the plot, by default 3
+        alpha: Opacity of the predicted curves, by default 1.0
+        xlabel: Xlabel, by default None
+        ylabel: YLabel, by default None
 
-    Return
-    ------
-    fig, ax:
-        Figure and axis
+    Return:
+
+        ax: The axis on which the plot has been made
     """
 
     def linear_to_subindices(i, ncols):
@@ -749,11 +699,11 @@ def plot_predictions(
     
         result: A PredictionResult object
         ax:  Axis to plot. If it is missing a new figure will be created
-        units: str
-            Units of time to be used in the axis labels, by default 'Hours [h]'
-        cv: Number of the CV results, by default 0
+        units: Units of time to be used in the axis labels
+        cv: Number of the CV results
 
     Returns:
+
         ax: The axis on which the plot has been made
     """
     if ax is None:

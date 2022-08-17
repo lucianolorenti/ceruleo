@@ -1,9 +1,26 @@
 """Compute evaluating results of fitted models
 
-The main structure used on this functions is a dictionary in which
-each the keys are the model name, and the elements are list of dictionaries.
-Each of the dictionaries contain two keys: true, predicted.
-Those elements are list of the predictions
+One of the most important issues regarding PM is the ability to compare and evaluate different methods.
+
+The main data structure used in the results module is a dictionary in which each of the keys is the model name, 
+and the elements are a list of PredictionResult. 
+Each element of the model array is interpreted as a Fold in CV settings. 
+
+Additionally to the regression error, it is possible to compute some metrics more easily interpretable. In this context, two metrics were defined in [1], namely:
+
+- Frequency of Unexpected Breaks (ρUB) - the percentage of failures not prevented;
+- Amount of Unexploited Lifetime (ρUL) - the average number of time that could have been run before failure if the preventative maintenance suggested by the maintenance management mod-ule had not been performed.
+
+When compaing between the predicted end of life with respect to the true end of that particular life three scenarios can happen:
+
+- The predicted end of life occurs before the true one. In that case, the predictions were pessimistic and the tool could have been used more time.
+- The remaining useful life arrives at zero after the true remaining useful life. In that case, we incur the risk of the tool breaking.  
+- The predicted line coincides with the true line. In that case, we don’t have unexploited time, and the risk of breakage can be considered 0.
+
+Since usually the breakages are considered more harmful, a possible approach to preventing unexpected failures is to consider a more conservative maintenance approach, providing maintenance tasks recommendations some time before the end of life predicted. In that way, a conservative window can be defined in which the recommendation of making maintenance task should be performed at time T-predicted - conservative window size.
+
+[1] Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
+    Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015). 
 
 
 """
@@ -25,6 +42,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MetricsResult:
+    """An object that store regression metrics and times
+    """
     mae: float
     mse: float
     fitting_time: float = 0
@@ -33,6 +52,8 @@ class MetricsResult:
 
 @dataclass
 class PredictionResult:
+    """A prediction result is composed by a name
+    """
     name: str
     true_RUL: np.ndarray
     predicted_RUL: np.ndarray
@@ -71,6 +92,18 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
 
 
 class CVResults:
+    """
+        Compute the error histogram
+
+        Compute the error with respect to the RUL considering the results of different
+        folds
+
+        Parameters:
+            y_true: List with the true values of each hold-out set of a cross validation
+            y_pred: List with the predictions of each hold-out set of a cross validation
+            nbins: Number of bins to compute the histogram
+
+    """
     def __init__(
         self,
         y_true: List[List],
@@ -78,22 +111,7 @@ class CVResults:
         nbins: int = 5,
         bin_edges: Optional[np.array] = None,
     ):
-        """
-        Compute the error histogram
 
-        Compute the error with respect to the RUL considering the results of different
-        folds
-
-        Parameters
-        ----------
-        y_true: List[List]
-                List with the true values of each hold-out set of a cross validation
-        y_pred: List[List]
-                List with the predictions of each hold-out set of a cross validation
-        nbins: int
-            Number of bins to compute the histogram
-
-        """
         if bin_edges is None:
             max_value = np.max([np.max(y) for y in y_true])
             bin_edges = np.linspace(0, max_value, nbins + 1)
@@ -236,7 +254,7 @@ class FittedLife:
         Returns
         -------
 
-            Degradint start time and time
+            Degradind start time and time
         """
         degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
         time = FittedLife._compute_time(y_true, degrading_start)
@@ -509,18 +527,14 @@ def unexpected_breaks(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the risk of unexpected breaks with respect to the maintenance window size
 
-    Parameters
+    Parameters:
     ----------
-    d : dict
-        Dictionary with the results
-    window_size : int
-        Maximum size of the maintenance windows
-    step : int
-        Number of points in which compute the risks.
+    d: Dictionary with the results
+    window_size: Maximum size of the maintenance windows
+    step: Number of points in which compute the risks.
         step different maintenance windows will be used.
 
-    Returns
-    -------
+    Returns:
     Tuple[np.ndarray, np.ndarray]
         * Maintenance window size evaluated
         * Risk computed for every window size used
@@ -663,32 +677,32 @@ def cv_regression_metrics(
 ) -> dict:
     """Compute regression metrics for each model
 
-    Parameters
-    ----------
-    data : dict
-        Dictionary with the model predictions.
-        The dictionary must conform the results specification of this module
-    threshold : float, optional
-        Compute metrics errors only in RUL values less than the threshold, by default np.inf
+    Parameters:
+    
+        data: Dictionary with the model predictions.
+            
+        threshold: Compute metrics errors only in RUL values less than the threshold
 
-    Returns
-    -------
-    dict
-        A dictionary with the following format:
-        {
-            'MAE': {
-                'mean':
-                'std':
-            },
-            'MAE SW': {
-                'mean':
-                'std':
-            },
-            'MSE': {
-                'mean':
-                'std':
-            },
-        }
+    Returns:
+
+
+        d: { ['Model]: 
+                {
+                    'MAE': {
+                        'mean':
+                        'std':
+                    },
+                    'MAE SW': {
+                        'mean':
+                        'std':
+                    },
+                    'MSE': {
+                        'mean':
+                        'std':
+                    },
+                }
+            ]
+            
     """
     out = {}
     for model_name in results_dict.keys():
