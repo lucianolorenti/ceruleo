@@ -8,6 +8,8 @@ from ceruleo import CACHE_PATH
 
 
 class GraphTraversalAbstractStore:
+    """Abstract Cache for the graph traversal
+    """
     def __enter__(self):
         return self
 
@@ -28,6 +30,12 @@ class GraphTraversalAbstractStore:
 
 
 class GraphTraversalCacheShelveStore:
+    """Cache all the intermediate steps in a Shelve Store
+
+    Parameters:
+
+        cache_path: Path where the case is stored
+    """
     def __init__(self, cache_path: Path = CACHE_PATH):
         filename = "".join(str(uuid.uuid4()).split("-"))
         self.cache_path = cache_path / "GraphTraversalCache" / filename / "data"
@@ -57,6 +65,8 @@ class GraphTraversalCacheShelveStore:
 
 
 class GraphTraversalCacheMemory:
+    """Cache all the intermediate steps in RAM
+    """
     def __init__(self):
         self.store = {}
 
@@ -80,5 +90,12 @@ class GraphTraversalCacheMemory:
 
 
 class CacheStoreType(Enum):
+    """Cache store modes
+    
+    Values:
+
+        SHELVE = 1
+        MEMORY = 2    
+    """
     SHELVE = 1
     MEMORY = 2

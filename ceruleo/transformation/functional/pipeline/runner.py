@@ -23,12 +23,10 @@ def _transform(node, old_element, dataset_element, queue):
 class CachedPipelineRunner:
     """Performs an execution of the transformation graph caching the intermediate results
 
+    Parameters:
 
-
-    Parameters
-    ----------
-    final_step : TransformerStep
-        Last step of the graph
+        final_step: Last step of the graph
+        cache_type: Mode for storing the cache
     """
 
     def __init__(

@@ -3,12 +3,35 @@ from typing import List, Optional, Union
 
 import pandas as pd
 from ceruleo import CACHE_PATH
-from ceruleo.transformation.functional.pipeline.cache_store import CacheStoreType, GraphTraversalCacheMemory, GraphTraversalCacheShelveStore
-from ceruleo.transformation.functional.pipeline.utils import decode_tuple, encode_tuple
+from ceruleo.transformation.functional.pipeline.cache_store import (
+    CacheStoreType, GraphTraversalCacheMemory, GraphTraversalCacheShelveStore)
+from ceruleo.transformation.functional.pipeline.utils import (decode_tuple,
+                                                              encode_tuple)
 from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class CachedGraphTraversal:
+    """Iterator for a graph nodes. 
+
+
+    The cache data structures has the following form
+    Current Node -> Previous Nodes -> [Transformed Dataset]
+
+    * cache[n]:
+        contains a dict with one key for each previous node
+    * cache[n][n.previous[0]]
+        A list with each element of the dataset transformed in
+        up to n.previous[0]
+
+
+    Parameters:
+        
+        root_nodes: Initial nodes of the graph
+        dataset: Each node visit the dataset
+        cache_path: Where to store the cache
+        cache_type: Mode for storing the intermediate steps
+
+    """
     def __init__(
         self,
         root_nodes,
@@ -16,26 +39,6 @@ class CachedGraphTraversal:
         cache_path: Optional[Path] = CACHE_PATH,
         cache_type: CacheStoreType = CacheStoreType.SHELVE,
     ):
-        """[summary]
-
-
-        The cache data structures has the following form
-        Current Node -> Previous Nodes -> [Transformed Dataset]
-
-        * cache[n]:
-            contains a dict with one key for each previous node
-        * cache[n][n.previous[0]]
-            A list with each element of the dataset transformed in
-            up to n.previous[0]
-
-
-        Parameters
-        ----------
-        root_nodes :
-
-        dataset :
-
-        """
         if cache_type == CacheStoreType.SHELVE:
             self.transformed_cache = GraphTraversalCacheShelveStore(cache_path)
         elif cache_type == CacheStoreType.MEMORY:

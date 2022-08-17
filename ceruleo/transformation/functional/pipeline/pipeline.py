@@ -19,6 +19,12 @@ from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class TemporisPipeline(TransformerMixin):
+    """Transformation pipeline
+
+    Parameters:
+        final_step: The final step of the transformation
+        cache_type: Cache storage mode
+    """
     def __init__(self, final_step, cache_type: CacheStoreType = CacheStoreType.MEMORY):
         self.final_step = final_step
         self.fitted_ = False
@@ -27,6 +33,16 @@ class TemporisPipeline(TransformerMixin):
     def find_node(
         self, name: str
     ) -> Union[List[TransformerStep], TransformerStep, None]:
+        """Find a transformation node given a name
+
+        Parameters:
+            name: Name of the step to find
+
+        Returns:
+        
+            steps: Steps located in the pipeline. 
+        
+        """
         matches = []
         for node in dfs_iterator(self.final_step):
             if node.name == name:
@@ -44,6 +60,18 @@ class TemporisPipeline(TransformerMixin):
         dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
         show_progress: bool = False,
     ):
+        """Fit a pipeline using a dataset
+
+        The CachedPipelineRunner is called to fit
+
+        Parameters:
+        
+            dataset: A dataset of a run-to-failure cycle
+            show_progress: Wether to show the progress when fitting
+
+        Returns:
+            s : Pipeline
+        """
         if isinstance(dataset, pd.DataFrame):
             dataset = [dataset]
         c = self.runner.fit(dataset, show_progress=show_progress)
@@ -60,6 +88,17 @@ class TemporisPipeline(TransformerMixin):
         self.fit(dataset, show_progress=show_progress)
 
     def transform(self, df: Union[pd.DataFrame, Iterable[pd.DataFrame]]):
+        """Transform a run-to-cycle failure or a dataset
+
+        The CachedPipelineRunner is called to transform
+
+        Parameters:
+        
+            df: A dataset of a run-to-failure cycle
+          
+        Returns:
+            s : list of data frames
+        """
         return self.runner.transform(df)
 
     def description(self):

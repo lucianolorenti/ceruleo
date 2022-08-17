@@ -1,15 +1,13 @@
-from typing import List, Optional, Union
+import logging
 import zipfile
+from pathlib import Path
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from ceruleo import DATA_PATH
-from pathlib import Path 
-import logging
-
-from ceruleo.utils.download import download 
-
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.utils.download import download
 
 logger = logging.getLogger(__name__)
 
