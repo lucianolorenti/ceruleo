@@ -65,19 +65,6 @@ class SampleNumber(TransformerStep):
     """Return a column with increasing number"""
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Construct a new DataFrame with a single column named called sample_number
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with the same index as the input with one column
-            named sample_number that contains and increasing number
-        """
         df = pd.DataFrame(index=X.index)
         df["sample_number"] = list(range(X.shape[0]))
         return df
@@ -86,12 +73,9 @@ class SampleNumber(TransformerStep):
 class OneHotCategorical(TransformerStep):
     """Compute a one-hot encoding for a given feature
 
-    Parameters
-    ----------
-    feature : str
-        Feature name from which compute the one-hot encoding
-    name : Optional[str], optional
-        Step name, by default None
+    Parameters:
+        feature: Feature name from which compute the one-hot encoding
+        name: Step name, by default None
     """
 
     def __init__(
@@ -111,18 +95,6 @@ class OneHotCategorical(TransformerStep):
         self.encoder = None
 
     def partial_fit(self, X: pd.DataFrame, y=None):
-        """Compute incrementally the set of possible categories
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-        Returns
-        -------
-        OneHotCategorical
-            self
-        """
         if self.fixed_categories:
             return self
         if self.feature is None:
@@ -131,19 +103,6 @@ class OneHotCategorical(TransformerStep):
         return self
 
     def fit(self, X: pd.DataFrame, y=None):
-        """Compute the set of possible categories
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-
-        Returns
-        -------
-        OneHotCategorical
-            self
-        """
         if self.fixed_categories:
             return self
         if self.feature is None:
@@ -152,22 +111,6 @@ class OneHotCategorical(TransformerStep):
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        """Return a new DataFrame with the feature one-hot encoded
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-        y : [type], optional
-
-
-        Returns
-        -------
-        pd.DataFrame
-            A new dataframe with the same index as the input
-            with n columns, where n is the number of possible categories
-            of the input column
-        """
         categories = sorted(list([c for c in self.categories if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
 
@@ -179,14 +122,10 @@ class OneHotCategorical(TransformerStep):
 class HashingEncodingCategorical(TransformerStep):
     """Compute a simple numerical encoding for a given feature
 
-    Parameters
-    ----------
-    nbins: int
-        Number of bins after the hash
-    feature : str
-        Feature name from which compute the simple encoding
-    name : Optional[str], optional
-        Step name, by default None
+    Parameters:
+        nbins: Number of bins after the hash
+        feature: Feature name from which compute the simple encoding
+        name: Step name
     """
 
     def __init__(

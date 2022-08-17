@@ -59,6 +59,7 @@ nav:
         - Cast: transformation/features/cast.md
         - Denoising: transformation/features/denoising.md
         - Entropy: transformation/features/entropy.md
+        - Extraction: transformation/features/extraction.md
         - Imputers: transformation/features/imputers.md
         - Resamplers: transformation/features/resamplers.md
         - Outliers: transformation/features/outliers.md

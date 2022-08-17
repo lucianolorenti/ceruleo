@@ -13,7 +13,7 @@ from ceruleo.transformation.features.split import SplitByCategory
 from ceruleo.transformation.features.transformation import MeanCentering
 from ceruleo.transformation.functional.concatenate import Concatenate
 from ceruleo.transformation.functional.graph_utils import root_nodes
-from ceruleo.transformation.functional.pipeline.utils import make_pipeline
+from ceruleo.transformation.functional.pipeline.pipeline import make_pipeline
 
 
 def gaussian(N: int, mean: float = 50, std: float = 10):
