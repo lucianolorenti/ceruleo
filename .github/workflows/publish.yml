@@ -11,15 +11,21 @@ on:
 jobs:
   
   publish:
+    if: "!contains(github.event.head_commit.message, 'Bump version')"
     runs-on: ubuntu-latest
-   
     steps:
-
       - uses: actions/checkout@v2
       - name: Set up Python ${ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
           python-version: "3.10"
+      - name: FragileTech/bump-version
+        uses: FragileTech/bump-version@main
+        with:
+          commit_name: Version bumper
+          commit_email: lucianolorenti@gmail.com
+          login: lucianolorenti@gmail.com
+          token: "${{ secrets.TOKEN_GITHUB }}"
       - name: Install pypa/build
         run: >-
           python -m
