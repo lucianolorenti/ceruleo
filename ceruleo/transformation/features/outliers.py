@@ -12,27 +12,20 @@ from sklearn.ensemble import IsolationForest
 
 
 class IQROutlierRemover(TransformerStep):
-    """
-    Impute values outside (Q1 - margin*IQR, Q2 + margin*IQR)
+    """Remove values outside (Q1 - margin*IQR, Q2 + margin*IQR)
 
     If clip is True the values will be clipped between the range,
     otherwise the values are going to be replaced by inf and -inf
 
 
 
-    Parameters
-    ----------
-    lower_quantile: float, default 0.25
-        Lower quantile threshold for the non-anomalous values
-    upper_quantile: float, default 0.75
-        Upper quantile threshold for the non-anomalous values
-    margin: float, default 1.5
-        How many times the IQR gets multiplied
-    proportion_to_sample:float, default 1.0
-        If you want to compute the quantiles in an smaller proportion of data
-        you can specify it
-    clip: bool
-        Wether to clip the values outside the range.
+    Parameters:
+        lower_quantile: Lower quantile threshold for the non-anomalous values
+        upper_quantile: Upper quantile threshold for the non-anomalous values
+        margin: How many times the IQR gets multiplied
+        proportion_to_sample: If you want to compute the quantiles in an smaller proportion of data
+            you can specify it
+        clip: Wether to clip the values outside the range.
 
     """
 
@@ -123,22 +116,17 @@ class IQROutlierRemover(TransformerStep):
 
 
 class BeyondQuartileOutlierRemover(TransformerStep):
-    """
-    Impute values outside (Q1, Q3)
+    """Remove values outside (Q1, Q3)
 
     If clip is True the values will be clipped between the range,
     otherwise the values are going to be replaced by inf and -inf
 
 
 
-    Parameters
-    ----------
-    lower_quantile: float, default 0.25
-        Lower quantile threshold for the non-anomalous values
-    upper_quantile: float, default 0.75
-        Upper quantile threshold for the non-anomalous values
-    clip: bool
-        Wether to clip the values outside the range.
+    Parameters:
+        lower_quantile:  Lower quantile threshold for the non-anomalous values
+        upper_quantile: Upper quantile threshold for the non-anomalous values
+        clip: Wether to clip the values outside the range.
 
     """
 

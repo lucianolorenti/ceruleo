@@ -133,7 +133,8 @@ metrics = {
     "monotonicity": lambda x,y:monotonicity(x),
     "number_of_unique_elements": lambda x,y:n_unique(x),    
     'mutual_information': mutual_information,
-    'null': lambda x, y: null(x)
+    'null': lambda x, y: null(x),
+    'entropy': lambda x, y: entropy(x)
 }
 
 
@@ -164,7 +165,7 @@ def analysis_single_time_series(
         data = defaultdict(lambda: defaultdict(list))
     if len(what_to_compute) == 0:
         what_to_compute = list(sorted(metrics.keys()))
-    for column_index in range(X.shape[1]):
+    for column_index in range(len(column_names)):
         column_name = column_names[column_index]
         for what in what_to_compute:
             x_ts = np.squeeze(X.loc[:, column_name].values)
@@ -209,6 +210,7 @@ def analysis(
                         - number_of_unique_elements
                         - mutual_information
                         - null
+                        - entropy
 
     Returns:
 
@@ -225,7 +227,7 @@ def analysis(
     if isinstance(dataset, TransformedDataset):
         column_names = dataset.transformer.column_names
     else:
-        column_names = dataset[0].columns
+        column_names = dataset.numeric_features()
     for X, y in iterate_over_features_and_target(dataset):
         y = np.squeeze(y)
         data = analysis_single_time_series(

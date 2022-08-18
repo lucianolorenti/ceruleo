@@ -4,24 +4,14 @@ from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import Input, Model, Sequential
+from tensorflow.keras import Sequential
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import (
-    Activation,
-    Add,
-    BatchNormalization,
-    Conv1D,
-    Conv2D,
-    Dense,
-    Dropout,
-    Flatten,
-    Lambda,
-    Activation,
-    GlobalAveragePooling2D,
-    Permute,
-)
+from tensorflow.keras import regularizers
+from tensorflow.keras.layers import (Activation, BatchNormalization, Conv2D,
+                                     Dense, Flatten, Lambda, Layer, Permute,
+                                     Reshape)
 from tensorflow.python.framework import tensor_shape
-from tensorflow.python.keras.layers.pooling import GlobalAveragePooling1D, MaxPool1D
+from tensorflow.python.keras.layers.pooling import GlobalAveragePooling1D
 
 
 def ExpandDimension(dim: int = -1):
@@ -185,3 +175,52 @@ class ResidualShrinkageBlock(tf.keras.layers.Layer):
         residual = tf.keras.backend.sign(residual) * n_sub
         residual = RemoveDimension(3)(residual)
         return residual + inputs
+
+
+
+
+class ZeroWeights(tf.keras.constraints.Constraint):
+  
+
+  def __init__(self, l1:float):
+    self.l1 = l1
+
+  def __call__(self, w):
+    
+    return (tf.math.multiply(w, tf.cast(tf.abs(w) > self.l1, tf.float32)) )
+
+  def get_config(self):
+    return {'l1': self.l1}
+
+
+class LASSOLayer(Layer):
+    def __init__(self, l1:float):
+        super(LASSOLayer, self).__init__()
+        self.l1 = l1
+        self.kernel_regularizer = regularizers.L1(l1)
+
+
+    def build(self, input_shape):
+        W_size = np.prod(input_shape[1:])
+        self.w = self.add_weight(
+            shape=(W_size, ),
+            initializer="random_normal",
+            trainable=True,
+            regularizer=self.kernel_regularizer,
+            constraint=ZeroWeights(self.l1)
+        )
+        
+        
+        self.input_reshape = Reshape((W_size,))
+        self.output_reshape = Reshape(input_shape[1:])
+        
+
+
+    def call(self, inputs):
+        x = self.input_reshape(inputs)
+        
+        
+        x = tf.math.multiply(self.w, x) 
+        
+        self.add_metric(tf.math.reduce_sum(tf.cast(tf.abs(self.w) > 0, tf.float32)), name="Number of features")
+        return self.output_reshape(x)
