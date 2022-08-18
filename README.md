@@ -20,8 +20,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/lucianolorenti/ceruleo
 
 ```sh
-git clone https://github.com/lucianolorenti/ruceruleol_pm
-pip install [-e] rul_pm
+pip install ceruleo
 ```
 
 
