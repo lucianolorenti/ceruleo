@@ -18,16 +18,6 @@ jobs:
       - name: Set up Python ${ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
-<<<<<<< HEAD
-          python-version: "3.10"
-      - name: FragileTech/bump-version
-        uses: FragileTech/bump-version@main
-        with:
-          commit_name: Version bumper
-          commit_email: lucianolorenti@gmail.com
-          login: lucianolorenti@gmail.com
-          token: "${{ secrets.TOKEN_GITHUB }}"
-=======
           python-version: "3.10"  
       - name: Bump version
         run: |            
@@ -44,7 +34,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
           tags: true
->>>>>>> 4e78cb51c368737a91101483a4120e737525b7d6
       - name: Install pypa/build
         run: >-
           python -m
