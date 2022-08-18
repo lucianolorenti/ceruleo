@@ -10,7 +10,7 @@ on:
 
 jobs:
   
-  doc:
+  publish:
     runs-on: ubuntu-latest
    
     steps:
