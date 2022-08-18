@@ -18,18 +18,25 @@ jobs:
       - name: Set up Python ${ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
-          python-version: "3.10"
-      - name: Install bumpversion
-        run: |
-          pip install bump2version        
-          pip install bumpversion        
-      - name: FragileTech/bump-version
-        uses: FragileTech/bump-version@main
+          python-version: "3.10"  
+      - name: Bump version
+        run: |            
+            git config --global user.name "Bump bot"
+            git config --global user.email "lucianolorenti@gmail.com"
+            git config --global pull.rebase false
+            BRANCH=${GITHUB_REF#refs/heads/}
+            pip install bump2version
+            git remote add ${{ inputs.login }} https://${{ inputs.login }}:${{ inputs.token }}@github.com/$GITHUB_REPOSITORY
+            git pull --no-edit ${{ inputs.login }} $BRANCH
+            for file in ${{ inputs.files }}; do bumpversion --current-version ${{ inputs.current_version }} ${{ inputs.part }} $file; done
+            git diff
+            bumpversion --tag --current-version ${{ inputs.current_version }} --commit --allow-dirty --commit-args="-a" ${{ inputs.part }}
+            git push --tags ${{ inputs.login }} HEAD:$BRANCH
+      - name: Push changes
+        uses: ad-m/github-push-action@master
         with:
-          commit_name: Version bumper
-          commit_email: lucianolorenti@gmail.com
-          login: lucianolorenti
-          token: "${{ secrets.TOKEN_GITHUB }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
       - name: Install pypa/build
         run: >-
           python -m
