@@ -127,6 +127,14 @@ class CMAPSSDataset(AbstractLivesDataset):
 
     [Dataset reference](https://data.nasa.gov/dataset/C-MAPSS-Aircraft-Engine-Simulator-Data/xaut-bemq)
 
+    Available models are:
+    
+        - FD001
+        - FD002
+        - FD003
+        - FD004
+
+
     Example:
     
         ``` py
