@@ -24,7 +24,7 @@ jobs:
         with:
           commit_name: Version bumper
           commit_email: lucianolorenti@gmail.com
-          login: lucianolorenti@gmail.com
+          login: lucianolorenti
           token: "${{ secrets.TOKEN_GITHUB }}"
       - name: Install pypa/build
         run: >-
