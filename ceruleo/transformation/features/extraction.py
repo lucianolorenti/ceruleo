@@ -1046,19 +1046,6 @@ class Interactions(TransformerStep):
     """Compute pairwise interactions between the features"""
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Transform the given life computing the iteractions between features
-
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-        Returns
-        -------
-        pd.DataFrame
-            A new dataframe with the same index as the input
-            with n*(n-1) / 2 columns with the interactions between the features
-        """
         X_new = pd.DataFrame(index=X.index)
         for c1, c2 in itertools.combinations(X.columns, 2):
             X_new[f"{c1}_{c2}"] = X[c1] * X[c2]

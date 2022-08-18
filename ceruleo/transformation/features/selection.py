@@ -14,11 +14,9 @@ logger = logging.getLogger(__name__)
 class ByNameFeatureSelector(TransformerStep):
     """Select a subset of feature by name
 
-    Parameters
-    ----------
+    Parameters:
             
-    features : Union[str, List[str]], optional
-               Feature name or List of features name to select, by default []
+        features: Feature name or List of features name to select
     """
     def __init__(self, *, features:Union[str, List[str]]= [], name: Optional[str] = None):
         super().__init__(name=name)
@@ -193,6 +191,11 @@ class NullProportionSelector(TransformerStep):
 
 
 class  MatchFeatureSelector(TransformerStep):
+    """Select all the features that match a pattern
+
+    Parameters:
+        pattern: Pattern to match
+    """
     def __init__(self, *, pattern:str, name: Optional[str] = None):
         super().__init__(name=name)
         self.pattern = pattern
@@ -217,11 +220,9 @@ class  MatchFeatureSelector(TransformerStep):
 class ByTypeFeatureSelector(TransformerStep):
     """Select a subset of feature by type
 
-    Parameters
-    ----------
+    Parameters:
             
-    features : Union[str, List[str]], optional
-               Feature name or List of features name to select, by default []
+        features: Feature name or List of features name to select, by default []
     """
     def __init__(self, *, type_:Union[str, List]= [], name: Optional[str] = None):
         super().__init__(name=name)

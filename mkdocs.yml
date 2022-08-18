@@ -62,10 +62,14 @@ nav:
         - Extraction: transformation/features/extraction.md
         - Imputers: transformation/features/imputers.md
         - Resamplers: transformation/features/resamplers.md
+        - Resamplers: transformation/features/selection.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
       - Visualization: results/visualization.md
+    - Guides:
+      - Complete: guides/guide.ipynb
+      
     
 
 
