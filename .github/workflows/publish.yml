@@ -23,15 +23,11 @@ jobs:
         run: |            
             git config --global user.name "Bump bot"
             git config --global user.email "lucianolorenti@gmail.com"
-            git config --global pull.rebase false
-            BRANCH=${GITHUB_REF#refs/heads/}
+            git config --global pull.rebase false            
             pip install bump2version
-            git remote add ${{ inputs.login }} https://${{ inputs.login }}:${{ inputs.token }}@github.com/$GITHUB_REPOSITORY
-            git pull --no-edit ${{ inputs.login }} $BRANCH
-            for file in ${{ inputs.files }}; do bumpversion --current-version ${{ inputs.current_version }} ${{ inputs.part }} $file; done
-            git diff
-            bumpversion --tag --current-version ${{ inputs.current_version }} --commit --allow-dirty --commit-args="-a" ${{ inputs.part }}
-            git push --tags ${{ inputs.login }} HEAD:$BRANCH
+            git remote add remote https://lucianolorenti:${{ secrets.TOKEN_GITHUB }}@github.com/$GITHUB_REPOSITORY
+            git pull --no-edit remote main
+            bumpversion --tag --commit --allow-dirty --commit-args="-a" patch            
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
