@@ -27,12 +27,12 @@ jobs:
             pip install bump2version
             git remote add remote https://lucianolorenti:${{ secrets.TOKEN_GITHUB }}@github.com/$GITHUB_REPOSITORY
             git pull --no-edit remote main
-            bumpversion --tag --commit --allow-dirty --commit-args="-a" patch            
+            bump2version --tag --commit --allow-dirty --commit-args="-a" patch            
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: main
           tag: true
       - name: Install pypa/build
         run: >-
