@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 try:
     import tensorflow as tf
+    TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
 from numpy.lib.arraysetops import isin
