@@ -5,7 +5,10 @@ from typing import Any, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except:
+    TENSORFLOW_ENABLED = False
 from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
 from abc import abstractmethod, abstractproperty
@@ -107,7 +110,7 @@ class AbstractTimeSeriesDataset:
                 len(self) if i.stop is None else i.stop,
                 1 if i.step is None else i.step,
             )
-        if isinstance(i, tf.Tensor):
+        if TENSORFLOW_ENABLED and isinstance(i, tf.Tensor):
             return self.get_time_series(i.ref())
         if isinstance(i, Iterable):
             if not all(isinstance(item, (int, np.integer)) for item in i):
