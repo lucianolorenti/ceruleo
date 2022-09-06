@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -6,6 +8,7 @@ from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
 from ceruleo.models.baseline import BaselineModel, FixedValueBaselineModel
+from ceruleo.models.keras.callbacks import PredictionCallback
 from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
@@ -25,7 +28,7 @@ from numpy.random import seed
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import make_pipeline
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten
+from tensorflow.keras.layers import Dense, Flatten
 from xgboost import XGBRegressor
 
 seed(1)
@@ -267,7 +270,7 @@ class TestModels:
         (mmap, v) = explain(model_extras, X)
         print(type(mmap))
         assert isinstance(mmap, np.ndarray)
-    
+
     def test_baseline(self):
         ds = MockDataset(5)
         features = ["feature1", "feature2"]
@@ -281,36 +284,62 @@ class TestModels:
         transformer.fit(ds)
         transformed_ds = ds.map(transformer)
 
-
-        model_mean = BaselineModel(mode='mean')
+        model_mean = BaselineModel(mode="mean")
         model_mean.fit(ds)
         y_pred = model_mean.predict(ds)
         assert isinstance(y_pred, np.ndarray)
 
-        model_median = BaselineModel(mode='median')
+        model_median = BaselineModel(mode="median")
         model_median.fit(ds)
         y_pred = model_mean.predict(ds)
         assert isinstance(y_pred, np.ndarray)
-
 
         model_fixed = FixedValueBaselineModel(value=100)
         model_fixed.fit(ds)
         y_pred = model_mean.predict(ds)
         assert isinstance(y_pred, np.ndarray)
 
-        model_mean = BaselineModel(mode='mean')
+        model_mean = BaselineModel(mode="mean")
         model_mean.fit(transformed_ds)
         y_pred = model_mean.predict(transformed_ds)
         assert isinstance(y_pred, np.ndarray)
 
-        model_median = BaselineModel(mode='median')
+        model_median = BaselineModel(mode="median")
         model_median.fit(transformed_ds)
         y_pred = model_mean.predict(transformed_ds)
         assert isinstance(y_pred, np.ndarray)
-
 
         model_fixed = FixedValueBaselineModel(value=100)
         model_fixed.fit(transformed_ds)
         y_pred = model_mean.predict(transformed_ds)
         assert isinstance(y_pred, np.ndarray)
 
+    def tf_callbacks(self):
+        features = ["feature1", "feature2"]
+
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
+
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
+
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        transformed_ds = ds.map(transformer)
+        ds_iterator = WindowedDatasetIterator(
+            transformed_ds, window_size=5, step=2, shuffler=AllShuffled()
+        )
+        model = MultiScaleConvolutionalModel(
+            ds_iterator.shape, n_msblocks=1, scales=[2, 3], n_hidden=5
+        )
+        model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.0001))
+
+        tf_dataset = tf_regression_dataset(ds_iterator).batch(15)
+        output_path = Path('.').resolve() / 'output.png'
+        model.fit(
+            tf_dataset,
+            callbacks=[PredictionCallback(output_path, tf_dataset)],
+            verbose=False,
+        )
+
+        assert output_path.is_file()
