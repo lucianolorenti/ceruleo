@@ -18,7 +18,13 @@ from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
 from ceruleo.models.keras.catalog.XCM import XCM, explain
 from ceruleo.models.keras.catalog.XiangQiangJianQiao import XiangQiangJianQiaoModel
 from ceruleo.models.keras.dataset import tf_regression_dataset
-from ceruleo.models.keras.losses import AsymmetricLossPM, relative_mae, relative_mse, root_mean_squared_error
+from ceruleo.models.keras.losses import (
+    AsymmetricLossPM,
+    asymmetric_loss_pm,
+    relative_mae,
+    relative_mse,
+    root_mean_squared_error,
+)
 from ceruleo.models.sklearn import (
     CeruleoRegressor,
     EstimatorWrapper,
@@ -100,7 +106,7 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-def _test_model_basic(model, ds_iterator,  loss="mae"):
+def _test_model_basic(model, ds_iterator, loss="mae"):
     model.compile(loss=loss, optimizer=tf.keras.optimizers.SGD(0.0001))
     model.fit(tf_regression_dataset(ds_iterator).batch(15), verbose=False)
     y_pred = model.predict(tf_regression_dataset(ds_iterator).batch(15)).ravel()
@@ -376,22 +382,26 @@ class TestModels:
             ),
         )
 
-        _test_model_basic(
-            model,
-            ds_iterator,
-            loss=root_mean_squared_error
+        _test_model_basic(model, ds_iterator, loss=root_mean_squared_error)
+
+        _test_model_basic(model, ds_iterator, loss=relative_mae(C=0.5))
+
+        _test_model_basic(model, ds_iterator, loss=relative_mse(C=0.5))
+
+        print(type(root_mean_squared_error(tf.random.uniform((50,)), tf.random.uniform((50,))).numpy()))
+        assert isinstance(
+            root_mean_squared_error(tf.random.uniform((50,)), tf.random.uniform((50,))).numpy(), np.float32
         )
-
-
-        _test_model_basic(
-            model,
-            ds_iterator,
-            loss=relative_mae(C=0.5)
-        )
-
-
-        _test_model_basic(
-            model,
-            ds_iterator,
-            loss=relative_mse(C=0.5)
+        assert isinstance(
+            asymmetric_loss_pm(
+                tf.random.uniform((50,)),
+                tf.random.uniform((50,)),
+                theta_l=1,
+                alpha_l=1,
+                gamma_l=1,
+                theta_r=1,
+                alpha_r=1,
+                gamma_r=1,
+            ).numpy(),
+            np.float32,
         )
