@@ -9,12 +9,6 @@ from sklearn.pipeline import FeatureUnion, _transform_one
 
 
 class PandasToNumpy(TransformerStep):
-    def fit(self, X, y=None):
-        return self
-
-    def partial_fit(self, X, y=None):
-        return self
-
     def transform(self, X):
         return X.values
 
@@ -29,9 +23,6 @@ class TransformerLambda(TransformerStep):
 
 
 class IdentityTransformerStep(TransformerStep):
-    def fit(self, input_array, y=None):
-        return self
-
     def transform(self, input_array, y=None):
         if isinstance(input_array, pd.DataFrame):
             return input_array.copy()

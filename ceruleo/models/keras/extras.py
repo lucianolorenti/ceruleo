@@ -10,44 +10,8 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import (Attention, BatchNormalization, Dense,
                                      Dropout, Input)
 
-tfd = tfp.distributions
 
 
-class VariationalWeibull(WeibullLayer):
-    def __init__(self, hidden):
-        super(VariationalWeibull, self).__init__(
-            return_params=True, name='')
-        self.x1 = Dense(hidden,
-                        activation='relu')
-
-        self.scale_uniform = Dense(1, activation='relu')
-
-        self.x2 = Dense(hidden,
-                        activation='relu')
-
-        self.k1 = Dense(1, activation='relu')
-        self.k2 = Dense(1, activation='relu')
-
-        self.uniform_sampler = tfd.Sample(
-            tfd.Uniform(),
-            sample_shape=(1))
-
-    def call(self, input):
-
-        lambda_ = self.x1(input)
-        lambda_ = tf.math.exp(self.scale_uniform(lambda_))
-        uniform = self.uniform_sampler.sample(tf.shape(input)[0])
-        lambda_ = uniform*lambda_
-
-        k = self.x2(input)
-        k1 = self.k1(k)
-        k2 = self.k2(k)
-        uniform1 = self.uniform_sampler.sample(tf.shape(input)[0])
-
-        k = tf.nn.softplus(
-            k1*tf.math.pow((-1 * tf.math.log(1-uniform1)), k2) + 1)
-
-        return self._result(lambda_, k)
 
 
 class RawAndBinClasses(BaseEstimator, TransformerMixin):
