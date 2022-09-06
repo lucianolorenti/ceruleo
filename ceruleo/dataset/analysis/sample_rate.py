@@ -8,7 +8,7 @@ from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 logger = logging.getLogger(__name__)
 
 
-def sample_rate(ds: AbstractTimeSeriesDataset, unit: Optional[str] = "s") -> np.ndarray:
+def sample_rate(ds: AbstractTimeSeriesDataset, unit: str = "s") -> np.ndarray:
     """Obtain an array of time difference between two consecutive samples
 
     If the index it's a timestamp, the time difference will be converted to the provided
@@ -27,8 +27,6 @@ def sample_rate(ds: AbstractTimeSeriesDataset, unit: Optional[str] = "s") -> np.
     for life in ds:
         diff = np.diff(life.index.values)
         if pd.api.types.is_timedelta64_ns_dtype(diff.dtype):
-            if unit is None:
-                unit = "s"
             diff = diff / np.timedelta64(1, unit)
         time_diff.extend(diff)
     return np.array(time_diff)

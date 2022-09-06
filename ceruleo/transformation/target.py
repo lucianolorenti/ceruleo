@@ -1,12 +1,21 @@
-from typing import Optional
+from functools import partial
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from ceruleo.transformation import TransformerStep
+from pandas.api.types import is_timedelta64_dtype
+from scipy.stats import norm
 
 
 class TargetToClasses(TransformerStep):
-    def __init__(self, bins):
+    """Transform the RUL values into a discrete set of classes
+
+    Parameters
+        bins: Bins limits
+    """
+
+    def __init__(self, bins: List[float]):
         super().__init__()
         self.bins = bins
 
@@ -16,112 +25,55 @@ class TargetToClasses(TransformerStep):
         return X_new
 
 
-class HealthPercentage(TransformerStep):
-    def transform(self, X):
-        return (X / X.iloc[0, 0]) * 100
-
-
 class PicewiseRUL(TransformerStep):
     """Transform the RUL clipping the maximum value
 
     Parameters
-    ----------
-    max_life : float, optional
-        Maximum threshold for clipping the RUL values, by default np.inf
-    name : Optional[str], optional
-        Name of the step, by default None    """
+
+        max_life:  Maximum threshold for clipping the RUL values
+        name:  Name of the step, by default None
+    """
+
     def __init__(self, *, max_life: float = np.inf, name: Optional[str] = None):
         super().__init__(name=name)
         self.max_life = max_life
 
-    def transform(self, X):
-        """Clip the maximum value of the true RUL
-
-        Parameters
-        ----------
-        X : np.array
-            Vector with the true labels
-
-        Returns
-        -------
-        np.array
-            Cliiped RUL values
-        """
-        return np.clip(X, 0, self.max_life)
+    def transform(self, X: pd.DataFrame):
+        return X.clip(0, self.max_life)
 
 
 class PicewiseRULQuantile(PicewiseRUL):
-    """Transform the RUL clipping the maximum value using a quantile value as threshold
+    """Clip the RUL  values using a quantile value as threshold
 
     Parameters
-    ----------
-    quantile : float, optional
-        Value between 0 and 1 to compute the RUL threshold
-    name : Optional[str], optional
-        Name of the step, by default None    """
-    def __init__(self, quantile:float, name: Optional[str] = None):
+
+        quantile: Value between 0 and 1 to compute the RUL threshold
+        name: Name of the step
+    """
+
+    def __init__(self, quantile: float, name: Optional[str] = None):
         super().__init__(name)
         self.quantile = quantile
 
     def fit(self, X, y=None):
-        """Clip the maximum value of the true RUL
-
-        Parameters
-        ----------
-        X : np.array
-            Vector with the true labels
-
-        Returns
-        -------
-        np.array
-            Cliiped RUL values
-        """
         self.max_life = np.quantile(X, self.quantile)
         return self
 
 
 class RULBinarizer(TransformerStep):
-    def __init__(self, t:float, **kwargs):
-        super().__init__(**kwargs)
-        self.t = t       
-    
+    """Convert the RUL target into a binary vector
 
-    def transform(self, X):
-        return (X < self.t).astype('int')
+    Useful for determining point of failures.
 
-
-
-
-class RemoveGaps(TransformerStep):
-    """Gaps larger than a treshold are removed
 
     Parameters
-    ----------
-    max_life : float, optional
-        Maximum threshold for clipping the RUL values, by default np.inf
-    name : Optional[str], optional
-        Name of the step, by default None    """
-    def __init__(self, *, threshold: float, name: Optional[str] = None):
-        super().__init__(name=name)
-        self.threshold = threshold
+        t: Starting point of failure
+        Every sample with a RUL greater than t will be 1 and the rest 0
+    """
 
-    def transform(self, x:pd.DataFrame):
-        """Remove gaps in the RUL target
+    def __init__(self, t: float, **kwargs):
+        super().__init__(**kwargs)
+        self.t = t
 
-        Parameters
-        ----------
-        X : np.array
-            Vector with the true labels
-
-        Returns
-        -------
-        np.array
-            Cliiped RUL values
-        """
-
-        y = np.abs(np.diff(np.squeeze(x)))
-        y[y  <= self.threshold] = 0        
-        new_x  = np.squeeze(x.values) + np.hstack((0, np.cumsum(y)))
-        
-        return pd.DataFrame(new_x - np.min(new_x), index=x.index, columns=x.columns)
-        
+    def transform(self, X):
+        return (X > self.t).astype("int")

@@ -38,6 +38,34 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
+class MockDatasetTimeDeltaIndex(AbstractTimeSeriesDataset):
+    def __init__(self, nlives: int):
+        super().__init__()
+        self.lives = [
+            pd.DataFrame(
+                {
+                    "feature1": np.linspace(0, 100, 50),
+                    "feature2": np.random.randint(2, size=(50,)),
+                    "RUL": np.linspace(100, 0, 50),
+                },
+                index=pd.timedelta_range(start='0 day', periods=50, freq='s')
+            )
+            for i in range(nlives)
+        ]
+
+    def get_time_series(self, i: int):
+        return self.lives[i]
+
+    @property
+    def rul_column(self):
+        return "RUL"
+
+    @property
+    def n_time_series(self):
+        return len(self.lives)
+
+
+
 class TestAnalysis:
     def test_correlation(self):
         ds = MockDataset(5)
@@ -57,6 +85,14 @@ class TestAnalysis:
         assert isinstance(sample_rates, np.ndarray)
 
         assert isinstance(sample_rate_summary(dataset), pd.DataFrame)
+
+        dataset = MockDatasetTimeDeltaIndex(5)
+
+        sample_rates = sample_rate(dataset)
+        assert isinstance(sample_rates, np.ndarray)
+
+        assert isinstance(sample_rate_summary(dataset), pd.DataFrame)
+
 
     def test_distribution(self):
         dataset = MockDataset(5)
