@@ -14,7 +14,8 @@ class TargetToClasses(TransformerStep):
     Parameters
         bins: Bins limits
     """
-    def __init__(self, bins:List[float]):
+
+    def __init__(self, bins: List[float]):
         super().__init__()
         self.bins = bins
 
@@ -22,7 +23,6 @@ class TargetToClasses(TransformerStep):
         X_new = pd.DataFrame(index=X.index)
         X_new["RUL_class"] = np.digitize(X.iloc[:, 0].values, self.bins, right=False)
         return X_new
-
 
 
 class PicewiseRUL(TransformerStep):
@@ -33,12 +33,13 @@ class PicewiseRUL(TransformerStep):
         max_life:  Maximum threshold for clipping the RUL values
         name:  Name of the step, by default None
     """
+
     def __init__(self, *, max_life: float = np.inf, name: Optional[str] = None):
         super().__init__(name=name)
         self.max_life = max_life
 
-    def transform(self, X):
-        return np.clip(X, 0, self.max_life)
+    def transform(self, X: pd.DataFrame):
+        return X.clip(0, self.max_life)
 
 
 class PicewiseRULQuantile(PicewiseRUL):
@@ -49,7 +50,8 @@ class PicewiseRULQuantile(PicewiseRUL):
         quantile: Value between 0 and 1 to compute the RUL threshold
         name: Name of the step
     """
-    def __init__(self, quantile:float, name: Optional[str] = None):
+
+    def __init__(self, quantile: float, name: Optional[str] = None):
         super().__init__(name)
         self.quantile = quantile
 
@@ -62,37 +64,16 @@ class RULBinarizer(TransformerStep):
     """Convert the RUL target into a binary vector
 
     Useful for determining point of failures.
-    
+
 
     Parameters
         t: Starting point of failure
         Every sample with a RUL greater than t will be 1 and the rest 0
     """
-    def __init__(self, t:float, **kwargs):
+
+    def __init__(self, t: float, **kwargs):
         super().__init__(**kwargs)
         self.t = t
 
-
     def transform(self, X):
-        return (X > self.t).astype('int')
-
-
-
-
-class RemoveGaps(TransformerStep):
-    """Gaps larger than a threshold are removed
-
-    Parameters
-    
-        max_life: Maximum threshold for clipping the RUL values, by default np.inf
-    """
-    def __init__(self, *, threshold: float, name: Optional[str] = None):
-        super().__init__(name=name)
-        self.threshold = threshold
-
-    def transform(self, x:pd.DataFrame):
-        y = np.abs(np.diff(np.squeeze(x)))
-        y[y  <= self.threshold] = 0
-        new_x  = np.squeeze(x.values) + np.hstack((0, np.cumsum(y)))
-
-        return pd.DataFrame(new_x - np.min(new_x), index=x.index, columns=x.columns)
+        return (X > self.t).astype("int")
