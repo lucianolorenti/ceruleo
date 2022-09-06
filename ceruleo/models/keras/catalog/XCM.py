@@ -25,20 +25,6 @@ def XCM(input_shape: Tuple[int, int], *, n_filters: int = 128, filter_window: in
     Xcm: An explainable convolutional neural network for multivariate time series classification. Mathematics, 
     9(23), 3137.
 
-    Deafult parameters reported in the article:
-
-        -   Number of filters:	10
-        -   Window size:	30/20/30/15
-        -   Filter length: 10
-        -   Neurons in fully-connected layer	100
-        -   Dropout rate	0.5
-        -   batch_size = 512
-
-
-    Parameters:
-
-        n_filters : int
-        filter_size : int
     """
 
     input = Input(input_shape)
@@ -111,18 +97,19 @@ def XCM(input_shape: Tuple[int, int], *, n_filters: int = 128, filter_window: in
         inputs=[model_input],
         outputs=[output],
     )
-    return model
+
+    return model,  (model_fisrt_conv1d, model_fisrt_conv2d, model_regression)
 
 
-def explain(self, input):
-
+def explain( model_extras, input):
+    model_fisrt_conv1d, model_fisrt_conv2d, model_regression = model_extras
     data_input = np.expand_dims(input, axis=0)
     with tf.GradientTape() as tape:
-        first_conv1d_layer_output = self.model_fisrt_conv1d(data_input)
-        first_conv2d_layer_output = self.model_fisrt_conv2d(data_input)
+        first_conv1d_layer_output = model_fisrt_conv1d(data_input)
+        first_conv2d_layer_output = model_fisrt_conv2d(data_input)
         tape.watch(first_conv2d_layer_output)
 
-        output = self.model_regression(
+        output = model_regression(
             [first_conv2d_layer_output, first_conv1d_layer_output]
         )  #
         grads = tape.gradient(output, first_conv2d_layer_output)
@@ -131,11 +118,11 @@ def explain(self, input):
     mmap = np.sum(np.squeeze(first_conv2d_layer_output) * filter_weight, axis=(2))
 
     with tf.GradientTape() as tape:
-        first_conv2d_layer_output = self.model_fisrt_conv2d(data_input)
-        first_conv1d_layer_output = self.model_fisrt_conv1d(data_input)
+        first_conv2d_layer_output = model_fisrt_conv2d(data_input)
+        first_conv1d_layer_output = model_fisrt_conv1d(data_input)
         tape.watch(first_conv1d_layer_output)
 
-        output = self.model_regression(
+        output = model_regression(
             [first_conv2d_layer_output, first_conv1d_layer_output]
         )
 

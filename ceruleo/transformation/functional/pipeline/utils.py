@@ -33,7 +33,7 @@ def plot_pipeline(pipe: "TemporisPipeline", name: str):
     """
     import graphviz
     from ceruleo.transformation.functional.pipeline.pipeline import \
-        TemporisPipeline
+        Pipeline
 
     dot = graphviz.Digraph(name, comment="Transformation graph")
 

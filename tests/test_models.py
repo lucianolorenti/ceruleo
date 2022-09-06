@@ -11,7 +11,7 @@ from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
 from ceruleo.models.keras.catalog.MultiScaleConvolutional import \
     MultiScaleConvolutionalModel
-from ceruleo.models.keras.catalog.XCM import XCM
+from ceruleo.models.keras.catalog.XCM import XCM, explain
 from ceruleo.models.keras.catalog.XiangQiangJianQiao import \
     XiangQiangJianQiaoModel
 from ceruleo.models.keras.dataset import tf_regression_dataset
@@ -190,6 +190,7 @@ class TestModels:
         assert mae < mae_before_fit
 
     def test_xgboost(self):
+
         features = ["feature1", "feature2"]
 
         x = ByNameFeatureSelector(features=features)
@@ -197,6 +198,7 @@ class TestModels:
 
         y = ByNameFeatureSelector(features=["RUL"])
         transformer = Transformer(x, y)
+
 
         ds = MockDataset(5)
         transformer.fit(ds)
@@ -261,8 +263,12 @@ class TestModels:
         model = XiangQiangJianQiaoModel(ds_iterator.shape)
         test_model_basic(model)
 
-        model = XCM(ds_iterator.shape)
+        model, model_extras = XCM(ds_iterator.shape)
         test_model_basic(model)
+        X, y, sw = next(iter(ds_iterator))
+        (mmap, v) = explain(model_extras, X)
+        print(type(mmap))
+        assert isinstance(mmap, np.ndarray)
     
     def test_baseline(self):
         ds = MockDataset(5)

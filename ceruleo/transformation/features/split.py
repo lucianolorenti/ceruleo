@@ -6,7 +6,7 @@ from ceruleo.transformation.functional.graph_utils import (
     root_nodes,
     topological_sort_iterator,
 )
-from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
+from ceruleo.transformation.functional.pipeline.pipeline import Pipeline
 from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
@@ -55,7 +55,7 @@ class SplitByCategory(TransformerStep):
         self,
         *,
         features: Union[str, List[str]],
-        pipeline: TemporisPipeline,
+        pipeline: Pipeline,
         add_default: bool = True,
         name: Optional[str] = None,
     ):

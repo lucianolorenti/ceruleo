@@ -3,7 +3,7 @@ import pandas as pd
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.iterators.batcher import Batcher
 from ceruleo.iterators.iterators import WindowedDatasetIterator
-from ceruleo.transformation import TemporisPipeline, Transformer
+from ceruleo.transformation import Pipeline, Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
 

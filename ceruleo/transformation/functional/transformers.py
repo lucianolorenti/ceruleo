@@ -16,19 +16,21 @@ import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_is_fitted
 
+
 from ceruleo.transformation.functional.graph_utils import \
     topological_sort_iterator
 from ceruleo.transformation.functional.pipeline.cache_store import \
     CacheStoreType
 from ceruleo.transformation.functional.pipeline.pipeline import \
-    TemporisPipeline
+    Pipeline
+
 from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 logger = logging.getLogger(__name__)
 
 
 
-def transformer_info(transformer : Optional[TemporisPipeline]):
+def transformer_info(transformer: Optional[Pipeline]):
     """Obtains the transformer information in a serializable format
 
     Parameters:
@@ -45,18 +47,13 @@ def transformer_info(transformer : Optional[TemporisPipeline]):
             the get_params method.
     """
     if transformer is None:
-        return 'Missing'
+        return "Missing"
 
     data = []
     Q = topological_sort_iterator(transformer)
     for q in Q:
         data.append(q.description())
     return data
-
-
-
-
-
 
 
 
@@ -77,17 +74,16 @@ class Transformer:
 
     def __init__(
         self,
-        pipelineX: Union[TemporisPipeline, TransformerStep],
-        pipelineY: Optional[Union[TemporisPipeline, TransformerStep]] = None,
-        pipelineMetadata: Optional[Union[TemporisPipeline, TransformerStep]] = None,
+        pipelineX: Union[Pipeline, TransformerStep],
+        pipelineY: Optional[Union[Pipeline, TransformerStep]] = None,
+        pipelineMetadata: Optional[Union[Pipeline, TransformerStep]] = None,
         cache_type: CacheStoreType = CacheStoreType.MEMORY,
-
     ):
         def ensure_pipeline(x, cache_type: CacheStoreType):
-            if isinstance(x, TemporisPipeline):
+            if isinstance(x, Pipeline):
                 return x
-            return TemporisPipeline(x, cache_type=cache_type)
-
+            return Pipeline(x, cache_type=cache_type)
+        self.cache_type = cache_type
         self.pipelineX = ensure_pipeline(pipelineX, cache_type)
         if pipelineY is not None:
             self.pipelineY = ensure_pipeline(pipelineY, cache_type)
@@ -115,14 +111,9 @@ class Transformer:
         The transformer will fit the X transformer,
         the Y transformer and the metadata transformer
 
-        Parameters
-        ----------
-        dataset : AbstractLivesDataset
-            Dataset
+        Parameters:
+            dataset:
 
-        Returns
-        -------
-        self
         """
         logger.debug("Fitting Transformer")
 
@@ -145,17 +136,15 @@ class Transformer:
     def transform(self, life: pd.DataFrame):
         """Transform a life and obtain the input data, the target and the metadata
 
-        Parameters
-        ----------
-        life : pd.DataFrame
-            A life in a form of a DataFrame
+        Parameters:
+            life: A life in a form of a DataFrame
 
-        Returns
-        -------
-        Tuple[np.array, np.array, np.array]
-            * The first element consists of the input transformed
-            * The second element consits of the target transformed
-            * The third element consists of the metadata
+        Returns:
+
+            Tuple[np.array, np.array, np.array]
+                * The first element consists of the input transformed
+                * The second element consits of the target transformed
+                * The third element consists of the metadata
         """
         check_is_fitted(self, "fitted_")
         return (
@@ -164,7 +153,8 @@ class Transformer:
             self.transformMetadata(life),
         )
 
-    def fit_map(self, dataset, show_progress: bool = False ) -> "TransformedDataset":
+
+    def fit_map(self, dataset, show_progress: bool = False) -> "TransformedDataset":
         self.fit(dataset, show_progress=show_progress)
         return dataset.map(self)
 
@@ -178,14 +168,11 @@ class Transformer:
         """Get the transformed target from a life
 
         Parameters
-        ----------
-        life : pd.DataFrame
-            A life in a form of a DataFrame
+
+        life: A run-to-failrue cycle in a form of a DataFrame
 
         Returns
-        -------
-        np.array
-            Target obtained from the life
+            t: Target obtained from the life
         """
         if self.pipelineY is not None:
             return self.pipelineY.transform(life)
@@ -196,23 +183,21 @@ class Transformer:
         """Get the transformer input data
 
         Parameters
-        ----------
-        life : pd.DataFrame
-            A life i an form of a DataFrame
+
+            life: A life i an form of a DataFrame
 
         Returns
-        -------
-        np.array
-            Input data transformed
+
+            t: Input data transformed
         """
         return self.pipelineX.transform(life)
 
     def columns(self) -> List[str]:
         """Columns names after transformation
 
-        Returns
-        -------
-        List[str]
+        Returns:
+
+            c: columns
         """
         return self.column_names
 
@@ -220,9 +205,9 @@ class Transformer:
     def n_features(self) -> int:
         """Number of features after transformation
 
-        Returns
-        -------
-        int
+        Returns:
+
+            n: Number of features
         """
         return self.number_of_features_
 
@@ -232,12 +217,43 @@ class Transformer:
     def description(self):
         return {
             "features": self.features,
-            "transformerX": transformer_info(self.pipelineX),
-            "transformerY": transformer_info(self.pipelineY),
+            "pipelineX": transformer_info(self.pipelineX),
+            "pipelineY": transformer_info(self.pipelineY),
         }
 
     def __str__(self):
         return str(self.description())
+
+    def get_params(self, deep: bool = False):
+        params = {
+            "pipelineX": self.pipelineX,
+            "pipelineY": self.pipelineY,
+            "pipelineMetadata": self.pipelineMetadata,
+            "cache_type": self.cache_type,
+        }
+        if deep:
+            paramsX = self.pipelineX.get_params(deep)
+            paramsY = self.pipelineY.get_params(deep)
+            for k in paramsX.keys():
+                params[f"pipeline_X__{k}"] = paramsX[k]
+            for k in paramsY.keys():
+                params[f"pipeline_Y__{k}"] = paramsY[k]
+
+        return params
+
+    def set_params(self, **params):
+        pipeline_X_params = {}
+        pipeline_Y_params = {}
+        for k in params.keys():
+            if k.starts_with("pipeline_X__"):
+                new_key = "__".join(k.split("__")[1:])
+                pipeline_X_params[new_key] = params[k]
+            elif k.starts_with("pipeline_Y__"):
+                new_key = "__".join(k.split("__")[1:])
+                pipeline_Y_params[new_key] = params[k]
+        self.pipelineX = self.pipelineX.set_params(pipeline_X_params)
+        self.pipelineY = self.pipelineY.set_params(pipeline_Y_params)
+        return self
 
 
 def TransformerIdentity(rul_column: str = "RUL") -> Transformer:
@@ -251,8 +267,9 @@ def TransformerIdentity(rul_column: str = "RUL") -> Transformer:
 
         TransformerIdentity: An identity f(x)=x transformer
     """
-    from ceruleo.transformation.features.selection import \
-        ByNameFeatureSelector
+    from ceruleo.transformation.features.selection import ByNameFeatureSelector
     from ceruleo.transformation.utils import IdentityTransformerStep
 
-    return Transformer(IdentityTransformerStep(), ByNameFeatureSelector(features=[rul_column]))
+    return Transformer(
+        IdentityTransformerStep(), ByNameFeatureSelector(features=[rul_column])
+    )

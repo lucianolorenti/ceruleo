@@ -120,6 +120,12 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
     def true_values(self, dataset: AbstractTimeSeriesDataset):
         X, y, sw = self._iterator(dataset).get_data()
         return y.ravel()
+    
+    def get_params(self, deep=None):
+        params = super().get_params(deep)
+        if deep:
+            params['ts_window_transformer__transformer'] = self.transformer.get_params(deep)
+        return params
 
 
 class CeruleoRegressor(RegressorMixin, BaseEstimator):

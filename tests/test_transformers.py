@@ -29,7 +29,9 @@ from ceruleo.transformation.features.selection import (
     NullProportionSelector,
 )
 from ceruleo.transformation.features.transformation import Accumulate
-from ceruleo.transformation.functional.pipeline.pipeline import TemporisPipeline
+
+from ceruleo.transformation.functional.pipeline.pipeline import Pipeline
+
 from ceruleo.transformation.utils import QuantileEstimator
 
 
@@ -482,13 +484,15 @@ class TestGenerators:
         transformer = ByNameFeatureSelector(features=["a", "b"])
         transformer = EWMAOutOfRange(return_mask=True)(transformer)
         transformer = Accumulate()(transformer)
-        df_new = TemporisPipeline(transformer).fit_transform(df)
+        df_new = Pipeline(transformer).fit_transform(df)
+
         assert df_new["a"].iloc[-1] == 2
         assert df_new["b"].iloc[-1] == 3
 
         transformer = ByNameFeatureSelector(features=["a", "b"])
         transformer = EWMAOutOfRange(return_mask=False)(transformer)
-        df_new = TemporisPipeline(transformer).fit_transform(df)
+
+        df_new = Pipeline(transformer).fit_transform(df)
 
         assert np.isnan(df_new["a"].iloc[320])
         assert np.isnan(df_new["b"].iloc[215])
@@ -511,7 +515,9 @@ class TestGenerators:
         )
         transformer = ByNameFeatureSelector(features=["a", "b"])
         transformer = IsolationForestOutlierRemover()(transformer)
-        df_new = TemporisPipeline(transformer).fit_transform(df)
+
+        df_new = Pipeline(transformer).fit_transform(df)
+
 
         assert np.isnan(df_new["a"].iloc[320])
         assert np.isnan(df_new["b"].iloc[215])

@@ -280,7 +280,7 @@ def barplot_errors_wrt_RUL(
     color_palette: str = "hls",
     **kwargs,
 ):
-    """Boxplots of difference between true and predicted RUL
+    """Barlots of difference between true and predicted RUL
 
     Parameters:
 
@@ -721,8 +721,7 @@ def plot_predictions(
     if plot_fitted:
         try:
             fitted = np.hstack([life.y_pred_fitted for life in split_lives(result)])
-            print(fitted.shape)
-            ax.plot(fitted)
+            ax.plot(fitted, label='Fitted')
             
         except:
             

@@ -1,11 +1,14 @@
-from typing import List, Optional, Union
-import uuid
+
 import hashlib
+import uuid
+from typing import List, Optional, Union
 
 from numpy.lib.arraysetops import isin
+from sklearn.base import BaseEstimator
 
 
-class TransformerStepMixin:
+class TransformerStepMixin(BaseEstimator):
+
     def __init__(self, *, name: Optional[str] = None, prefer_partial_fit:bool =True):
         self.name_ = name
         self.previous = []

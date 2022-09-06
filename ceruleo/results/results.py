@@ -668,7 +668,7 @@ def cv_regression_metrics_single_model(
 
     errors1 = {}
     for k in errors.keys():
-        errors1[k] = ufloat(np.mean(errors[k]), np.std(errors[k]))
+        errors1[k] = ufloat(np.round(np.mean(errors[k]),2), np.round(np.std(errors[k]), 2))
     return errors1
 
 

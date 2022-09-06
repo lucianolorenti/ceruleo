@@ -1,6 +1,4 @@
 from typing import Tuple
-from ceruleo.models.keras.dataset import KerasTrainableModel
-from tensorflow.keras import Input, Model, optimizers
 from tensorflow.keras.layers import (
     Concatenate,
     Conv2D,
@@ -15,8 +13,8 @@ from tensorflow.keras.layers import (
 def MVCNN(
     input_shape: Tuple[int, int],
     *,
-    window: int,
-    dropout: float,
+    window = 64,
+    dropout: float=0.1,
     
 ):
     """
