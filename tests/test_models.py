@@ -314,7 +314,7 @@ class TestModels:
         y_pred = model_mean.predict(transformed_ds)
         assert isinstance(y_pred, np.ndarray)
 
-    def tf_callbacks(self):
+    def test_callbacks(self):
         features = ["feature1", "feature2"]
 
         x = ByNameFeatureSelector(features=features)
