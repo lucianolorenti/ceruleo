@@ -49,9 +49,6 @@ def correlation_analysis(
         correlated_features_for_execution = []
 
         for f1, f2 in combinations(features, 2):
-            if f1 == f2:
-                continue
-
             correlated_features_for_execution.append((f1, f2, corr_m.loc[f1, f2]))
 
         correlated_features.extend(correlated_features_for_execution)
