@@ -1,12 +1,25 @@
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from ceruleo.transformation import TransformerStep
 
+from typing import Optional
+from temporis.transformation import TransformerStep
+import pandas as pd
+import numpy as np
+from scipy.stats import norm
+from functools import partial
+from pandas.api.types import is_timedelta64_dtype
+
 
 class TargetToClasses(TransformerStep):
-    def __init__(self, bins):
+    """Transform the RUL values into a discrete set of classes
+
+    Parameters
+        bins: Bins limits
+    """
+    def __init__(self, bins:List[float]):
         super().__init__()
         self.bins = bins
 
@@ -34,7 +47,7 @@ class PicewiseRUL(TransformerStep):
 
 
 class PicewiseRULQuantile(PicewiseRUL):
-    """Transform the RUL clipping the maximum value using a quantile value as threshold
+    """Clip the RUL  values using a quantile value as threshold
 
     Parameters
 
@@ -51,26 +64,33 @@ class PicewiseRULQuantile(PicewiseRUL):
 
 
 class RULBinarizer(TransformerStep):
+    """Convert the RUL target into a binary vector
+
+    Useful for determining point of failures.
+    
+
+    Parameters
+        t: Starting point of failure
+        Every sample with a RUL greater than t will be 1 and the rest 0
+    """
     def __init__(self, t:float, **kwargs):
         super().__init__(**kwargs)
         self.t = t
 
 
     def transform(self, X):
-        return (X < self.t).astype('int')
+        return (X > self.t).astype('int')
 
 
 
 
 class RemoveGaps(TransformerStep):
-    """Gaps larger than a treshold are removed
+    """Gaps larger than a threshold are removed
 
     Parameters
-    ----------
-    max_life : float, optional
-        Maximum threshold for clipping the RUL values, by default np.inf
-    name : Optional[str], optional
-        Name of the step, by default None    """
+    
+        max_life: Maximum threshold for clipping the RUL values, by default np.inf
+    """
     def __init__(self, *, threshold: float, name: Optional[str] = None):
         super().__init__(name=name)
         self.threshold = threshold
