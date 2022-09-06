@@ -37,12 +37,12 @@ def asymmetric_loss_pm(
 
         y_true: True RUL values
         y_pred: Predicted RUL values
-        theta_l: theta parameter for underpredicting
-        alpha_l: alpha parameters for underpredicting
-        gamma_l: gamma parameters for underpredicting
-        theta_r:
-        alpha_r:
-        gamma_r:
+        theta_l: Linear to exponential change point for overpredictions (Positive)
+        alpha_l: Quadratic term parameters for overpredictions
+        gamma_l: Exponential term parameters for overpredictions
+        theta_r: Linear to exponential change point for underpredictions
+        alpha_r: Quadratic term parameters for underpredictions
+        gamma_r: Exponential term parameters for underpredictions
         relative_weight: Wether to use weigthing relative to the RUL
 
     Returns:
@@ -95,13 +95,13 @@ class AsymmetricLossPM(LossFunctionWrapper):
     [Reference](https://ieeexplore.ieee.org/document/9287246)
 
     Parameters:
-        theta_l: Linear component of the assymetric loss in the underprediction
-        alpha_l: alpha component of the assymetric loss in the underprediction
-        gamma_l: gamma component of the assymetric loss in the underprediction
-        theta_r: theta component of the assymetric loss in the overprediction
-        alpha_r: alpha component of the assymetric loss in the overprediction
-        gamma_r: gamma component of the assymetric loss in the overprediction
-        relative_weight:
+        theta_l: Linear to exponential change point for overpredictions
+        alpha_l: Quadratic term parameters for overpredictions
+        gamma_l: Exponential term parameters for overpredictions
+        theta_r: Linear to exponential change point for underpredictions
+        alpha_r: Quadratic term parameters for underpredictions
+        gamma_r: Exponential term parameters for underpredictions
+        relative_weight: Wether to use weigthing relative to the RUL
     """
 
     def __init__(

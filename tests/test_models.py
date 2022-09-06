@@ -12,15 +12,20 @@ from ceruleo.models.keras.callbacks import PredictionCallback
 from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
-from ceruleo.models.keras.catalog.MultiScaleConvolutional import \
-    MultiScaleConvolutionalModel
+from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
+    MultiScaleConvolutionalModel,
+)
 from ceruleo.models.keras.catalog.XCM import XCM, explain
-from ceruleo.models.keras.catalog.XiangQiangJianQiao import \
-    XiangQiangJianQiaoModel
+from ceruleo.models.keras.catalog.XiangQiangJianQiao import XiangQiangJianQiaoModel
 from ceruleo.models.keras.dataset import tf_regression_dataset
-from ceruleo.models.sklearn import (CeruleoRegressor, EstimatorWrapper,
-                                    TimeSeriesWindowTransformer, predict,
-                                    train_model)
+from ceruleo.models.keras.losses import AsymmetricLossPM, relative_mae, relative_mse, root_mean_squared_error
+from ceruleo.models.sklearn import (
+    CeruleoRegressor,
+    EstimatorWrapper,
+    TimeSeriesWindowTransformer,
+    predict,
+    train_model,
+)
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
@@ -93,6 +98,13 @@ class MockDataset(AbstractTimeSeriesDataset):
     @property
     def n_time_series(self):
         return len(self.lives)
+
+
+def _test_model_basic(model, ds_iterator,  loss="mae"):
+    model.compile(loss=loss, optimizer=tf.keras.optimizers.SGD(0.0001))
+    model.fit(tf_regression_dataset(ds_iterator).batch(15), verbose=False)
+    y_pred = model.predict(tf_regression_dataset(ds_iterator).batch(15)).ravel()
+    assert isinstance(y_pred, np.ndarray)
 
 
 class TestModels:
@@ -231,12 +243,6 @@ class TestModels:
             transformed_ds, window_size=5, step=2, shuffler=AllShuffled()
         )
 
-        def test_model_basic(model):
-            model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.0001))
-            model.fit(tf_regression_dataset(ds_iterator).batch(15), verbose=False)
-            y_pred = model.predict(tf_regression_dataset(ds_iterator).batch(15)).ravel()
-            assert isinstance(y_pred, np.ndarray)
-
         model = CNLSTM(
             ds_iterator.shape,
             n_conv_layers=2,
@@ -245,27 +251,27 @@ class TestModels:
             hidden_size=(15, 5),
             dropout=0.3,
         )
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
 
         model = InceptionTime(
             ds_iterator.shape,
             nb_filters=3,
         )
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
 
         model = MSWRLRCN(ds_iterator.shape)
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
 
         model = MultiScaleConvolutionalModel(
             ds_iterator.shape, n_msblocks=1, scales=[2, 3], n_hidden=5
         )
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
 
         model = XiangQiangJianQiaoModel(ds_iterator.shape)
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
 
         model, model_extras = XCM(ds_iterator.shape)
-        test_model_basic(model)
+        _test_model_basic(model, ds_iterator)
         X, y, sw = next(iter(ds_iterator))
         (mmap, v) = explain(model_extras, X)
         print(type(mmap))
@@ -335,7 +341,7 @@ class TestModels:
         model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.0001))
 
         tf_dataset = tf_regression_dataset(ds_iterator).batch(15)
-        output_path = Path('.').resolve() / 'output.png'
+        output_path = Path(".").resolve() / "output.png"
         model.fit(
             tf_dataset,
             callbacks=[PredictionCallback(output_path, tf_dataset)],
@@ -343,3 +349,49 @@ class TestModels:
         )
 
         assert output_path.is_file()
+
+    def test_losses(self):
+        features = ["feature1", "feature2"]
+
+        x = ByNameFeatureSelector(features=features)
+        x = MinMaxScaler(range=(-1, 1))(x)
+
+        y = ByNameFeatureSelector(features=["RUL"])
+        transformer = Transformer(x, y)
+
+        ds = MockDataset(5)
+        transformer.fit(ds)
+        transformed_ds = ds.map(transformer)
+        ds_iterator = WindowedDatasetIterator(
+            transformed_ds, window_size=5, step=2, shuffler=AllShuffled()
+        )
+        model = MultiScaleConvolutionalModel(
+            ds_iterator.shape, n_msblocks=1, scales=[2, 3], n_hidden=5
+        )
+        _test_model_basic(
+            model,
+            ds_iterator,
+            loss=AsymmetricLossPM(
+                theta_l=1, alpha_l=1, gamma_l=1, theta_r=1, alpha_r=1, gamma_r=1
+            ),
+        )
+
+        _test_model_basic(
+            model,
+            ds_iterator,
+            loss=root_mean_squared_error
+        )
+
+
+        _test_model_basic(
+            model,
+            ds_iterator,
+            loss=relative_mae(C=0.5)
+        )
+
+
+        _test_model_basic(
+            model,
+            ds_iterator,
+            loss=relative_mse(C=0.5)
+        )
