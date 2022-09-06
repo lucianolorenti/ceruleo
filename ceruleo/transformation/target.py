@@ -1,16 +1,11 @@
+from functools import partial
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from ceruleo.transformation import TransformerStep
-
-from typing import Optional
-from temporis.transformation import TransformerStep
-import pandas as pd
-import numpy as np
-from scipy.stats import norm
-from functools import partial
 from pandas.api.types import is_timedelta64_dtype
+from scipy.stats import norm
 
 
 class TargetToClasses(TransformerStep):
