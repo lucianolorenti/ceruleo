@@ -4,6 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from ceruleo.graphics.duration import durations_boxplot, durations_histogram
 import pytest
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.graphics.analysis import plot_correlation_analysis
@@ -165,5 +166,20 @@ class TestGraphics:
     def test_correlation_plot(self):
         dataset = MockDataset(7)
         ax = plot_correlation_analysis(dataset)
-        print("aaaaaaaaaa")
+        return ax.figure
+
+    @helper_test_plot(
+        output_filename="test_durations_boxplot",
+    )
+    def test_durations_boxplot(self):
+        dataset = MockDataset(7)
+        ax = durations_boxplot(dataset, xlabel="Test Dataset")
+        return ax.figure
+
+    @helper_test_plot(
+        output_filename="test_durations_histogram",
+    )
+    def test_durations_histogram(self):
+        dataset = MockDataset(7)
+        ax = durations_histogram(dataset)
         return ax.figure
