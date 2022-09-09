@@ -10,7 +10,8 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/lucianolorenti/ceruleo/badge.svg?branch=main&service=github)](https://coveralls.io/github/lucianolorenti/ceruleo?branch=main)
 [![Documentation](https://img.shields.io/badge/documentation-dev-brightgreen)](https://lucianolorenti.github.io/ceruleo/)
-
+![pypi](https://img.shields.io/pypi/v/ceruleo)
+![python-version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
 ## What is it?
 
 **CeRULeo** is a Python package that provides a flexible environment designed to make working with predictive maintenance task both easy and intuitive. 
