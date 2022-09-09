@@ -13,8 +13,8 @@ def CNLSTM(
     initial_convolutional_size: int,
     layers_recurrent: List[int],
     hidden_size: Tuple[int, int],
-    dense_layer_size: int,
-    dropout: float,
+    dense_layer_size: int = 50,
+    dropout: float = 0.1,
 ):
     """
     The network contains stacked layers of 1-dimensional convolutional layers
