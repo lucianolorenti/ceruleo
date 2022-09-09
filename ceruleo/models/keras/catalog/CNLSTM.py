@@ -13,6 +13,7 @@ def CNLSTM(
     initial_convolutional_size: int,
     layers_recurrent: List[int],
     hidden_size: Tuple[int, int],
+    dense_layer_size: int,
     dropout: float,
 ):
     """
@@ -36,6 +37,7 @@ def CNLSTM(
         hidden_size: After the convolutional layers the signal is projected via a RELU layer and then
                      reshaped again as a time series of size (hidden_size[0], hidden_size[1])
         dropout: Droput factor
+        dense_layer_size: Size of the dense layer before the head
     """
 
     model = Sequential()
@@ -70,7 +72,7 @@ def CNLSTM(
     model.add(Dropout(dropout))
 
     model.add(Flatten())
-    model.add(Dense(50, activation="relu"))
+    model.add(Dense(dense_layer_size, activation="relu"))
     model.add(Dropout(dropout))
     model.add(Dense(1, activation="relu"))
     return model
