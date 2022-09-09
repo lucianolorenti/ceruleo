@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-'''
+"""
 Module Name : curlyBrace
 
 Author : 高斯羽 博士 (Dr. GAO, Siyu)
@@ -37,14 +36,14 @@ List of functions
 * getAxSize_
 * curlyBrace_
 
-'''
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 def getAxSize(fig, ax):
-    '''
+    """
     .. _getAxSize :
 
     Get the axes size in pixels.
@@ -68,7 +67,7 @@ def getAxSize(fig, ax):
     Reference
     -----------
     https://stackoverflow.com/questions/19306510/determine-matplotlib-axis-size-in-pixels
-    '''
+    """
 
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     ax_width, ax_height = bbox.width, bbox.height
@@ -78,18 +77,20 @@ def getAxSize(fig, ax):
     return ax_width, ax_height
 
 
-def curlyBrace(fig,
-               ax,
-               p1,
-               p2,
-               k_r=0.1,
-               bool_auto=True,
-               str_text='',
-               int_line_num=2,
-               fontdict={},
-               **kwargs):
+def curlyBrace(
+    fig,
+    ax,
+    p1,
+    p2,
+    k_r=0.1,
+    bool_auto=True,
+    str_text="",
+    int_line_num=2,
+    fontdict={},
+    **kwargs
+):
     # def curlyBrace(fig, ax, p1, p2, k_r=0.1, bool_auto=True, str_text='', int_line_num=2, fontdict={}, **kwargs):
-    '''
+    """
     .. _curlyBrace :
 
     Plot an optionally annotated curly bracket on the given axes of the given figure.
@@ -98,7 +99,7 @@ def curlyBrace(fig,
     "p1" and "p2".
 
     Note that, when the axes aspect is not set to "equal", the axes coordinates need to be
-    transformed to screen coordinates, otherwise the arcs may not be seeable. 
+    transformed to screen coordinates, otherwise the arcs may not be seeable.
 
     Parameters
     ----------
@@ -137,7 +138,7 @@ def curlyBrace(fig,
         The annotation text of the bracket. It would displayed at the mid point
         of bracket with the same rotation as the bracket.
 
-        By default, it follows the anti-clockwise convention. To flip it, swap 
+        By default, it follows the anti-clockwise convention. To flip it, swap
         the end point and the starting point.
 
         The appearance of this string can be set by using "fontdict", which follows
@@ -187,7 +188,7 @@ def curlyBrace(fig,
     Reference
     ----------
     https://uk.mathworks.com/matlabcentral/fileexchange/38716-curly-brace-annotation
-    '''
+    """
 
     pt1 = [None, None]
     pt2 = [None, None]
@@ -198,7 +199,7 @@ def curlyBrace(fig,
     ax_ylim = list(ax.get_ylim())
 
     # log scale consideration
-    if 'log' in ax.get_xaxis().get_scale():
+    if "log" in ax.get_xaxis().get_scale():
 
         if p1[0] > 0.0:
 
@@ -243,7 +244,7 @@ def curlyBrace(fig,
         pt1[0] = p1[0]
         pt2[0] = p2[0]
 
-    if 'log' in ax.get_yaxis().get_scale():
+    if "log" in ax.get_yaxis().get_scale():
 
         if p1[1] > 0.0:
 
@@ -363,7 +364,7 @@ def curlyBrace(fig,
     arc4y = arc4y / yscale + ax_ylim[0]
 
     # log scale consideration
-    if 'log' in ax.get_xaxis().get_scale():
+    if "log" in ax.get_xaxis().get_scale():
 
         for i in range(0, len(arc1x)):
 
@@ -425,7 +426,7 @@ def curlyBrace(fig,
 
         pass
 
-    if 'log' in ax.get_yaxis().get_scale():
+    if "log" in ax.get_yaxis().get_scale():
 
         for i in range(0, len(arc1y)):
 
@@ -494,12 +495,8 @@ def curlyBrace(fig,
     ax.plot(arc4x, arc4y, clip_on=False, **kwargs)
 
     # plot lines
-    ax.plot([arc1x[-1], arc2x[1]], [arc1y[-1], arc2y[1]],
-            clip_on=False,
-            **kwargs)
-    ax.plot([arc3x[-1], arc4x[1]], [arc3y[-1], arc4y[1]],
-            clip_on=False,
-            **kwargs)
+    ax.plot([arc1x[-1], arc2x[1]], [arc1y[-1], arc2y[1]], clip_on=False, **kwargs)
+    ax.plot([arc3x[-1], arc4x[1]], [arc3y[-1], arc4y[1]], clip_on=False, **kwargs)
 
     summit = [arc2x[-1], arc2y[-1]]
 
@@ -507,7 +504,7 @@ def curlyBrace(fig,
 
         int_line_num = int(int_line_num)
 
-        str_temp = '\n' * int_line_num
+        str_temp = "\n" * int_line_num
 
         # convert radians to degree and within 0 to 360
         ang = np.degrees(theta) % 360.0
@@ -534,14 +531,16 @@ def curlyBrace(fig,
 
             rotation = ang
 
-        ax.axes.text(arc2x[-1],
-                     arc2y[-1],
-                     str_text,
-                     ha='center',
-                     va='center',
-                     rotation=rotation,
-                     fontdict=fontdict,
-                     clip_on=False)
+        ax.axes.text(
+            arc2x[-1],
+            arc2y[-1],
+            str_text,
+            ha="center",
+            va="center",
+            rotation=rotation,
+            fontdict=fontdict,
+            clip_on=False,
+        )
 
     else:
 
