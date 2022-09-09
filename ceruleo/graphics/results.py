@@ -6,7 +6,7 @@ It is possible to visualize how it grows the unexploited lifetime grows as the c
 
 """
 import math
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -685,10 +685,12 @@ def plot_predictions_grid(
 
 
 def plot_predictions(
-    result: PredictionResult,
+    result: Union[PredictionResult, Tuple[np.ndarray, np.ndarray]],
+    *,
     ax:Optional[matplotlib.axes.Axes]=None,
     units: str = "Hours [h]",
     markersize: float = 0.7,
+    marker: str = 'o',
     plot_fitted: bool  = True,
     model_name:str = '',
     **kwargs,
@@ -697,10 +699,14 @@ def plot_predictions(
 
     Parameters:
     
-        result: A PredictionResult object
+        result: A PredictionResult object or a tuple with (y_true, y_predicted)
         ax:  Axis to plot. If it is missing a new figure will be created
         units: Units of time to be used in the axis labels
-        cv: Number of the CV results
+        marker: Marker type
+        markersize: The size of the marker
+        plot_fitted: Wether to plot a LS line
+        model_name: Name of the model
+        
 
     Returns:
 
@@ -710,10 +716,12 @@ def plot_predictions(
         _, ax = plt.subplots(1, 1, **kwargs)
 
 
-
-    y_predicted = result.predicted_RUL
-    y_true = result.true_RUL
-    ax.plot(y_predicted, "o", label=f"Predicted {model_name}", markersize=markersize)
+    if isinstance(result, PredictionResult):
+        y_predicted = result.predicted_RUL
+        y_true = result.true_RUL
+    else:
+        y_true, y_predicted = result
+    ax.plot(y_predicted, marker, label=f"Predicted {model_name}", markersize=markersize)
     ax.plot(y_true, label="True")
     x = 0
 
