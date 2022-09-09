@@ -32,7 +32,7 @@ def plot_lives(ds: TransformedDataset):
     it = ds
     for _, y in it:
         ax.plot(y)
-    return fig, ax
+    return ax
 
 
 def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
@@ -53,7 +53,7 @@ def cv_plot_errors_wrt_RUL(bin_edges, error_histogram, **kwargs):
     ax.set_xlabel("RUL")
     ax.set_ylabel("RMSE")
 
-    return fig, ax
+    return ax
 
 
 def _boxplot_errors_wrt_RUL_multiple_models(
@@ -137,7 +137,7 @@ def _boxplot_errors_wrt_RUL_multiple_models(
         c="#000",
     )
 
-    return ax.figure, ax
+    return ax
 
 
 def boxplot_errors_wrt_RUL(
@@ -268,7 +268,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     ax.set_xticklabels(labels)
     ax.legend()
 
-    return fig, ax
+    return ax
 
 
 def barplot_errors_wrt_RUL(
