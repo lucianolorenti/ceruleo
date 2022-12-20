@@ -28,31 +28,29 @@ Efficient management of maintenance in modern industrial environments is having
 a major impact on decreasing costs associated with defective products and 
 equipment inactivity. Therefore, it is critical for companies to develop an 
 efficient and well-implemented maintenance strategy to prevent unexpected outages, 
-improve overall reliability, and reduce operating costs  \cite{8748978}.
+improve overall reliability, and reduce operating costs.  In the Industry 4.0  all the data gathered during the manufacturing process can be used to enhance 
+decision-making procedures. Predictive Maintenance (PdM) techniques can statistically evaluate a piece of equipment's health status,  enabling early identification of impending failures and prompt pre-failure  interventions, thanks to prediction tools based on historical data [@Susto:2014].  The remaining useful life (RUL) estimation has been considered as a central 
+technology of PdM [@Heimes:2008; @Li:2018].  RUL estimation is a process that uses prediction methods to forecast the future performance of machinery and obtain the time left before machinery loses its operation ability.
 
+# Statement of need
 
-Traditional manufacturing has been transformed into factories with intelligent 
-sensors that enable better understanding of what happens during the industrial 
-processes as a result of the development of information systems. Industry 4.0 
-refers to this innovative approach to conceptualizing industrial processes. 
-According to this new idea, all the data gathered can be used to enhance 
-decision-making procedures. Predictive Maintenance (PdM) techniques have replaced 
-Preventive Maintenance (PM) techniques as a result of the use of this information 
-in maintenance processes, according \cite{damant2021exploring}. PM is done on a 
-regular basis while the asset is still functional to avoid unplanned breakdowns. 
-Contrarily, PdM can statistically evaluate a piece of equipment's health status, 
-enabling early identification of impending failures and prompt pre-failure 
-interventions, thanks to prediction tools based on historical data \cite{susto2014machine}. 
- 
-The remaining useful life (RUL) estimation has been considered as a central 
-technology of PdM \cite{heimes2008recurrent} \cite{li2018remaining}. 
-RUL estimation is a process that uses prediction methods to forecast the 
-future performance of machinery and obtain the time left before machinery loses 
-its operation ability.
+`CeRULEo` is a Python package designed to train regression models for predicting remaining useful life of equipment. 
+
+In order to achieve good performance, RUL regression requires data preparation and feature engineering. Typically, machinery data is provided as time series data from various sensors during operation. The first step in data preparation is often to create a dataset based on run-to-failure cycles. This involves dividing the time series into segments where the equipment starts in a healthy state and ends in a failure state, or is close to failure. The second step of data preparation is preprocessing. While predictive maintenance models can be used in a variety of contexts with different data sources and errors, there are some general techniques that can be applied [@serradilla:2022]. 
+
+`CeRULEo` addresses these issues by providing a comprehensive toolkit for preprocessing time series data for use in predictive maintenance models, with a focus on run-to-failure cycles. The preprocessing includes sensor data validation methods, for studyng not only missing and corrupted values but also distribution drift among different pieces of equipment. 
+
+In addition to preprocessing, it enables the iteration of machine data for use in both mini-batch and full-batch regression models, and is compatible with popular machine learning frameworks such as scikit-learn and tensorflow. The library also includes a catalog of successful deep learning models from the literature and a collection of commonly used remaining useful life datasets for quick model evaluation.
+
+In the context of predictive maintenance, explainability is crucial. As such, `CeRULEo` includes two explainable models: one that can select the most relevant features for the model [@Lemhadri:2021], and a convolutional model [@Fauvel:2021] that provides post-hoc explanations of the predictions to understand the reasoning behind the predicted remaining useful life. This helps users better understand and trust the model's predictions.
+
+Moreover, `CeRULEo` provides tools for evaluating and comparing predictive maintenance models based on not only traditional regression metrics, but also on their ability to prevent errors and reduce costs. In many cases, the costs of not accurately detecting or anticipating faults can be much higher than the cost of inspections or maintenance due to reduced efficiency, unplanned downtime, and corrective maintenance expenses. In predictive maintenance, it is particularly important to be accurate about the remaining useful life  of equipment near the end of its lifespan, as an overestimation of RUL can have serious consequences when immediate action is required. `CeRULEo` addresses this issue by providing mechanisms for weighting samples according to their importance and asymmetric losses for training models, as well as visualization tools for understanding model performance in relation to true RUL.
 
 
 
-# Examples of usage
+
+
+
 
 
 
