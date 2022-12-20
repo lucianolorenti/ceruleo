@@ -42,4 +42,8 @@ In the context of predictive maintenance, explainability is crucial. As such, `C
 Moreover, `CeRULEo` provides tools for evaluating and comparing predictive maintenance models based on not only traditional regression metrics, but also on their ability to prevent errors and reduce costs. In many cases, the costs of not accurately detecting or anticipating faults can be much higher than the cost of inspections or maintenance due to reduced efficiency, unplanned downtime, and corrective maintenance expenses. In predictive maintenance, it is particularly important to be accurate about the remaining useful life  of equipment near the end of its lifespan, as an overestimation of RUL can have serious consequences when immediate action is required. `CeRULEo` addresses this issue by providing mechanisms for weighting samples according to their importance and asymmetric losses for training models, as well as visualization tools for understanding model performance in relation to true RUL.
 
 
+# Financial Acknowledgement
+
+
+
 # References
