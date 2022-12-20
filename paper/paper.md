@@ -23,17 +23,13 @@ bibliography: paper.bib
 
 # Summary
 
-Efficient management of maintenance in modern industrial environments is having 
-a major impact on decreasing costs associated with defective products and 
-equipment inactivity. Therefore, it is critical for companies to develop an 
-efficient and well-implemented maintenance strategy to prevent unexpected outages, 
-improve overall reliability, and reduce operating costs.  In the Industry 4.0  all the data gathered during the manufacturing process can be used to enhance 
-decision-making procedures. Predictive Maintenance (PdM) techniques can statistically evaluate a piece of equipment's health status,  enabling early identification of impending failures and prompt pre-failure  interventions, thanks to prediction tools based on historical data [@susto2014machine].  The remaining useful life (RUL) estimation has been considered as a central 
-technology of PdM [@heimes2008recurrent; @li2018remaining].  RUL estimation is a process that uses prediction methods to forecast the future performance of machinery and obtain the time left before machinery loses its operation ability.
+`CeRULEo` is a Python package designed to train and evaluate regression models for predicting remaining useful life (RUL) of equipment. RUL estimation is a process that uses prediction methods to forecast the future performance of machinery and obtain the time left before machinery loses its operation ability.  The remaining useful life  estimation has been considered as a central 
+technology of Predictive Maintenance (PdM) [@heimes2008recurrent; @li2018remaining].  PdM  techniques can statistically evaluate a piece of equipment's health status,  enabling early identification of impending failures and prompt pre-failure  interventions, thanks to prediction tools based on historical data [@susto2014machine].  `CeRULEo` offers a comprehensive suite of tools to help with the analysis and pre-processing of preventive maintenance data. These tools also enable the training and evaluation of RUL models that are tailored to the specific needs of the problem at hand. 
 
+ 
 # Statement of need
 
-`CeRULEo` is a Python package designed to train regression models for predicting remaining useful life of equipment. 
+Effective maintenance management helps reduce costs related to defective products and equipment downtime. A well-planned maintenance strategy improves reliability, prevents unexpected outages, and lowers operating costs. In Industry 4.0, data from the manufacturing process can enhance decision-making. RUL estimation uses prediction techniques to forecast a machine's future performance based on historical data and determine its remaining useful life, enabling early identification of potential failures and prompt pre-failure interventions. In this context, `CeRULEo` provides a comprehensive set of utilities designed to train and evaluate regression models for predicting remaining useful life of equipment. 
 
 In order to achieve good performance, RUL regression requires data preparation and feature engineering. Typically, machinery data is provided as time series data from various sensors during operation. The first step in data preparation is often to create a dataset based on run-to-failure cycles. This involves dividing the time series into segments where the equipment starts in a healthy state and ends in a failure state, or is close to failure. The second step of data preparation is preprocessing. While predictive maintenance models can be used in a variety of contexts with different data sources and errors, there are some general techniques that can be applied [@serradilla2022deep]. 
 
