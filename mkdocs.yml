@@ -67,9 +67,6 @@ nav:
     - Results:
       - Results: results/results.md
       - Visualization: results/visualization.md
-    - Guides:
-      - Complete: guides/guide.ipynb
-      
     
 
 

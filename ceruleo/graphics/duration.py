@@ -25,8 +25,8 @@ def add_vertical_line(ax, v_x, label, color, line, n_lines):
 
 def durations_histogram(
     datasets: Union[AbstractTimeSeriesDataset, List[AbstractTimeSeriesDataset]],
-    xlabel: str,
-    label: Union[str, List[str]] = "",
+    xlabel: str = 'Cycle Duration',
+    label: Union[str, List[str]] = "1",
     bins: int = 15,
     units: str = "m",
     vlines: Tuple[float, str] = [],
@@ -168,13 +168,13 @@ def histogram_from_durations(
         add_vertical_line(ax, v_x, label, colors[i], i, len(vlines))
     ax.legend()
 
-    return ax.figure, ax
+    return ax
 
 
 def durations_boxplot(
     datasets: Union[AbstractTimeSeriesDataset, List[AbstractTimeSeriesDataset]],
     xlabel: Union[str, List[str]],
-    ylabel: str,
+    ylabel: str = 'Cycle Duration',
     ax:Optional[matplotlib.axes.Axes]=None,
     hlines: List[Tuple[float, str]] = [],
     units: str = "m",

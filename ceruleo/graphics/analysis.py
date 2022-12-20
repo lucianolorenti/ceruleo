@@ -3,19 +3,20 @@ from typing import List, Optional
 import matplotlib
 import matplotlib.pyplot as plt
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.analysis.correlation import correlation_analysis
 
 
-def correlation_analysis(
+def plot_correlation_analysis(
     dataset: AbstractTimeSeriesDataset,
     corr_threshold: float = 0,
     features: Optional[List[str]] = None,
-    ax: matplotlib.axes.Axes = Optional[None],
+    ax: Optional[matplotlib.axes.Axes] = None,
     **kwargs,
 ):
     """Plot the correlated features in a dataset
 
     Parameters:
-    
+
         dataset: The dataset
         corr_threshold: Minimum threshold to consider that the correlation is high
         features: List of features
@@ -25,9 +26,10 @@ def correlation_analysis(
         ax: the axis
     """
 
-    df = correlation_analysis(
-        dataset, corr_threshold, features=list(set(features) - set(["relative_time"]))
-    )
+    if features is not None:
+        features = list(set(features) - set(["relative_time"]))
+
+    df = correlation_analysis(dataset, corr_threshold, features=features)
     df1 = df[(df["Abs mean correlation"] > corr_threshold)]
 
     df1.reset_index(inplace=True)
