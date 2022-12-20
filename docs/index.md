@@ -2,7 +2,8 @@
 
 ## Welcome tu CeRULEo
 
-Cool utilitiEs for Remaining Useful Life Estimation methOds
+CeRULEo: Comprehensive utilitiEs for Remaining Useful Life Estimation methOds
+
 
 ### Predictive Maintenance
 
