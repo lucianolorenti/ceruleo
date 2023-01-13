@@ -12,6 +12,7 @@
 [![Documentation](https://img.shields.io/badge/documentation-dev-brightgreen)](https://lucianolorenti.github.io/ceruleo/)
 ![pypi](https://img.shields.io/pypi/v/ceruleo)
 ![python-version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
+[![status](https://joss.theoj.org/papers/c879c234d7741885576ddc682416b41f/status.svg)](https://joss.theoj.org/papers/c879c234d7741885576ddc682416b41f)
 ## What is it?
 
 **CeRULeo** is a Python package that provides a flexible environment designed to make working with predictive maintenance task both easy and intuitive. 
