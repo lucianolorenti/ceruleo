@@ -10,14 +10,13 @@ from ceruleo.transformation import TransformerStep
 class SavitzkyGolayTransformer(TransformerStep):
     """Filter each feature using LOESS
 
-    Parameters:    
+    Parameters:
         window: window size of the filter
         order:  Order of the filter, by default 2
         name: Step name
     """
 
     def __init__(self, window: int, order: int = 2, name: Optional[str] = None):
-
         super().__init__(name=name)
         self.window = window
         self.order = order
@@ -66,7 +65,6 @@ class MeanFilter(TransformerStep):
         min_periods: int = 15,
         name: Optional[str] = None,
     ):
-
         super().__init__(name=name)
         self.window = window
         self.min_periods = min_periods
@@ -74,8 +72,10 @@ class MeanFilter(TransformerStep):
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         return X.rolling(
-            self.window, min_periods=self.min_periods, center=self.center
-        ).mean(skip_na=True)
+            self.window,
+            min_periods=self.min_periods,
+            center=self.center,
+        ).mean(numeric_only=True)
 
 
 class MedianFilter(TransformerStep):
@@ -97,7 +97,9 @@ class MedianFilter(TransformerStep):
         self.min_periods = min_periods
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        return X.rolling(self.window, min_periods=self.min_periods).median(skip_na=True)
+        return X.rolling(self.window, min_periods=self.min_periods).median(
+            numeric_only=True
+        )
 
 
 class OneDimensionalKMeans(TransformerStep):
@@ -117,7 +119,9 @@ class OneDimensionalKMeans(TransformerStep):
     def partial_fit(self, X):
         if len(self.clusters) == 0:
             for c in X.columns:
-                self.clusters[c] = MiniBatchKMeans(n_clusters=self.n_clusters)
+                self.clusters[c] = MiniBatchKMeans(
+                    n_clusters=self.n_clusters, n_init="auto"
+                )
 
         for c in X.columns:
             self.clusters[c].partial_fit(np.atleast_2d(X[c]).T)
@@ -160,7 +164,7 @@ class MultiDimensionalKMeans(TransformerStep):
     def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
         super().__init__(name=name)
         self.n_clusters = n_clusters
-        self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters)
+        self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters, n_init="auto")
 
     def partial_fit(self, X):
         self.clusters.partial_fit(X)
@@ -203,7 +207,7 @@ class EWMAFilter(TransformerStep):
         self.span = span
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        return X.ewm(span=self.span).mean(skip_na=True)
+        return X.ewm(span=self.span, ignore_na=True).mean()
 
 
 class GaussianFilter(TransformerStep):
@@ -228,7 +232,7 @@ class GaussianFilter(TransformerStep):
         min_points: int = 1,
         center: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.window_size = window_size
