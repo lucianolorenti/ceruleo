@@ -1,4 +1,3 @@
-from curses import window
 from typing import List, Optional
 
 import numpy as np
