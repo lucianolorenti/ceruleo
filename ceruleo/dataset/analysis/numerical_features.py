@@ -4,15 +4,14 @@ from typing import Dict, List, Optional, Union
 import antropy as ant
 import numpy as np
 import pandas as pd
-
-from pyparsing import col
 from scipy.stats import spearmanr
-from ceruleo.dataset.transformed import TransformedDataset
-from tqdm.auto import tqdm
 from sklearn.feature_selection import mutual_info_regression
+from tqdm.auto import tqdm
+from uncertainties import ufloat
+
+from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
-from uncertainties import ufloat
 
 
 def entropy(s: np.ndarray)-> float:
