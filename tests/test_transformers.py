@@ -1,10 +1,10 @@
-from curses import window
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats
+
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
 from ceruleo.transformation.features.entropy import LocalEntropyMeasures
 from ceruleo.transformation.features.extraction import (
@@ -20,8 +20,8 @@ from ceruleo.transformation.features.extraction import (
 from ceruleo.transformation.features.outliers import (
     EWMAOutOfRange,
     IQROutlierRemover,
-    ZScoreOutlierRemover,
     IsolationForestOutlierRemover,
+    ZScoreOutlierRemover,
 )
 from ceruleo.transformation.features.resamplers import IntegerIndexResamplerTransformer
 from ceruleo.transformation.features.selection import (
@@ -358,7 +358,7 @@ class TestGenerators:
         )
         t = ChangesDetector()
         df1 = t.fit_transform(df).astype("int")
-        assert df1.equals(df_gt)
+        assert df1.compare(df_gt).empty
 
     def test_Accumulate(self):
         df = pd.DataFrame(

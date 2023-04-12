@@ -11,13 +11,18 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-
 import seaborn as sns
+
 from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.graphics.utils.curly_brace import curlyBrace
-from ceruleo.results.results import (FittedLife, PredictionResult,
-                                     models_cv_results, split_lives,
-                                     unexpected_breaks, unexploited_lifetime)
+from ceruleo.results.results import (
+    FittedLife,
+    PredictionResult,
+    models_cv_results,
+    split_lives,
+    unexpected_breaks,
+    unexploited_lifetime,
+)
 
 
 def plot_lives(ds: TransformedDataset):
@@ -116,7 +121,7 @@ def _boxplot_errors_wrt_RUL_multiple_models(
 
     max_x = np.max(ticks) + 1
     ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
-    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
+    ax.set_ylabel(r"$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -263,7 +268,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
         dx += bar_group_width + group_separation
 
     ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
-    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
+    ax.set_ylabel(r"$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -370,7 +375,7 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
         ticks.append(x)
 
     ax.set_xlabel("RUL" + ("" if x_axis_label is None else x_axis_label))
-    ax.set_ylabel("$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
+    ax.set_ylabel(r"$y - \hat{y}$" + ("" if y_axis_label is None else y_axis_label))
     ax.set_xticks(ticks)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -737,7 +742,7 @@ def plot_predictions(
     ax.set_ylabel(units)
     ax.set_xlabel(units)
     legend = ax.legend()
-    for l in legend.legendHandles:
+    for l in legend.legend_handles:
         l.set_markersize(6)
 
 
