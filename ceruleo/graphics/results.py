@@ -11,13 +11,18 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-
 import seaborn as sns
+
 from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.graphics.utils.curly_brace import curlyBrace
-from ceruleo.results.results import (FittedLife, PredictionResult,
-                                     models_cv_results, split_lives,
-                                     unexpected_breaks, unexploited_lifetime)
+from ceruleo.results.results import (
+    FittedLife,
+    PredictionResult,
+    models_cv_results,
+    split_lives,
+    unexpected_breaks,
+    unexploited_lifetime,
+)
 
 
 def plot_lives(ds: TransformedDataset):
