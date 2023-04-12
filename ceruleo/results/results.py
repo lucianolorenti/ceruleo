@@ -26,10 +26,9 @@ Since usually the breakages are considered more harmful, a possible approach to 
 """
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import  Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import pandas as pd
 from ceruleo.results.picewise_regression import (PiecewesieLinearFunction,
                                                 PiecewiseLinearRegression)
 from sklearn.metrics import mean_absolute_error as mae
