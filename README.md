@@ -43,7 +43,7 @@ We love your input! We want to make contributing to this project as easy and tra
 * Submitting a fix
 * Proposing new features
 
-Please feel free to open an [issue](https://github.com/fzi-forschungszentrum-informatik/TSInterpret/issues/new/choose) if you have any questions, find any bugs, or have any ideas.  
+Please feel free to open an [issue](https://github.com/lucianolorenti/ceruleo/issues/new/choose) if you have any questions, find any bugs, or have any ideas.  
 Further information on how to contribute can be found by clicking  [here](https://github.com/lucianolorenti/ceruleo/blob/main/CONTRIBUTING.md).
 
 
@@ -51,7 +51,8 @@ Further information on how to contribute can be found by clicking  [here](https:
 
 
 
- Made with <3 @   <a href="https://www.dei.unipd.it/">  
+
+Made with <3 @   <a href="https://www.dei.unipd.it/">  
          <img alt="University of Padova" src="https://github.com/lucianolorenti/ceruleo/blob/main/docs/images/unipd_logo.png?raw=true" width=100 />
       </a>
 
