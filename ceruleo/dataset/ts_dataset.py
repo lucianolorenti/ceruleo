@@ -50,9 +50,13 @@ class AbstractTimeSeriesDataset:
     def number_of_samples_of_time_series(self, i: int) -> int:
         return self[i].shape[0]
 
-    def number_of_samples(self) -> List[int]:
+    def number_of_samples(self, *, show_progress:bool=False) -> List[int]:
+        if show_progress:
+            progress = tqdm
+        else:
+            progress = lambda x: x
         return [
-            self.number_of_samples_of_time_series(i) for i in tqdm(range(len(self)))
+            self.number_of_samples_of_time_series(i) for i in progress(range(len(self)))
         ]
 
     def duration(self, life: pd.DataFrame) -> float:
@@ -268,7 +272,11 @@ class FoldedDataset(AbstractTimeSeriesDataset):
         return [self._original_index(i) for i in range(len(self.indices))]
 
     def number_of_samples_of_time_series(self, i: int) -> int:
-        return self[i][0].shape[0]
+        l = self[i]
+        if isinstance(l, pd.DataFrame):
+            return l.shape[0]
+        else:
+            return l[0].shape[0]
 
     def __reduce_ex__(self, __protocol) -> Union[str, Tuple[Any, ...]]:
         return (self.__class__, (self.dataset, self.indices))
