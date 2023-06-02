@@ -183,3 +183,4 @@ class TestGraphics:
         dataset = MockDataset(7)
         ax = durations_histogram(dataset)
         return ax.figure
+        

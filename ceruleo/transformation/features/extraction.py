@@ -20,6 +20,8 @@ from ceruleo.transformation import TransformerStep
 from ceruleo.transformation.features.rolling_windows import apply_rolling_data
 from ceruleo.transformation.functional.transformers import Transformer
 from ceruleo.transformation.utils import SKLearnTransformerWrapper
+from pandas.core.window.rolling import Rolling
+
 
 logger = logging.getLogger(__name__)
 
@@ -244,10 +246,8 @@ class SimpleEncodingCategorical(TransformerStep):
         return pd.DataFrame({"encoding": d.codes}, index=X.index)
 
 
-
-
 def rolling_kurtosis(s: pd.Series, window, min_periods):
-    return s.rolling(window, min_periods=min_periods).kurt(skipna=True)
+    return s.rolling(window, min_periods=min_periods).kurt(numeric_only=True)
 
 
 class LifeStatistics(TransformerStep):
@@ -285,9 +285,8 @@ class LifeStatistics(TransformerStep):
     """
 
     def __init__(
-        self, *,to_compute: Optional[List[str]] = None, name: Optional[str] = None
+        self, *, to_compute: Optional[List[str]] = None, name: Optional[str] = None
     ):
-
         super().__init__(name=name)
         valid_stats = [
             "kurtosis",
@@ -459,7 +458,7 @@ class RollingStatistics(TransformerStep):
         ]
 
         if to_compute is not None and specific is not None:
-            raise ValueError('Only one of to_compute or specific should be used')
+            raise ValueError("Only one of to_compute or specific should be used")
         self.specific = specific
         self.to_compute = to_compute
         if to_compute is None:
@@ -483,67 +482,71 @@ class RollingStatistics(TransformerStep):
 
     def _std_asinh(self, X, rolling, abs_rolling):
         return (
-            X.apply(np.arcsinh).rolling(self.window, self.min_points).std(skipna=True)
+            X.apply(np.arcsinh).rolling(self.window, self.min_points).std(numeric_only=True)
         )
 
     def _std_acosh(self, X, rolling, abs_rolling):
         return (
-            X.apply(np.arccosh).rolling(self.window, self.min_points).std(skipna=True)
+            X.apply(np.arccosh).rolling(self.window, self.min_points).std(numeric_only=True)
         )
 
     def _energy(self, X, rolling, abs_rolling):
         return X.pow(2).rolling(self.window, self.min_points).sum()
 
     def _std_atan(self, X, rolling, abs_rolling):
-        return X.apply(np.arctan).rolling(self.window, self.min_points).std(skipna=True)
+        return (
+            X.apply(np.arctan)
+            .rolling(self.window, self.min_points)
+            .std(numeric_only=True)
+        )
 
-    def _mean(self, X, rolling, abs_rolling):
-        return rolling.mean(skipna=True)
+    def _mean(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.mean(numeric_only=True)
 
-    def _kurtosis(self, X, rolling, abs_rolling):
-        return rolling.kurt(skipna=True)
+    def _kurtosis(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.kurt(numeric_only=True)
 
-    def _skewness(self, X, rolling, abs_rolling):
-        return rolling.skew(skipna=True)
+    def _skewness(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.skew(numeric_only=True)
 
-    def _max(self, X, rolling, abs_rolling):
-        return rolling.max(skipna=True)
+    def _max(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.max(numeric_only=True)
 
-    def _min(self, X, rolling, abs_rolling):
-        return rolling.min(skipna=True)
+    def _min(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.min(numeric_only=True)
 
-    def _std(self, X, rolling, abs_rolling):
-        return rolling.std(skipna=True)
+    def _std(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.std(numeric_only=True)
 
-    def _peak(self, X, rolling, abs_rolling):
-        return rolling.max(skipna=True) - rolling.min(skipna=True)
+    def _peak(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return rolling.max(numeric_only=True) - rolling.min(numeric_only=True)
 
-    def _impulse(self, X, rolling, abs_rolling):
+    def _impulse(self, X, rolling: Rolling, abs_rolling: Rolling):
         return self._peak(X, rolling, abs_rolling) / abs_rolling.mean()
 
-    def _deviance(self, X, rolling, abs_rolling):
+    def _deviance(self, X, rolling: Rolling, abs_rolling: Rolling):
         return (X - rolling.mean()) / rolling.std()
 
-    def _clearance(self, X, rolling, abs_rolling):
+    def _clearance(self, X, rolling: Rolling, abs_rolling: Rolling):
         return self._peak(X, rolling, abs_rolling) / X.abs().pow(1.0 / 2).rolling(
             self.window, self.min_points
         ).mean().pow(2)
 
-    def _rms(self, X, rolling, abs_rolling):
+    def _rms(self, X, rolling: Rolling, abs_rolling: Rolling):
         return (
             X.pow(2)
             .rolling(self.window, self.min_points)
-            .mean(skipna=True)
+            .mean(numeric_only=True)
             .pow(1 / 2.0)
         )
 
-    def _shape(self, X, rolling, abs_rolling):
-        return self._rms(X, rolling, abs_rolling) / abs_rolling.mean(skipna=True)
+    def _shape(self, X, rolling: Rolling, abs_rolling: Rolling):
+        return self._rms(X, rolling, abs_rolling) / abs_rolling.mean(numeric_only=True)
 
     def _crest(self, X, rolling, abs_rolling):
         return self._peak(X, rolling, abs_rolling) / self._rms(X, rolling, abs_rolling)
 
-    def _compute_column_names(self, X:pd.DataFrame):
+    def _compute_column_names(self, X: pd.DataFrame):
         columns = []
         if self.to_compute is not None:
             for stats in self.to_compute:
@@ -553,26 +556,28 @@ class RollingStatistics(TransformerStep):
             for c in self.specific.keys():
                 for stats in self.specific[c]:
                     columns.append(f"{c}_{stats}")
-        return columns 
+        return columns
 
-    def _transform_all_features(self, X:pd.DataFrame, X_new:pd.DataFrame, rolling, abs_rolling):
-
+    def _transform_all_features(
+        self, X: pd.DataFrame, X_new: pd.DataFrame, rolling, abs_rolling
+    ):
         for stats in self.to_compute:
             columns_to_assign = [f"{c}_{stats}" for c in X.columns]
             out = getattr(self, f"_{stats}")(X, rolling, abs_rolling)
             X_new.loc[:, columns_to_assign] = out.values
 
-
-    def _transform_specific(self,  X:pd.DataFrame, X_new:pd.DataFrame, rolling, abs_rolling):
+    def _transform_specific(
+        self, X: pd.DataFrame, X_new: pd.DataFrame, rolling, abs_rolling
+    ):
         for c in self.specific.keys():
-            for stats in self.specific[c]: 
+            for stats in self.specific[c]:
                 feature = f"{c}_{stats}"
                 out = getattr(self, f"_{stats}")(X[c], rolling[c], abs_rolling[c])
                 X_new.loc[:, feature] = out.values
 
-    def transform(self, X:pd.DataFrame):
+    def transform(self, X: pd.DataFrame):
         columns = self._compute_column_names(X)
-        
+
         X_new = pd.DataFrame(index=X.index, columns=columns)
         rolling = X.rolling(self.window, self.min_points)
         abs_rolling = X.abs().rolling(self.window, self.min_points)
@@ -619,7 +624,12 @@ class ExpandingStatistics(TransformerStep):
     """
 
     def __init__(
-        self, *, min_points=2, to_compute: List[str] = None, specific: Optional[Dict[str, List[str]]] = None, name: Optional[str] = None
+        self,
+        *,
+        min_points=2,
+        to_compute: List[str] = None,
+        specific: Optional[Dict[str, List[str]]] = None,
+        name: Optional[str] = None,
     ):
         super().__init__(name=name)
         self.min_points = min_points
@@ -642,12 +652,9 @@ class ExpandingStatistics(TransformerStep):
             "std_acosh",
             "std_asinh",
         ]
-        not_default = [
-            'energy',
-            'deviance'
-        ]
+        not_default = ["energy", "deviance"]
         if to_compute is not None and specific is not None:
-            raise ValueError('Only one of to_compute or specific should be used')
+            raise ValueError("Only one of to_compute or specific should be used")
         self.specific = specific
         self.to_compute = to_compute
         if to_compute is None:
@@ -677,7 +684,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return x.apply(np.arcsinh).expanding(self.min_points).std(skipna=True)
+        return x.apply(np.arcsinh).expanding(self.min_points).std(numeric_only=True)
 
     def _std_acosh(
         self,
@@ -687,7 +694,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return x.apply(np.arccosh).expanding(self.min_points).std(skipna=True)
+        return x.apply(np.arccosh).expanding(self.min_points).std(numeric_only=True)
 
     def _energy(
         self,
@@ -697,7 +704,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return x.pow(2).expanding(self.min_points).sum(skipna=True)
+        return x.pow(2).expanding(self.min_points).sum(numeric_only=True)
 
     def _std_atan(
         self,
@@ -707,7 +714,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return x.apply(np.arctan).expanding(self.min_points).std(skipna=True)
+        return x.apply(np.arctan).expanding(self.min_points).std(numeric_only=True)
 
     def _kurtosis(
         self,
@@ -717,7 +724,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.kurt(skipna=True)
+        return s.kurt(numeric_only=True)
 
     def _skewness(
         self,
@@ -727,7 +734,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.skew(skipna=True)
+        return s.skew(numeric_only=True)
 
     def _max(
         self,
@@ -737,7 +744,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.max(skipna=True)
+        return s.max(numeric_only=True)
 
     def _min(
         self,
@@ -747,7 +754,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.min(skipna=True)
+        return s.min(numeric_only=True)
 
     def _std(
         self,
@@ -757,7 +764,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.std(skipna=True)
+        return s.std(numeric_only=True)
 
     def _peak(
         self,
@@ -767,7 +774,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.max(skipna=True) - s.min(skipna=True)
+        return s.max(numeric_only=True) - s.min(numeric_only=True)
 
     def _impulse(
         self,
@@ -787,7 +794,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return (x - s.mean(skipna=True)) / (s.std(skipna=True) + 0.00000000001)
+        return (x - s.mean(numeric_only=True)) / (s.std(numeric_only=True) + 0.00000000001)
 
     def _clearance(
         self,
@@ -817,7 +824,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s_sq.mean(skipna=True).pow(1 / 2.0)
+        return s_sq.mean(numeric_only=True).pow(1 / 2.0)
 
     def _mean(
         self,
@@ -827,7 +834,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return s.mean(skipna=True)
+        return s.mean(numeric_only=True)
 
     def _shape(
         self,
@@ -837,7 +844,7 @@ class ExpandingStatistics(TransformerStep):
         s_abs_sqrt: Expanding,
         s_sq: Expanding,
     ):
-        return self._rms(x, s, s_abs, s_abs_sqrt, s_sq) / s_abs.mean(skipna=True)
+        return self._rms(x, s, s_abs, s_abs_sqrt, s_sq) / s_abs.mean(numeric_only=True)
 
     def _crest(
         self,
@@ -851,8 +858,7 @@ class ExpandingStatistics(TransformerStep):
             x, s, s_abs, s_abs_sqrt, s_sq
         )
 
-
-    def _compute_column_names(self, X:pd.DataFrame):
+    def _compute_column_names(self, X: pd.DataFrame):
         columns = []
         if self.to_compute is not None:
             for stats in self.to_compute:
@@ -862,30 +868,30 @@ class ExpandingStatistics(TransformerStep):
             for c in self.specific.keys():
                 for stats in self.specific[c]:
                     columns.append(f"{c}_{stats}")
-        return columns 
+        return columns
 
-    def _transform_all_features(self, X:pd.DataFrame, X_new:pd.DataFrame, expanding, s_abs, s_abs_sqrt, s_sq):
-
+    def _transform_all_features(
+        self, X: pd.DataFrame, X_new: pd.DataFrame, expanding, s_abs, s_abs_sqrt, s_sq
+    ):
         for stats in self.to_compute:
             columns_to_assign = [f"{c}_{stats}" for c in X.columns]
-            out = getattr(self, f"_{stats}")(
-                    X, expanding, s_abs, s_abs_sqrt, s_sq
-                )
+            out = getattr(self, f"_{stats}")(X, expanding, s_abs, s_abs_sqrt, s_sq)
             X_new.loc[:, columns_to_assign] = out.values
 
-
-    def _transform_specific(self,  X:pd.DataFrame, X_new:pd.DataFrame, expanding, s_abs, s_abs_sqrt, s_sq):
+    def _transform_specific(
+        self, X: pd.DataFrame, X_new: pd.DataFrame, expanding, s_abs, s_abs_sqrt, s_sq
+    ):
         for c in self.specific.keys():
-            for stats in self.specific[c]: 
+            for stats in self.specific[c]:
                 feature = f"{c}_{stats}"
                 out = getattr(self, f"_{stats}")(
                     X[c], expanding[c], s_abs[c], s_abs_sqrt[c], s_sq[c]
                 )
                 X_new.loc[:, feature] = out.values
 
-    def transform(self, X:pd.DataFrame):
+    def transform(self, X: pd.DataFrame):
         columns = self._compute_column_names(X)
-        
+
         X_new = pd.DataFrame(index=X.index, columns=columns)
         expanding = X.expanding(self.min_points)
         s_abs = X.abs().expanding(self.min_points)
@@ -906,7 +912,7 @@ class Difference(TransformerStep):
         X[features1] - X[features2]
 
     Parameters
-    
+
         feature_set1: Feature list of the first group to substract
         feature_set2:Feature list of the second group to substract
         name: Name of the step, by default None
@@ -1014,7 +1020,9 @@ class EMDFilter(TransformerStep):
        Number of
     """
 
-    def __init__(self, *, n: int, min_imf:int, max_imf:int, name: Optional[str] = "EMD"):
+    def __init__(
+        self, *, n: int, min_imf: int, max_imf: int, name: Optional[str] = "EMD"
+    ):
         super().__init__(name=name)
         self.n = n
         self.min_imf = min_imf
@@ -1026,7 +1034,7 @@ class EMDFilter(TransformerStep):
         for c in X.columns:
             try:
                 imf = emd.sift.sift(X[c].values, max_imfs=self.n)
-                new_X[c] = np.sum(imf[:, self.min_imf:self.max_imf], axis=1)
+                new_X[c] = np.sum(imf[:, self.min_imf : self.max_imf], axis=1)
             except Exception as e:
                 new_X[c] = X[c]
 
