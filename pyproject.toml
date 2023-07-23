@@ -18,7 +18,7 @@ dependencies = [
         "pandas >= 1.5",
         "numpy >= 1.22",
         "tqdm >= 4.56",
-        "scikit-learn >= 0.24",
+        "scikit-learn >= 0.24, <1.3",
         "emd >= 0.4",
         "mmh3   >= 2.0",
         "pyarrow >= 4",
@@ -26,7 +26,7 @@ dependencies = [
         "pyinform >= 0.2",
         "pyts >= 0.12",
         "seaborn >= 0.11",
-        "antropy >= 0.1",
+        "antropy >= 0.1.5",
         "uncertainties >= 3.1",
         "PyWavelets >= 1.3",
 ]
