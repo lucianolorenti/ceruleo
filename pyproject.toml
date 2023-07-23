@@ -26,7 +26,7 @@ dependencies = [
         "pyinform >= 0.2",
         "pyts >= 0.12",
         "seaborn >= 0.11",
-        "antropy >= 0.1",
+        "antropy >= 0.1.5",
         "uncertainties >= 3.1",
         "PyWavelets >= 1.3",
 ]
