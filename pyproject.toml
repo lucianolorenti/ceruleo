@@ -53,6 +53,7 @@ doc = [
     "mkdocstrings[python]",
     "mkdocs-material",
     "mkdocs-jupyter",
+    "notebook<=6.5",
     "jupyter_contrib_nbextensions",
     "mkdocstrings",
     "mkdocs-bibtex",
