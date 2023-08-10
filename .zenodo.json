@@ -1,0 +1,29 @@
+{
+    "description": "CeRULEo: Comprehensive utilitiEs for Remaining Useful Life Estimation methOds", 
+    "license": "other-open", 
+    "title": "lucianolorenti/ceruleo: v2.0.5", 
+    "version": "v2.0.5", 
+    "upload_type": "software", 
+    "publication_date": "2023-07-26", 
+    "creators": [
+        {
+            "name": "Luciano Lorenti"
+        }, 
+        {
+            "name": "Gian Antonio Susto"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "scheme": "url", 
+            "identifier": "https://github.com/lucianolorenti/ceruleo/tree/v2.0.5", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "scheme": "doi", 
+            "identifier": "10.5281/zenodo.8187299", 
+            "relation": "isVersionOf"
+        }
+    ]
+}
