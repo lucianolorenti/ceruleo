@@ -78,9 +78,7 @@ class LifeEndIndicatorCycleSplitter:
     
 
 class FailureDataCycleSplitter:
-    def __init__(self, failure_list: pd.DataFrame):
-        self.failure_list = failure_list
-        
+       
 
     def split(self, input_path:Path):
         files = list((input_path / "data").resolve().glob("*.csv"))
