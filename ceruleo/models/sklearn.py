@@ -20,7 +20,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.iterators.batcher import Batcher
 from ceruleo.iterators.iterators import (
     NotWeighted,
@@ -97,11 +97,11 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
         self.right_closed = right_closed
         self.padding = padding
 
-    def fit(self, dataset: AbstractTimeSeriesDataset):
+    def fit(self, dataset: AbstractRunToFailureCyclesDataset):
         self.transformer.fit(dataset)
         return self
 
-    def _iterator(self, dataset: AbstractTimeSeriesDataset):
+    def _iterator(self, dataset: AbstractRunToFailureCyclesDataset):
         return WindowedDatasetIterator(
             dataset.map(self.transformer),
             self.window_size,
@@ -113,11 +113,11 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
             padding=self.padding,
         )
 
-    def transform(self, dataset: AbstractTimeSeriesDataset):
+    def transform(self, dataset: AbstractRunToFailureCyclesDataset):
         X, y, sw = self._iterator(dataset).get_data()
         return X, y.ravel()
 
-    def true_values(self, dataset: AbstractTimeSeriesDataset):
+    def true_values(self, dataset: AbstractRunToFailureCyclesDataset):
         X, y, sw = self._iterator(dataset).get_data()
         return y.ravel()
     
@@ -152,7 +152,7 @@ class CeruleoRegressor(RegressorMixin, BaseEstimator):
             self.ts_window_transformer, self.wrapped_regressor
         )
 
-    def fit(self, dataset: AbstractTimeSeriesDataset, y=None):
+    def fit(self, dataset: AbstractRunToFailureCyclesDataset, y=None):
         self.pipe.fit(dataset)
         return self
 

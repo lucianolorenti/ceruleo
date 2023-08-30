@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.iterators.batcher import Batcher
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.transformation import Pipeline, Transformer
@@ -8,7 +8,7 @@ from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
 
 
-class SimpleDataset(AbstractTimeSeriesDataset):
+class SimpleDataset(AbstractRunToFailureCyclesDataset):
     def __init__(self):
 
         self.lives = [
@@ -30,7 +30,7 @@ class SimpleDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractRunToFailureCyclesDataset):
     def __init__(self, nlives: int):
 
         self.lives = [

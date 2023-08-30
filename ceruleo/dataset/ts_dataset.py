@@ -1,5 +1,6 @@
 
 from collections.abc import Iterable
+from pathlib import Path
 from re import S
 from typing import Any, List, Tuple, Union
 
@@ -27,7 +28,7 @@ class DatasetIterator:
         return a
 
 
-class AbstractTimeSeriesDataset:
+class AbstractRunToFailureCyclesDataset:
     def __init__(self):
         self._common_features = None
         self._durations = None
@@ -49,23 +50,18 @@ class AbstractTimeSeriesDataset:
 
     def number_of_samples_of_time_series(self, i: int) -> int:
         return self[i].shape[0]
+    
+    @abstractproperty
+    def rul_column(self) -> str:
+        raise NotImplementedError
+
+    def duration(self, life: pd.DataFrame) -> float:
+        return life[self.rul_column].max()
 
     def number_of_samples(self) -> List[int]:
         return [
             self.number_of_samples_of_time_series(i) for i in tqdm(range(len(self)))
         ]
-
-    def duration(self, life: pd.DataFrame) -> float:
-        """Obtain the duration of the time-series
-
-        Parameters:
-            i: Index of the life
-
-        Returns:
-            duration: Duration of the life
-        """
-        v = life.index
-        return v.max() - v.min()
 
     def durations(self, show_progress: bool = False) -> List[float]:
         """Obtain the length of each life
@@ -239,8 +235,8 @@ class AbstractTimeSeriesDataset:
         )
 
 
-class FoldedDataset(AbstractTimeSeriesDataset):
-    def __init__(self, dataset: AbstractTimeSeriesDataset, indices: list):
+class FoldedDataset(AbstractRunToFailureCyclesDataset):
+    def __init__(self, dataset: AbstractRunToFailureCyclesDataset, indices: list):
         super().__init__()
         self.dataset = dataset
         self.indices = indices
@@ -274,20 +270,28 @@ class FoldedDataset(AbstractTimeSeriesDataset):
         return (self.__class__, (self.dataset, self.indices))
 
 
-class AbstractLivesDataset(AbstractTimeSeriesDataset):
-    """Base class for RUL estimation dataset
 
-    Three abstract methods must be implemented to start
-    using CERULEo with your data:
 
-    * `__getitem__(self, i) -> pd.DataFrame`: This method should return the i-th life
-    * `n_time_series(self) -> int`: The property return the total number of lives present in the dataset
-    * `rul_column(self) -> str`: The property should return the name of the RUL column
-    """
-    @abstractproperty
-    def rul_column(self) -> str:
-        raise NotImplementedError
 
-    def duration(self, life: pd.DataFrame) -> float:
-        return life[self.rul_column].max()
 
+class CeruleoDataset(AbstractRunToFailureCyclesDataset):
+    def __init__(self, path:Path):
+        super().__init__()
+        self.dataset_path = path
+        self.procesed_path = self.dataset_path / "processed" / "lives"
+        self.lives_table_filename = self.procesed_path / "lives_db.csv"
+        self._prepare_dataset()
+
+        self.lives = pd.read_csv(self.lives_table_filename)
+
+    def _prepare_dataset(self):
+        pass
+
+
+    def get_time_series(self, i: int) -> pd.DataFrame:
+        df = self._load_life(self.lives.iloc[i]["Filename"])
+        #df.index = pd.to_timedelta(df.index, unit="s")
+        #df = df[df["FIXTURESHUTTERPOSITION"] == 1]
+        #df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
+
+        return df

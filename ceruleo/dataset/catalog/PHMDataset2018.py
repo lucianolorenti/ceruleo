@@ -18,7 +18,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from ceruleo import CACHE_PATH, DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset, CeruleoDataset
 
 logger = logging.getLogger(__name__)
 
@@ -31,48 +31,9 @@ URL = "https://drive.google.com/uc?id=15Jx9Scq9FqpIGn8jbAQB_lcHSXvIoPzb"
 OUTPUT = COMPRESSED_FILE
 
 
-def download(path: Path):
+def download(url: str, path: Path):
     logger.info("Downloading dataset...")
-    gdown.download(URL, str(path / OUTPUT), quiet=False)
-
-
-def prepare_raw_dataset(path: Path):
-    """Download and unzip the raw files
-
-    Args:
-        path (Path): Path where to store the raw dataset
-    """
-
-    def track_progress(members):
-        for member in tqdm(members, total=70):
-            yield member
-
-    path = path / "raw"
-    path.mkdir(parents=True, exist_ok=True)
-    if not (path / OUTPUT).resolve().is_file():
-        download(path)
-    logger.info("Decompressing  dataset...")
-    with tarfile.open(path / OUTPUT, "r") as tarball:
-
-        def is_within_directory(directory, target):
-            abs_directory = os.path.abspath(directory)
-            abs_target = os.path.abspath(target)
-            prefix = os.path.commonprefix([abs_directory, abs_target])
-            return prefix == abs_directory
-
-        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-            for member in tar.getmembers():
-                member_path = os.path.join(path, member.name)
-                if not is_within_directory(path, member_path):
-                    raise Exception("Attempted Path Traversal in Tar File")
-
-            tar.extractall(path, members, numeric_owner=numeric_owner)
-
-        safe_extract(tarball, path=path, members=track_progress(tarball))
-    shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
-    shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
-    shutil.rmtree(str(path / "phm_data_challenge_2018"))
-    (path / OUTPUT).unlink()
+    gdown.download(url, str(path / OUTPUT), quiet=False)
 
 
 class FailureType(Enum):
@@ -102,58 +63,7 @@ class FailureType(Enum):
         return None
 
 
-def prepare_dataset(dataset_path: Path):
-    files = list(Path(dataset_path / "raw" / "train").resolve().glob("*.csv"))
-    faults_files = list(
-        Path(dataset_path / "raw" / "train" / "train_faults").resolve().glob("*.csv")
-    )
-
-    (
-        DatasetBuilder()
-        .set_splitting_method(FailureDataCycleSplitter())
-        .set_rul_column(NumberOfRowsRULColumn())
-        .build(raw=dataset_path / "raw", output=dataset_path / "processed")
-    )
-    
-
-   
-    files = {file.stem[0:6]: file for file in files}
-    faults_files = {file.stem[0:6]: file for file in faults_files}
-    dataset_data = []
-    for filename in tqdm(faults_files.keys(), "Processing files"):
-        tool = filename[0:6]
-        data_file = files[tool]
-        logger.info(f"Loading data file {files[tool]}")
-        fault_data_file = faults_files[filename]
-
-        data = merge_data_with_faults(
-            pd.read_csv(data_file), pd.read_csv(fault_data_file)
-        )
-
-        for life_index, life_data in data.groupby("fault_number"):
-            if life_data.shape[0] == 0:
-                continue
-
-            output_filename = (
-                f"Life_{int(life_index)}_{tool}_{failure_type.name}.pkl.gzip"
-            )
-            dataset_data.append(
-                (tool, life_data.shape[0], failure_type.value, output_filename)
-            )
-            life = life_data.copy()
-            life["RUL"] = np.arange(life.shape[0] - 1, -1, -1)
-            with gzip.open(
-                dataset_path / "processed" / "lives" / output_filename, "wb"
-            ) as file:
-                pickle.dump(life_data, file)
-
-    df = pd.DataFrame(
-        dataset_data, columns=["Tool", "Number of samples", "Failure Type", "Filename"]
-    )
-    df.to_csv(dataset_path / "processed" / "lives" / "lives_db.csv")
-
-
-class PHMDataset2018(AbstractLivesDataset):
+class PHMDataset2018(CeruleoDataset):
     """PHM 2018 Dataset
 
     The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different
@@ -180,53 +90,46 @@ class PHMDataset2018(AbstractLivesDataset):
 
 
     Parameters:
-
-        failure_types: List of failure types
-        tools: List of tools
         path: Path where the dataset is located
     """
 
     def __init__(
         self,
-        failure_types: Union[FailureType, List[FailureType]] = [l for l in FailureType],
-        tools: Union[str, List[str]] = "all",
         path: Path = DATA_PATH,
+        url: str = URL
     ):
-        super().__init__()
+        self.url = url
+        super().__init__(path)
 
-        if not isinstance(failure_types, list):
-            failure_types = [failure_types]
-        self.failure_types = failure_types
 
-        if isinstance(tools, str) and tools != "all":
-            tools = [tools]
-        self.tools = tools
-
-        self.path = path
-        self.dataset_path = path / FOLDER
-
-        self.procesed_path = self.dataset_path / "processed" / "lives"
-        self.lives_table_filename = self.procesed_path / "lives_db.csv"
-        self._prepare_dataset()
-
-        self.lives = pd.read_csv(self.lives_table_filename)
-        if tools != "all":
-            self.lives = self.lives[self.lives["Tool"].isin(self.tools)]
-        self.lives = self.lives[
-            self.lives["Failure Type"].isin([a.value for a in self.failure_types])
-        ]
-        valid = []
-        for i, (j, r) in enumerate(self.lives.iterrows()):
-            df = self._load_life(r["Filename"])
-            if df.shape[0] > 1200:
-                valid.append(i)
-        self.lives = self.lives.iloc[valid, :]
 
     def _prepare_dataset(self):
-        if not self.lives_table_filename.is_file():
-            if not (self.dataset_path / "raw" / "train").is_dir():
-                prepare_raw_dataset(self.dataset_path)
-            prepare_dataset(self.dataset_path)
+        if self.lives_table_filename.is_file():
+            return
+        if not (self.dataset_path / "raw" / "train").is_dir():
+            self.prepare_raw_dataset(self.dataset_path)
+        files = list(
+            Path(self.dataset_path / "raw" / "train").resolve().glob("*.csv")
+        )
+        faults_files = list(
+            Path(self.dataset_path / "raw" / "train" / "train_faults")
+            .resolve()
+            .glob("*.csv")
+        )
+
+        (
+            DatasetBuilder()
+            .set_splitting_method(FailureDataCycleSplitter())
+            .set_rul_column(NumberOfRowsRULColumn())
+            .add_cycle_metadata({
+                "Tool": "Tool",
+                "Failure Type": "Failure Type",
+            })
+            .build(
+                raw=self.dataset_path / "raw",
+                output=self.dataset_path / "processed",
+            )
+        )
 
     @property
     def n_time_series(self) -> int:
@@ -239,12 +142,51 @@ class PHMDataset2018(AbstractLivesDataset):
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
-        df.index = pd.to_timedelta(df.index, unit="s")
-        df = df[df["FIXTURESHUTTERPOSITION"] == 1]
-        df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
+        #df.index = pd.to_timedelta(df.index, unit="s")
+        #df = df[df["FIXTURESHUTTERPOSITION"] == 1]
+        #df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
         return df
 
     @property
     def rul_column(self) -> str:
         return "RUL"
+
+
+    def prepare_raw_dataset(self):
+        """Download and unzip the raw files
+
+        Args:
+            path (Path): Path where to store the raw dataset
+        """
+
+        def track_progress(members):
+            for member in tqdm(members, total=70):
+                yield member
+
+        path = self.output_path / "raw"
+        path.mkdir(parents=True, exist_ok=True)
+        if not (path / OUTPUT).resolve().is_file():
+            download(self.url, path)
+        logger.info("Decompressing  dataset...")
+        with tarfile.open(path / OUTPUT, "r") as tarball:
+
+            def is_within_directory(directory, target):
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                return prefix == abs_directory
+
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
+            safe_extract(tarball, path=path, members=track_progress(tarball))
+        shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
+        shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
+        shutil.rmtree(str(path / "phm_data_challenge_2018"))
+        (path / OUTPUT).unlink()

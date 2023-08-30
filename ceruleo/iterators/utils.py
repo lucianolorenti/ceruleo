@@ -2,7 +2,7 @@
 
 from numpy.lib.arraysetops import isin
 from ceruleo.dataset.transformed import TransformedDataset
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from typing import Optional, Union
 
 import numpy as np
@@ -18,7 +18,7 @@ except:
 
 
 def true_values(
-    dataset: Union[WindowedDatasetIterator, Batcher, AbstractTimeSeriesDataset],
+    dataset: Union[WindowedDatasetIterator, Batcher, AbstractRunToFailureCyclesDataset],
     target_column: Optional[str] = None
 ) -> np.array:
     """Obtain the true RUL of the dataset after the transformation
@@ -35,7 +35,7 @@ def true_values(
     if isinstance(dataset, Batcher):
         dataset = dataset.iterator
 
-    elif isinstance(dataset, AbstractTimeSeriesDataset) and not isinstance(dataset, TransformedDataset):
+    elif isinstance(dataset, AbstractRunToFailureCyclesDataset) and not isinstance(dataset, TransformedDataset):
         if target_column is None:
             if not hasattr(dataset, 'rul_column'):
                 raise ValueError('Please provide a target column to access')

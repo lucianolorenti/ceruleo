@@ -4,24 +4,31 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from tqdm.auto import tqdm 
-import logging 
+import logging
+
+from ceruleo.dataset.builder.cycles_splitter import CyclesSplitter
+from ceruleo.dataset.builder.rul_column import RULColumn 
 
 
 logger = logging.getLogger(__name__)
 
 
 
-
-
-
-
 class DatasetBuilder:
-    def __init__(self):
-        pass
+    splitter: CyclesSplitter
+    rul_column: RULColumn
 
-    def set_restarting_time_feature(self, name: str):
-        self._restarting_time_feature = name
+    def __init__(self):
+        self.metadata_mapping = None
+        self.splitter = None
+        self.rul_column = None
+
+    def set_splitting_method(self, splitter: CyclesSplitter):
+        self.splitter = splitter
         return self
+
+    def set_rul_column(self, rul_column:RULColumn):
+        self.rul_column = rul_column
 
     def set_life_id_feature(self, name: str):
         self._life_id_feature = name

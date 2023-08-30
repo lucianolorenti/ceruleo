@@ -3,12 +3,12 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 
 logger = logging.getLogger(__name__)
 
 
-def sample_rate(ds: AbstractTimeSeriesDataset, unit: str = "s") -> np.ndarray:
+def sample_rate(ds: AbstractRunToFailureCyclesDataset, unit: str = "s") -> np.ndarray:
     """Obtain an array of time difference between two consecutive samples
 
     If the index it's a timestamp, the time difference will be converted to the provided
@@ -33,7 +33,7 @@ def sample_rate(ds: AbstractTimeSeriesDataset, unit: str = "s") -> np.ndarray:
 
 
 def sample_rate_summary(
-    ds: AbstractTimeSeriesDataset, unit: Optional[str] = "s"
+    ds: AbstractRunToFailureCyclesDataset, unit: Optional[str] = "s"
 ) -> pd.DataFrame:
     """Obtain the main and standard deviation of the sample rate of the dataset
 

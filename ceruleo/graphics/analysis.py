@@ -2,12 +2,12 @@ from typing import List, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.dataset.analysis.correlation import correlation_analysis
 
 
 def plot_correlation_analysis(
-    dataset: AbstractTimeSeriesDataset,
+    dataset: AbstractRunToFailureCyclesDataset,
     corr_threshold: float = 0,
     features: Optional[List[str]] = None,
     ax: Optional[matplotlib.axes.Axes] = None,

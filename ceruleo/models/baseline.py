@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 import numpy as np
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.dataset.utils import iterate_over_target
 from ceruleo.results.results import FittedLife
 
@@ -22,7 +22,7 @@ class BaselineModel:
         self.mode = mode
         self.RUL_threshold = RUL_threshold
 
-    def fit(self, ds: Union[TransformedDataset, AbstractLivesDataset]):
+    def fit(self, ds: Union[TransformedDataset, AbstractRunToFailureCyclesDataset]):
         """Compute the mean or median RUL using the given dataset
 
         Parameters:

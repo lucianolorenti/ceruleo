@@ -5,7 +5,7 @@ from typing import Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 from ceruleo import CACHE_PATH
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.transformation.functional.graph_utils import (
     dfs_iterator,
     topological_sort_iterator,
@@ -57,7 +57,7 @@ class Pipeline(BaseEstimator, TransformerMixin):
 
     def fit(
         self,
-        dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
+        dataset: Union[AbstractRunToFailureCyclesDataset, pd.DataFrame],
         show_progress: bool = False,
     ):
         """Fit a pipeline using a dataset
@@ -82,7 +82,7 @@ class Pipeline(BaseEstimator, TransformerMixin):
 
     def partial_fit(
         self,
-        dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
+        dataset: Union[AbstractRunToFailureCyclesDataset, pd.DataFrame],
         show_progress: bool = False,
     ):
         self.fit(dataset, show_progress=show_progress)

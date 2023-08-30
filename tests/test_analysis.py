@@ -5,14 +5,14 @@ import numpy as np
 import pandas as pd
 from ceruleo.dataset.analysis.numerical_features import analysis
 
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.dataset.analysis.correlation import correlation_analysis
 from ceruleo.transformation.features.selection import ByNameFeatureSelector, ByTypeFeatureSelector
 from ceruleo.transformation.functional.transformers import Transformer
 from ceruleo.dataset.analysis.sample_rate import sample_rate, sample_rate_summary
 from ceruleo.dataset.analysis.distribution import features_divergeces
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractRunToFailureCyclesDataset):
     def __init__(self, nlives: int):
         super().__init__()
         self.lives = [
@@ -38,7 +38,7 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDatasetTimeDeltaIndex(AbstractTimeSeriesDataset):
+class MockDatasetTimeDeltaIndex(AbstractRunToFailureCyclesDataset):
     def __init__(self, nlives: int):
         super().__init__()
         self.lives = [

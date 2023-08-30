@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 import numpy as np
 import pandas as pd
 from ceruleo import DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
 from ceruleo.utils.download import download
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def process_file_train(file):
     return df
 
 
-class CMAPSSDataset(AbstractLivesDataset):
+class CMAPSSDataset(AbstractRunToFailureCyclesDataset):
     """C-MAPSS Dataset
 
     C-MAPSS stands for 'Commercial Modular Aero-Propulsion System Simulation' and it is a tool for the simulation 

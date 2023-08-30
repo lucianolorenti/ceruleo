@@ -3,15 +3,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from ceruleo.dataset.catalog.CMAPSS import CMAPSSDataset, sensor_indices
+from ceruleo.dataset.catalog.PHMDataset2018 import PHMDataset2018
 from ceruleo.dataset.transformed import TransformedSerializedDataset
-from ceruleo.dataset.ts_dataset import (AbstractTimeSeriesDataset,
+from ceruleo.dataset.ts_dataset import (AbstractRunToFailureCyclesDataset,
                                          FoldedDataset)
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
 from sklearn.model_selection import train_test_split
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractRunToFailureCyclesDataset):
     def __init__(self, nlives: int):
         super().__init__()
         self.lives = [
@@ -157,7 +158,7 @@ class TestDataset:
 
 class TestAnalysis:
     def test_analysis(self):
-        class MockCorruptedDataset(AbstractTimeSeriesDataset):
+        class MockCorruptedDataset(AbstractRunToFailureCyclesDataset):
             def __init__(self):
                 super().__init__()
                 self.lives = [
@@ -211,3 +212,10 @@ class TestCMAPSS:
         labels_true = np.array([f'SensorMeasure{f}' for f in sensors_from_article])
 
         assert (features == labels_true).all()
+
+
+
+def test_PHMDataset2018():
+    data = PHMDataset2018(
+
+    )
