@@ -8,16 +8,19 @@ import tarfile
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union
+from ceruleo.dataset.builder.builder import DatasetBuilder
+from ceruleo.dataset.builder.cycles_splitter import FailureDataCycleSplitter
+from ceruleo.dataset.builder.rul_column import NumberOfRowsRULColumn
 
 import gdown
 import numpy as np
 import pandas as pd
-from ceruleo import CACHE_PATH, DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from tqdm.auto import tqdm
 
-logger = logging.getLogger(__name__)
+from ceruleo import CACHE_PATH, DATA_PATH
+from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 
+logger = logging.getLogger(__name__)
 
 
 COMPRESSED_FILE = "phm_data_challenge_2018.tar.gz"
@@ -34,6 +37,12 @@ def download(path: Path):
 
 
 def prepare_raw_dataset(path: Path):
+    """Download and unzip the raw files
+
+    Args:
+        path (Path): Path where to store the raw dataset
+    """
+
     def track_progress(members):
         for member in tqdm(members, total=70):
             yield member
@@ -44,25 +53,21 @@ def prepare_raw_dataset(path: Path):
         download(path)
     logger.info("Decompressing  dataset...")
     with tarfile.open(path / OUTPUT, "r") as tarball:
+
         def is_within_directory(directory, target):
-            
             abs_directory = os.path.abspath(directory)
             abs_target = os.path.abspath(target)
-        
             prefix = os.path.commonprefix([abs_directory, abs_target])
-            
             return prefix == abs_directory
-        
+
         def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-        
             for member in tar.getmembers():
                 member_path = os.path.join(path, member.name)
                 if not is_within_directory(path, member_path):
                     raise Exception("Attempted Path Traversal in Tar File")
-        
-            tar.extractall(path, members, numeric_owner=numeric_owner) 
-            
-        
+
+            tar.extractall(path, members, numeric_owner=numeric_owner)
+
         safe_extract(tarball, path=path, members=track_progress(tarball))
     shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
     shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
@@ -82,6 +87,7 @@ class FailureType(Enum):
     ```
 
     """
+
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
     FlowcoolPressureTooHighCheckFlowcoolPump = (
         "Flowcool Pressure Too High Check Flowcool Pump"
@@ -96,42 +102,21 @@ class FailureType(Enum):
         return None
 
 
-from typing import List, Optional, Union
-
-
-def merge_data_with_faults(
-    data_file: Union[str, Path], fault_data_file: Union[str, Path]
-) -> pd.DataFrame:
-    """Merge the raw sensor data with the fault information
-
-    Parameters:
-
-        data_file: Path where the raw sensor data is located
-        fault_data_file: Path where the fault information is located
-
-    Returns:
-
-        df: Dataframe indexed by time with the raw sensors and faults
-            The dataframe contains also a fault_number column
-    """
-    data = pd.read_csv(data_file).set_index("time")
-
-    fault_data = (
-        pd.read_csv(fault_data_file).drop_duplicates(subset=["time"]).set_index("time")
-    )
-    fault_data["fault_number"] = range(fault_data.shape[0])
-    return pd.merge_asof(data, fault_data, on="time", direction="forward").set_index(
-        "time"
-    )
-
-
 def prepare_dataset(dataset_path: Path):
-    (dataset_path / "processed" / "lives").mkdir(exist_ok=True, parents=True)
-
     files = list(Path(dataset_path / "raw" / "train").resolve().glob("*.csv"))
     faults_files = list(
         Path(dataset_path / "raw" / "train" / "train_faults").resolve().glob("*.csv")
     )
+
+    (
+        DatasetBuilder()
+        .set_splitting_method(FailureDataCycleSplitter())
+        .set_rul_column(NumberOfRowsRULColumn())
+        .build(raw=dataset_path / "raw", output=dataset_path / "processed")
+    )
+    
+
+   
     files = {file.stem[0:6]: file for file in files}
     faults_files = {file.stem[0:6]: file for file in faults_files}
     dataset_data = []
@@ -140,11 +125,15 @@ def prepare_dataset(dataset_path: Path):
         data_file = files[tool]
         logger.info(f"Loading data file {files[tool]}")
         fault_data_file = faults_files[filename]
-        data = merge_data_with_faults(data_file, fault_data_file)
+
+        data = merge_data_with_faults(
+            pd.read_csv(data_file), pd.read_csv(fault_data_file)
+        )
+
         for life_index, life_data in data.groupby("fault_number"):
             if life_data.shape[0] == 0:
                 continue
-            failure_type = FailureType.that_starth_with(life_data["fault_name"].iloc[0])
+
             output_filename = (
                 f"Life_{int(life_index)}_{tool}_{failure_type.name}.pkl.gzip"
             )
@@ -167,9 +156,9 @@ def prepare_dataset(dataset_path: Path):
 class PHMDataset2018(AbstractLivesDataset):
     """PHM 2018 Dataset
 
-    The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different 
-    ion milling machines. They distinguish three different failure causes and provide 22 features, 
-    including user-defined variables and sensors. 
+    The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different
+    ion milling machines. They distinguish three different failure causes and provide 22 features,
+    including user-defined variables and sensors.
 
     Three faults are present in the dataset
 
@@ -180,7 +169,7 @@ class PHMDataset2018(AbstractLivesDataset):
     [Dataset reference](https://phmsociety.org/conference/annual-conference-of-the-phm-society/annual-conference-of-the-prognostics-and-health-management-society-2018-b/phm-data-challenge-6/)
 
     Example:
- 
+
     ```py
     dataset = PHMDataset2018(
        failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
@@ -189,13 +178,14 @@ class PHMDataset2018(AbstractLivesDataset):
     ```
 
 
-    
+
     Parameters:
 
         failure_types: List of failure types
         tools: List of tools
         path: Path where the dataset is located
     """
+
     def __init__(
         self,
         failure_types: Union[FailureType, List[FailureType]] = [l for l in FailureType],
@@ -203,6 +193,7 @@ class PHMDataset2018(AbstractLivesDataset):
         path: Path = DATA_PATH,
     ):
         super().__init__()
+
         if not isinstance(failure_types, list):
             failure_types = [failure_types]
         self.failure_types = failure_types
@@ -216,10 +207,7 @@ class PHMDataset2018(AbstractLivesDataset):
 
         self.procesed_path = self.dataset_path / "processed" / "lives"
         self.lives_table_filename = self.procesed_path / "lives_db.csv"
-        if not self.lives_table_filename.is_file():
-            if not (self.dataset_path / "raw" / "train").is_dir():
-                prepare_raw_dataset(self.dataset_path)
-            prepare_dataset(self.dataset_path)
+        self._prepare_dataset()
 
         self.lives = pd.read_csv(self.lives_table_filename)
         if tools != "all":
@@ -234,6 +222,12 @@ class PHMDataset2018(AbstractLivesDataset):
                 valid.append(i)
         self.lives = self.lives.iloc[valid, :]
 
+    def _prepare_dataset(self):
+        if not self.lives_table_filename.is_file():
+            if not (self.dataset_path / "raw" / "train").is_dir():
+                prepare_raw_dataset(self.dataset_path)
+            prepare_dataset(self.dataset_path)
+
     @property
     def n_time_series(self) -> int:
         return self.lives.shape[0]
@@ -245,8 +239,8 @@ class PHMDataset2018(AbstractLivesDataset):
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
-        df.index = pd.to_timedelta(df.index, unit='s')
-        df = df[df['FIXTURESHUTTERPOSITION'] == 1]
+        df.index = pd.to_timedelta(df.index, unit="s")
+        df = df[df["FIXTURESHUTTERPOSITION"] == 1]
         df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
         return df
