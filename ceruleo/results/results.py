@@ -25,7 +25,7 @@ Since usually the breakages are considered more harmful, a possible approach to 
 
 """
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import  Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -56,7 +56,7 @@ class PredictionResult:
     name: str
     true_RUL: np.ndarray
     predicted_RUL: np.ndarray
-    metrics: MetricsResult = MetricsResult(0, 0)
+    metrics: MetricsResult 
 
     def compute_metrics(self):
         self.metrics.mae = mae(self.true_RUL, self.predicted_RUL)
@@ -64,6 +64,7 @@ class PredictionResult:
 
 
     def __init__(self, name:str,     true_RUL: np.ndarray, predicted_RUL: np.ndarray):
+        self.metrics = MetricsResult(0, 0)
         self.name = name
         self.true_RUL = np.squeeze(true_RUL)
         self.predicted_RUL = np.squeeze(predicted_RUL)
