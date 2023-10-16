@@ -79,7 +79,16 @@ class PositionFeatures(TransformerStep):
         super().__init__(name=name)
         self.features = features
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transform the input life by reordering the features
+
+        Parameters:
+            X: The input life to be transformed
+        
+        Returns:
+            A new DataFrame containing the features in the order specified in the constructor
+        """
         cols = list(X.columns)
         for name, pos in self.features.items():
             a, b = cols.index(name), pos
