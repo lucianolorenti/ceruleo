@@ -15,8 +15,7 @@ class ByNameFeatureSelector(TransformerStep):
     """Select a subset of feature by name
 
     Parameters:
-            
-        features: Feature name or List of features name to select
+            features: Feature name or List of features name to select
     """
     def __init__(self, *, features:Union[str, List[str]]= [], name: Optional[str] = None):
         super().__init__(name=name)
@@ -48,7 +47,16 @@ class ByNameFeatureSelector(TransformerStep):
         self.features_computed_ = sorted(features)
         return self
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new DataFrame containing only the selected features
+        """
         return X.loc[:, self.features_computed_].copy()
 
     @property
@@ -202,14 +210,30 @@ class  MatchFeatureSelector(TransformerStep):
         self.selected_columns_ = None
 
 
-    def partial_fit(self, df, y=None):
+    def partial_fit(self, df: pd.DataFrame, y=None):
+
+        """ 
+        Find the features matching the pattern
+
+        Parameters:
+            df: DataFrame containing the entire set of features 
+        """
 
         if self.selected_columns_ is None:
             self.selected_columns_ = [f for f in df.columns if self.pattern in f ]
 
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new life with the same index as the input with the missing values replaced by the value in the succesive timestamp 
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X[self.selected_columns_].copy()
@@ -221,8 +245,7 @@ class ByTypeFeatureSelector(TransformerStep):
     """Select a subset of feature by type
 
     Parameters:
-            
-        features: Feature name or List of features name to select, by default []
+            features: Feature name or List of features name to select, by default []
     """
     def __init__(self, *, type_:Union[str, List]= [], name: Optional[str] = None):
         super().__init__(name=name)
@@ -242,6 +265,15 @@ class ByTypeFeatureSelector(TransformerStep):
         return self
 
     def transform(self, X):
+        """
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new DataFrame containing only the features of the selected type
+        """
         return X.loc[:, self.features].copy()
 
     @property
