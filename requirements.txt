@@ -10,4 +10,5 @@ mkdocs-material
 mkdocs-jupyter
 jupyter_contrib_nbextensions
 mkdocstrings
-mkdocs-bibtex  
+mkdocs-bibtex
+notebook==6.4.12
