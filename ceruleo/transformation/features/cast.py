@@ -19,9 +19,8 @@ class CastTo(TransformerStep):
         step = CastTo(type='float32')
 
     Parameters:
-
-        type: Type name to convert to
-        name: Name of the step
+        type: Data Type to cast to
+        name: Name of the step, by default None
 
     """
     def __init__(self, *, type:str, name:Optional[str]=None):
@@ -29,5 +28,14 @@ class CastTo(TransformerStep):
         self.type = type
 
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Cast to a given datatype
+
+        Parameters:
+            X: DataFrame to transform
+        
+        Returns:
+            Transformed DataFrame
+        """
         return X.astype(self.type)
