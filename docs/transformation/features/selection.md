@@ -1,4 +1,4 @@
-## Resamplers 
+## Selectors 
 
 ::: ceruleo.transformation.features.selection
     options:
