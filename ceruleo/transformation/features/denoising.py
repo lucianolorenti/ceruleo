@@ -22,17 +22,13 @@ class SavitzkyGolayTransformer(TransformerStep):
         self.order = order
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        """Return a new dataframe with the features filtered
+        """
+        Return a new dataframe with the features filtered
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-
-        Returns
-        -------
-        pd.DataFrame
+        Parameters:
+            X: Input life
+            
+        Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """
         if X.shape[0] > self.window:
@@ -46,16 +42,14 @@ class SavitzkyGolayTransformer(TransformerStep):
 
 
 class MeanFilter(TransformerStep):
-    """Filter each feature using a rolling mean filter
+    """
+    Filter each feature using a rolling mean filter
 
-    Parameters
-    ----------
-    window : int
-        Size of the rolling window
-    min_periods : int, optional
-        Minimum number of points of the rolling window, by default 15
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        window: Size of the rolling window
+        min_periods: Minimum number of non-null points of the rolling window, by default 15
+        name: Name of the step, by default None
+        center: Wether the guassian window should be centered, by default False
     """
 
     def __init__(
@@ -71,6 +65,15 @@ class MeanFilter(TransformerStep):
         self.center = center
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """ 
+        Return a new dataframe with the features filtered
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DatafFrame with the same index as the input with the features filtered
+        """
         return X.rolling(
             self.window,
             min_periods=self.min_periods,
@@ -81,14 +84,10 @@ class MeanFilter(TransformerStep):
 class MedianFilter(TransformerStep):
     """Filter each feature using a rolling median filter
 
-    Parameters
-    ----------
-    window : int
-        Size of the rolling window
-    min_periods : int, optional
-        Minimum number of points of the rolling window, by default 15
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        window: Size of the rolling window
+        min_periods: Minimum number of points of the rolling window, by default 15
+        name: Name of the step, by default None
     """
 
     def __init__(self, window: int, min_periods: int = 15, name: Optional[str] = None):
@@ -97,18 +96,27 @@ class MedianFilter(TransformerStep):
         self.min_periods = min_periods
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Return a new dataframe with the features filtered
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DatafFrame with the same index as the input with the features filtered
+        """
         return X.rolling(self.window, min_periods=self.min_periods).median(
             numeric_only=True
         )
 
 
 class OneDimensionalKMeans(TransformerStep):
-    """Clusterize each feature into a number of clusters
+    """
+    Clusterize each feature into a number of clusters
 
-    Parameters
-    ----------
-    n_clusters : int
-        Number of clusters to obtain per cluster
+    Parameters:
+        n_clusters: Number of clusters, by default 5
+        
     """
 
     def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
@@ -116,7 +124,13 @@ class OneDimensionalKMeans(TransformerStep):
         self.clusters = {}
         self.n_clusters = n_clusters
 
-    def partial_fit(self, X):
+    def partial_fit(self, X: pd.DataFrame):
+        """
+        Fit the model to the input data to obtain the clusters
+
+        Parameters:
+            X: Input life
+        """
         if len(self.clusters) == 0:
             for c in X.columns:
                 self.clusters[c] = MiniBatchKMeans(
@@ -128,19 +142,14 @@ class OneDimensionalKMeans(TransformerStep):
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        """Transform the input dataframe
+        """
+        Transform the input dataframe
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with the same index as the input.
-            Each feature is replaced with the clusters of each point
+        Parameters:
+            X: Input life
+            
+        Returns:
+            A new DataFrame with the same index as the input. Each feature is replaced with the clusters of each point
         """
         X = X.copy()
         for c in X.columns:
@@ -151,14 +160,12 @@ class OneDimensionalKMeans(TransformerStep):
 
 
 class MultiDimensionalKMeans(TransformerStep):
-    """Clusterize data points and replace each feature with the centroid feature its belong
+    """
+    Clusterize data points and replace each feature with the centroid feature it belongs to
 
-    Parameters
-    ----------
-    n_clusters : int, optional
-        Number of clusters to obtain by default 5
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        n_clusters: Number of clusters to obtain by default 5
+        name: Name of the step, by default None
     """
 
     def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
@@ -166,24 +173,24 @@ class MultiDimensionalKMeans(TransformerStep):
         self.n_clusters = n_clusters
         self.clusters = MiniBatchKMeans(n_clusters=self.n_clusters, n_init="auto")
 
-    def partial_fit(self, X):
+    def partial_fit(self, X: pd.DataFrame):
+        """
+        Fit the model to the input data to obtain the clusters
+
+        Parameters:
+            X: Input life
+        """
         self.clusters.partial_fit(X)
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         """Transform the input life with the centroid information
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
-
-
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame in which each point was replaced by the
-            centroid its belong
+        Parameters:
+            X: Input life
+            
+        Returns:
+            A new DataFrame in which each point was replaced by the centroid it belongs to
         """
 
         X = X.copy()
@@ -192,14 +199,12 @@ class MultiDimensionalKMeans(TransformerStep):
 
 
 class EWMAFilter(TransformerStep):
-    """Filter each feature using EWM
+    """
+    Filter each feature using EWM (Exponential Moving Window)
 
-    Parameters
-    ----------
-    window : int
-        Size of  window
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        span: Time constant of the EMA (Exponential Moving Average)
+        name: Name of the step, by default None
     """
 
     def __init__(self, span: float, name: Optional[str] = None):
@@ -207,22 +212,27 @@ class EWMAFilter(TransformerStep):
         self.span = span
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Return a new dataframe with the features filtered
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DatafFrame with the same index as the input with the features filtered
+        """
         return X.ewm(span=self.span, ignore_na=True).mean()
 
 
 class GaussianFilter(TransformerStep):
-    """Apply a gaussian filter
+    """
+    Apply a gaussian filter
 
-    Parameters
-    ----------
-    window_size : int
-        Size of the gaussian filter
-    std : float
-        Standard deviation of the filter
-    min_points : int, optional
-        Minimun nomber of points of the rolling window, by default 1
-    center : bool, optional
-        Wether the guassian window should be centered, by default False
+    Parameters:
+        window_size: Size of the gaussian filter
+        std: Standard deviation of the filter
+        min_points: Minimun nomber of points of the rolling window, by default 1
+        center: Wether the guassian window should be centered, by default False
     """
 
     def __init__(
@@ -241,6 +251,15 @@ class GaussianFilter(TransformerStep):
         self.min_points = min_points
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Return a new dataframe with the features filtered
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DatafFrame with the same index as the input with the features filtered
+        """
         return X.rolling(
             window=self.window_size,
             win_type="gaussian",
