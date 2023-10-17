@@ -12,20 +12,20 @@ from sklearn.ensemble import IsolationForest
 
 
 class IQROutlierRemover(TransformerStep):
-    """Remove values outside (Q1 - margin*IQR, Q2 + margin*IQR)
+    """
+    Remove values outside (Q1 - margin*IQR, Q2 + margin*IQR)
 
     If clip is True the values will be clipped between the range,
     otherwise the values are going to be replaced by inf and -inf
 
-
-
     Parameters:
-        lower_quantile: Lower quantile threshold for the non-anomalous values
-        upper_quantile: Upper quantile threshold for the non-anomalous values
-        margin: How many times the IQR gets multiplied
+        lower_quantile: Lower quantile threshold for the non-anomalous values, by feault 0.25
+        upper_quantile: Upper quantile threshold for the non-anomalous values, by feault 0.75
+        margin: How many times the IQR gets multiplied, by default 0.75
         proportion_to_sample: If you want to compute the quantiles in an smaller proportion of data
-            you can specify it
-        clip: Wether to clip the values outside the range.
+            you can specify it,by default 1.0
+        clip: Wether to clip the values outside the range, by default False
+        name: Name of the step, by default None
 
     """
 
@@ -48,7 +48,13 @@ class IQROutlierRemover(TransformerStep):
         self.upper_quantile = upper_quantile
         self.clip = clip
 
-    def partial_fit(self, X):
+    def partial_fit(self, X: pd.DataFrame):
+        """
+        Compute the quantiles of the data and the interquartile range incrementally
+
+        Parameters:
+            X: Input life
+        """
         if X.shape[0] == 1:
             return self
         if self.proportion_to_sample < 1:
@@ -74,7 +80,13 @@ class IQROutlierRemover(TransformerStep):
         self.IQR = {c: self.Q3[c] - self.Q1[c] for c in self.Q1.keys()}
         return self
 
-    def fit(self, X):
+    def fit(self, X: pd.DataFrame):
+        """
+        Compute the quantiles of the data and the interquartile range incrementally
+
+        Parameters:
+            X: Input life
+        """
         if self.proportion_to_sample < 1:
             sampled_points = np.random.choice(
                 X.shape[0], int(X.shape[0] * self.proportion_to_sample), replace=False
@@ -88,6 +100,15 @@ class IQROutlierRemover(TransformerStep):
         return self
 
     def transform(self, X):
+        """
+        Remove the outliers from the input life. 
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the outliers removed
+        """
         X = X.copy()
         check_is_fitted(self, "Q1")
         check_is_fitted(self, "Q3")
@@ -116,18 +137,17 @@ class IQROutlierRemover(TransformerStep):
 
 
 class BeyondQuartileOutlierRemover(TransformerStep):
-    """Remove values outside (Q1, Q3)
+    """
+    Remove values outside (Q1, Q3)
 
     If clip is True the values will be clipped between the range,
     otherwise the values are going to be replaced by inf and -inf
 
-
-
     Parameters:
-        lower_quantile:  Lower quantile threshold for the non-anomalous values
-        upper_quantile: Upper quantile threshold for the non-anomalous values
-        clip: Wether to clip the values outside the range.
-
+        lower_quantile:  Lower quantile threshold for the non-anomalous values, by default 0.25
+        upper_quantile: Upper quantile threshold for the non-anomalous values, by default 0.75
+        clip: Wether to clip the values outside the range, by default False
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -150,7 +170,13 @@ class BeyondQuartileOutlierRemover(TransformerStep):
         self.Q3 = None
         self.quantile_estimator = None
 
-    def partial_fit(self, X):
+    def partial_fit(self, X: pd.DataFrame):
+        """
+        Compute the quantiles of the data incrementally
+
+        Parameters:
+            X: Input life
+        """
         if X.shape[0] == 1:
             return self
         if self.quantile_estimator is None:
@@ -161,7 +187,13 @@ class BeyondQuartileOutlierRemover(TransformerStep):
         self.quantile_estimator.update(X.select_dtypes(include="number"))
         return self
 
-    def fit(self, X):
+    def fit(self, X: pd.DataFrame):
+        """
+        Compute the quantiles of the data
+
+        Parameters:
+            X: Input life
+        """
         if self.subsample < 1:
 
             sampled_points = np.random.choice(
@@ -173,7 +205,16 @@ class BeyondQuartileOutlierRemover(TransformerStep):
 
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Remove the outliers from the input life.
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the outliers removed
+        """
 
         if self.Q1 is None:
             self.Q1 = self.quantile_estimator.estimate_quantile(self.lower_quantile)
@@ -229,12 +270,17 @@ class ZScoreOutlierRemover(TransformerStep):
 class EWMAOutOfRange(TransformerStep):
     """
     Compute the EWMA limits  and mark as NaN points outside UCL and LCL
+
+    Parameters:
+        lambda_: Parameter for the EWMA, by default 0.5
+        return_mask: Wether to return a mask with the outliers or the original data with the outliers marked as NaN, by default False
+        name: Name of the step, by default None
     """
 
     def __init__(
         self,
         *,
-        lambda_=0.5,
+        lambda_ : float=0.5,
         return_mask: bool = False,
         name: Optional[str] = None,
         prefer_partial_fit: bool = False,
@@ -246,7 +292,13 @@ class EWMAOutOfRange(TransformerStep):
         self.columns = None
         self.return_mask = return_mask
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X: pd.DataFrame, y=None):
+        """
+        Compute the EWMA limits incrementally
+
+        Parameters:
+            X: Input life
+        """
         if self.columns is None:
             self.columns = X.columns.values
         else:
@@ -267,7 +319,13 @@ class EWMAOutOfRange(TransformerStep):
         LCL = mean - 3 * s
         return (pd.Series(LCL, index=self.columns), pd.Series(UCL, index=self.columns))
 
-    def fit(self, X, y=None):
+    def fit(self, X: pd.DataFrame, y=None):
+        """
+        Compute the EWMA limits
+
+        Parameters:
+            X: Input life
+        """
         self.columns = X.columns
         LCL, UCL = self._compute_limits(X)
         self.LCL = LCL
@@ -275,6 +333,15 @@ class EWMAOutOfRange(TransformerStep):
         return self
 
     def transform(self, X):
+        """
+        Remove the outliers from the input life.
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the outliers removed
+        """
         mask = (X[self.columns] < (self.LCL)) | (X[self.columns] > (self.UCL))
         if self.return_mask:
             return mask.astype("int")
@@ -285,6 +352,16 @@ class EWMAOutOfRange(TransformerStep):
 
 
 class RollingMeanOutlierRemover(TransformerStep):
+    """
+    Compute the rolling mean and use it to compute the upper and lower bound to define outliers 
+
+    Parameters:
+        window: Window for the rolling mean, by default 15
+        lambda_: Multiplier of the std used to define the bounds, by default 3
+        return_mask: Wether to return a mask with the outliers or the original data with the outliers marked as NaN, by default False
+        name: Name of the step, by default None
+    """
+
     def __init__(
         self,
         *,
@@ -298,7 +375,16 @@ class RollingMeanOutlierRemover(TransformerStep):
         self.lambda_ = lambda_
         self.return_mask = return_mask
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove the outliers from the input life.
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the outliers removed
+        """
         r = X.rolling(self.window, min_periods=1)
         std = r.quantile(0.75) -  r.quantile(0.25)
         upper = r.median() + (self.lambda_ * std)
@@ -316,17 +402,39 @@ class RollingMeanOutlierRemover(TransformerStep):
 
 
 class IsolationForestOutlierRemover(TransformerStep):
+    """ 
+    Remove outliers using Isolation Forests to detect them.
+
+    Parameters:
+        n_estimators: Number of trees in the forest, by default 100
+        name: Name of the step, by default None
+    """
     def __init__(self, *, n_estimators=100, **kwargs):
         super().__init__(prefer_partial_fit=False, **kwargs)
         self.n_estimators = n_estimators
         self.forests = {}
 
     def fit(self, X: pd.DataFrame):
+        """
+        Fit the Isolation Forest model to the data
+
+        Parameters:
+            X: Input life
+        """
         for c in X.columns:
             self.forests[c] = IsolationForest(n_estimators=self.n_estimators).fit(X[c].values.reshape(-1, 1) )
         return self
 
     def transform(self, X: pd.DataFrame):
+        """
+        Remove the outliers from the input life.
+        
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the outliers removed
+        """
         X_new = X.copy()
         for c in X.columns:
             r = self.forests[c].predict(X[c].values.reshape(-1, 1) )
