@@ -245,7 +245,7 @@ class StandardScaler(TransformerStep):
         self.std = df.std()
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Scale the input dataset
 
@@ -264,7 +264,6 @@ class RobustStandardScaler(TransformerStep):
 
     Parameters:
         quantile_range: Desired quantile range of transformed data, by defualt (0.25,0.75)
-        name: Name of the step, by default None
     """
 
     def __init__(self, *, quantile_range: tuple=(0.25, 0.75), prefer_partial_fit:bool = False, **kwargs):
@@ -279,7 +278,7 @@ class RobustStandardScaler(TransformerStep):
         Compute the mean of the dataset
 
         Parameters:
-        X: the input dataset   
+            X: the input dataset   
         """
         Q1 = X.quantile(self.quantile_range[0])
         Q3 = X.quantile(self.quantile_range[1])
@@ -291,7 +290,7 @@ class RobustStandardScaler(TransformerStep):
         Compute incrementally the mean of the dataset
 
         Parameters:
-        X: the input dataset   
+            X: the input dataset   
         """
         if X.shape[0] < 2:
             return self
@@ -435,7 +434,7 @@ class PerCategoricalMinMaxScaler(TransformerStep):
             self.scalers[category].partial_fit(data)
             self.scalers["default"].partial_fit(data)
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Scale the input dataset using the appropriate scaler for each category
 
