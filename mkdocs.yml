@@ -60,6 +60,7 @@ nav:
         - Denoising: transformation/features/denoising.md
         - Entropy: transformation/features/entropy.md
         - Extraction: transformation/features/extraction.md
+        - Extraction Frequency: transformation/features/extraction_frequency.md
         - Imputers: transformation/features/imputers.md
         - Resamplers: transformation/features/resamplers.md
         - Selectors: transformation/features/selection.md
@@ -97,6 +98,7 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.tasklist
   - pymdownx.superfences
   - toc:
       toc_depth: 5
