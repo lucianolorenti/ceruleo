@@ -25,19 +25,10 @@ class LocalEntropyMeasures(TransformerStep):
     - Local Entropy Rate
 
 
-    Parameters
-    ----------
-    min_points : int, optional
-        The minimun number of points of the expanding window, by default 2
-    to_compute : List[str], optional
-        List of the features to compute, by default None
-        Valid values are:
-            'local_active_information'          
-            'local_block_entropy'
-            'local_entropy_rate'
-    name : Optional[str], optional
-        Name of the step, by default None
-
+    Parameters:
+        min_points: The minimun number of points of the expanding window, by default 2
+        to_compute: List of the features to compute, by default None. Valid values are: 'local_active_information', 'local_block_entropy', 'local_entropy_rate'
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -72,7 +63,17 @@ class LocalEntropyMeasures(TransformerStep):
     def _local_entropy_rate(self, s: pd.Series):
         return entropy_rate(s.values, self.window, local=True)
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+
+        """ 
+        Return a new dataframe with Entropy features computed for each feature in the input
+
+        Parameters:
+            X: Input life
+        
+        Returns:
+            A new DataFrame with the at maximum three times the number of columns as the input since three Entropy features are computed for each feature in the input
+        """
 
         X_new_n_columns = len(X.columns) * len(self.to_compute)
         i = 0
