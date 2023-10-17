@@ -33,8 +33,8 @@ class IQROutlierRemover(TransformerStep):
         self,
         lower_quantile: float = 0.25,
         upper_quantile: float = 0.75,
-        margin=1.5,
-        proportion_to_sample=1.0,
+        margin: float=1.5,
+        proportion_to_sample: float=1.0,
         clip: bool = False,
         name: Optional[str] = None,
         prefer_partial_fit: bool = False,
@@ -99,7 +99,7 @@ class IQROutlierRemover(TransformerStep):
         self.Q3 = self.Q3.to_dict()
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Remove the outliers from the input life. 
 
@@ -240,11 +240,16 @@ class BeyondQuartileOutlierRemover(TransformerStep):
 
 class ZScoreOutlierRemover(TransformerStep):
     """
-    X = np.random.rand(500, 5) * np.random.randn(500, 5) * 15
-    imput = ZScoreImputer(1.5)
-    imput.fit(X)
-    X_t = imput.transform(X)
+    Remove values outside (mean - number_of_std_allowed*std, mean + number_of_std_allowed*std). The outliers are set to NaN
+
+    Parameters:
+        number_of_std_allowed: Number of standard deviations to consider a point an outlier
+        name: Name of the step, by default None
     """
+    #X = np.random.rand(500, 5) * np.random.randn(500, 5) * 15
+    #imput = ZScoreImputer(1.5)
+    #imput.fit(X)
+    #X_t = imput.transform(X)
 
     def __init__(
         self,
@@ -257,11 +262,26 @@ class ZScoreOutlierRemover(TransformerStep):
         self.number_of_std_allowed = number_of_std_allowed
         self.scaler = StandardScaler()
 
-    def fit(self, X):
+    def fit(self, X: pd.DataFrame):
+        """
+        Fit a StandardScaler to the data
+
+        Parameters:
+            X: Input life
+        """
         self.scaler.fit(X)
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove the outliers from the input life.
+
+        Parameters:
+            X: Input life
+
+        Returns:
+            A new DataFrame with the outliers removed
+        """
         X_new = self.scaler.transform(X)
         X_new[np.abs(X_new) > self.number_of_std_allowed] = np.nan
         return pd.DataFrame(X_new, columns=X.columns, index=X.index)
@@ -332,7 +352,7 @@ class EWMAOutOfRange(TransformerStep):
         self.UCL = UCL
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Remove the outliers from the input life.
 
@@ -350,6 +370,7 @@ class EWMAOutOfRange(TransformerStep):
             X[mask] = np.nan
             return X
 
+# We can do the same with Rolling Median
 
 class RollingMeanOutlierRemover(TransformerStep):
     """
@@ -425,7 +446,7 @@ class IsolationForestOutlierRemover(TransformerStep):
             self.forests[c] = IsolationForest(n_estimators=self.n_estimators).fit(X[c].values.reshape(-1, 1) )
         return self
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Remove the outliers from the input life.
         
