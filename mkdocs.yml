@@ -64,6 +64,7 @@ nav:
         - Imputers: transformation/features/imputers.md
         - Resamplers: transformation/features/resamplers.md
         - Selectors: transformation/features/selection.md
+        - Scalers: transformation/features/scalers.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
