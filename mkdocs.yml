@@ -65,6 +65,8 @@ nav:
         - Resamplers: transformation/features/resamplers.md
         - Selectors: transformation/features/selection.md
         - Scalers: transformation/features/scalers.md
+        - Slicing: transformation/features/slicing.md
+        - Split: transformation/features/split.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
