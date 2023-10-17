@@ -8,28 +8,22 @@ from ceruleo.transformation.utils import QuantileComputer, QuantileEstimator
 
 
 class RobustMinMaxScaler(TransformerStep):
-    """Scale features using statistics that are robust to outliers.
+    """
+    Scale features using statistics that are robust to outliers.
 
-    This Scaler scales the data according to the quantile range
+    This Scaler scales the data according to the quantile range.
     The IQR is the range between the limits provided, by default,
     1st quartile (25th quantile) and the 3rd quartile (75th quantile).
 
     The quantiles are approximated using tdigest
 
-    Parameters
-    ----------
-    range : tuple
-        Desired range of transformed data.
-    clip : bool, optional
-        Set to True to clip transformed values of held-out data to provided, by default True
-    lower_quantile : float, optional
-        Lower limit of the quantile range to compute the scale, by default 0.25
-    upper_quantile : float, optional
-        Upper limit of the quantile range to compute the scale, by default 0.75
-    tdigest_size : Optional[int], optional
-        Size of the t-digest structure, by default 100
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        range: Desired range of transformed data.
+        clip: Set to True to clip transformed values of held-out data to provided, by default True
+        lower_quantile: Lower limit of the quantile range to compute the scale, by default 0.25
+        upper_quantile: Upper limit of the quantile range to compute the scale, by default 0.75
+        tdigest_size: Size of the t-digest structure, by default 100
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -66,15 +60,37 @@ class RobustMinMaxScaler(TransformerStep):
 
 
     def partial_fit(self, df: pd.DataFrame, y=None):
+        """ 
+        Compute the quantiles of the dataset
+        
+        Parameters:
+            df: The input dataset
+        """
         self.quantile_estimator.update(df)
         return self
 
     def fit(self, df: pd.DataFrame, y=None):
+        """ 
+        Compute the quantiles of the dataset
+        
+        Parameters:
+            df: The input dataset
+        """
         self.quantile_estimator.update(df)
         self._compute_quantiles()
         return self
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Scale the input dataset
+
+        Parameters:
+            X: The input dataset
+        
+        Returns:
+            A new DataFrame with the same index as the input with the
+            data scaled with respect to the quantiles of the fiited dataset
+        """
         if self.Q1 is None:
             self._compute_quantiles()
             
@@ -94,19 +110,16 @@ class RobustMinMaxScaler(TransformerStep):
 
 
 class MinMaxScaler(TransformerStep):
-    """Transform features by scaling each feature to a given range.
+    """
+    Transform features by scaling each feature to a given range.
 
     This transformer scales and translates each feature individually
     such that it is in the given range on the training set.
 
-    Parameters
-    ----------
-    range : tuple
-        Desired range of transformed data.
-    clip : bool, optional
-        Set to True to clip transformed values of held-out data to provided, by default True
-    name : Optional[str], optional
-         Name of the step, by default None
+    Parameters:
+        range: Desired range of transformed data.
+        clip: Set to True to clip transformed values of held-out data to provided, by default True
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -124,7 +137,13 @@ class MinMaxScaler(TransformerStep):
         self.data_max = None
         self.clip = clip
 
-    def partial_fit(self, df, y=None):
+    def partial_fit(self, df: pd.DataFrame, y=None):
+        """
+        Compute the dataset's bounds
+
+        Parameters:
+            df: The input dataset
+        """
         partial_data_min = df.min(skipna=True)
         partial_data_max = df.max(skipna=True)
         if self.data_min is None:
@@ -139,13 +158,28 @@ class MinMaxScaler(TransformerStep):
             )
         return self
 
-    def fit(self, df, y=None):
+    def fit(self, df: pd.DataFrame, y=None):
+        """
+        Compute the dataset's bounds
+
+        Parameters:
+            df: The input dataset
+        """
         self.data_min = df.min(skipna=True)
         self.data_max = df.max(skipna=True)
 
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Scale the input dataset
+
+        Parameters:
+            X: The input dataset
+        
+        Returns:
+            A new DataFrame with the same index as the input with the data scaled in the range inserted in input
+        """
         try:
             divisor = self.data_max - self.data_min
             
@@ -169,13 +203,11 @@ class MinMaxScaler(TransformerStep):
 
 
 class StandardScaler(TransformerStep):
-    """Standardize features by removing the mean and scaling to unit variance.
+    """
+    Standardize features by removing the mean and scaling to unit variance.
 
-    Parameters
-    ----------
-    name : Optional[str], optional
-        Name of the step, by default None
-
+    Parameters:
+        name: Name of the step, by default None
     """
 
     def __init__(self, *, name: Optional[str] = None):
@@ -183,7 +215,13 @@ class StandardScaler(TransformerStep):
         self.std = None
         self.mean = None
 
-    def partial_fit(self, df, y=None):
+    def partial_fit(self, df: pd.DataFrame, y=None):
+        """
+        Compute mean and std of the dataset
+
+        Parameters:
+            df: The input dataset
+        """
         if df.shape[0] < 15:
             return self
         partial_data_mean = df.mean()
@@ -196,20 +234,40 @@ class StandardScaler(TransformerStep):
             self.std = pd.concat([self.std, partial_data_std], axis=1).mean(axis=1)
         return self
 
-    def fit(self, df, y=None):
+    def fit(self, df: pd.DataFrame, y=None):
+        """
+        Compute mean and std of the dataset
+
+        Parameters:
+            df: The input dataset
+        """
         self.mean = df.mean()
         self.std = df.std()
         return self
 
     def transform(self, X):
+        """
+        Scale the input dataset
 
+        Parameters:
+            X: The input dataset
+
+        Returns:
+            A new DataFrame with the same index as the input with the data scaled to have null mean and unit variance
+        """
         return (X - self.mean) / (self.std)
 
 
 class RobustStandardScaler(TransformerStep):
-    """Scale features using statistics that are robust to outliers."""
+    """
+    Scale features using statistics that are robust to outliers.
 
-    def __init__(self, *, quantile_range=(0.25, 0.75), prefer_partial_fit:bool = False, **kwargs):
+    Parameters:
+        quantile_range: Desired quantile range of transformed data, by defualt (0.25,0.75)
+        name: Name of the step, by default None
+    """
+
+    def __init__(self, *, quantile_range: tuple=(0.25, 0.75), prefer_partial_fit:bool = False, **kwargs):
         super().__init__( **kwargs,prefer_partial_fit=prefer_partial_fit)
         self.quantile_range = quantile_range
         self.quantile_estimator = QuantileComputer()
@@ -217,18 +275,11 @@ class RobustStandardScaler(TransformerStep):
         self.median = None
 
     def fit(self, X: pd.DataFrame, y=None):
-        """Compute the mean of the dataset
+        """
+        Compute the mean of the dataset
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            the input dataset
-
-
-        Returns
-        -------
-        MeanCentering
-            self
+        Parameters:
+        X: the input dataset   
         """
         Q1 = X.quantile(self.quantile_range[0])
         Q3 = X.quantile(self.quantile_range[1])
@@ -236,17 +287,11 @@ class RobustStandardScaler(TransformerStep):
         self.median = X.median()
 
     def partial_fit(self, X: pd.DataFrame, y=None):
-        """Compute incrementally the mean of the dataset
+        """
+        Compute incrementally the mean of the dataset
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            the input life
-
-        Returns
-        -------
-        MeanCentering
-            self
+        Parameters:
+        X: the input dataset   
         """
         if X.shape[0] < 2:
             return self
@@ -264,18 +309,15 @@ class RobustStandardScaler(TransformerStep):
         self.median = self.quantile_estimator.quantile(0.5)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Center the input life
+        """
+        Center the input life
 
-        Parameters
-        ----------
-        X : pd.DataFrame
+        Parameters:
+        X: pd.DataFrame
             The input life
 
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with the same index as the input with the
-            data centered with respect to the mean of the fiited dataset
+        Returns:
+            A new DataFrame with the same index as the input with the data centered with respect to the mean of the fiited dataset
         """
         if self.IQR is None:
             self._compute_quantiles()
@@ -284,13 +326,10 @@ class RobustStandardScaler(TransformerStep):
 
 class ScaleInvRUL(TransformerStep):
     """
-    Scale binary columns according the inverse of the RUL.
-    Usually this will be used before a CumSum transformation
+    Scale binary columns according to the inverse of the RUL.Usually this will be used before a CumSum transformation
 
-    Parameters
-    ----------
-    rul_column: str
-                Column with the RUL
+    Parameters:
+        rul_column: Column with the RUL
     """
 
     def __init__(self, *,rul_column: str, name: Optional[str] = None):
@@ -301,6 +340,12 @@ class ScaleInvRUL(TransformerStep):
         self.rul_column = None
 
     def partial_fit(self, X: pd.DataFrame):
+        """
+        Fit the scaler
+
+        Parameters:
+            X: The input dataset
+        """
         if self.rul_column is None:
             self.rul_column = self.column_name(X, self.rul_column_in)
         columns = [c for c in X.columns if c != self.rul_column]
@@ -322,7 +367,16 @@ class ScaleInvRUL(TransformerStep):
 
             self.penalty[k] = 1 / np.median(self.RUL_list_per_column[k])
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Scale the input dataset
+
+        Parameters:
+            X: The input dataset
+        
+        Returns:
+            A new DataFrame with the same index as the input with the data scaled with respect to the RUL
+        """
         columns = [c for c in X.columns if c != self.rul_column]
         X_new = pd.DataFrame(index=X.index)
         for c in columns:
@@ -332,24 +386,19 @@ class ScaleInvRUL(TransformerStep):
 
 
 class PerCategoricalMinMaxScaler(TransformerStep):
-    """Performs a minmax scaler partition the data trough some categorical feature
+    """
+    Performs a minmax scaler partition of the data trough some categorical feature
 
     Usually, different execution configurations lead to different scales in the features.
     Therefore, sometimes it is useful to scale the data based on a categorical feature,
     to reflect the difference in the execution parameters.
 
-    Parameters
-    ----------
-    categorical_feature: str
-        The name of the categorical feature whose values are going to be used
-        to split each time-series
-    scaler: Optional[Union[MinMaxScaler,RobustMinMaxScaler]], default MinMaxScaler
-        The scale to use when scaling the data
-    scaler_params: dict
-        Parameters used when constructing the scaler
-    name: Optional[str]
-        Name of the transformer
-
+    Parameters:
+        categorical_feature: str
+            The name of the categorical feature whose values are going to be used to split each time-series
+        scaler: The scaler to use when scaling the data, by default MinMaxScaler
+        scaler_params: Parameters used when constructing the scaler, by default {}
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -368,7 +417,13 @@ class PerCategoricalMinMaxScaler(TransformerStep):
 
         self.scalers = {"default": self.scaler(**self.scaler_params)}
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X: pd.DataFrame, y=None):
+        """
+        Fit the scaler
+
+        Parameters:
+            X: The input dataset
+        """
         if self.categorical_feature_name is None:
             self.categorical_feature_name = self.find_feature(
                 X, self.categorical_feature
@@ -381,7 +436,15 @@ class PerCategoricalMinMaxScaler(TransformerStep):
             self.scalers["default"].partial_fit(data)
 
     def transform(self, X: pd.DataFrame):
+        """
+        Scale the input dataset using the appropriate scaler for each category
 
+        Parameters:
+            X: The input dataset
+        
+        Returns:
+            A new DataFrame with the same index as the input with the data scaled with respect to the categorical feature
+        """
         X_new = X.drop(columns=[self.categorical_feature_name])
 
         for category, data in X.groupby(self.categorical_feature_name):
