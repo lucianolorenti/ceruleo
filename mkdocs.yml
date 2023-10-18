@@ -70,6 +70,7 @@ nav:
         - Rolling Windows: transformation/features/rolling_windows.md
         - Operations: transformation/features/operations.md
         - Global Transformations: transformation/features/transformation.md
+        - Hurst Exponent Estimator: transformation/features/hurst.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
