@@ -66,7 +66,7 @@ class MedianCentering(TransformerStep):
         Compute the median of the dataset
 
         Parameters:
-        X: The input dataset
+            X: The input dataset
         """
         self.median = X.median()
 
@@ -167,13 +167,10 @@ class Scale(TransformerStep):
 class ExpandingCentering(TransformerStep):
     """
     Center the life using an expanding window
-
-    .. highlight:: python
-    .. code-block:: python
-
-        X - X.expanding().mean()
-
     """
+
+    #.. raw:: html
+    #<p>Formula: \(X - X.expanding().mean())</p>
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -192,12 +189,11 @@ class RollingCentering(TransformerStep):
     """
     Center the life using an rolling window
 
-    .. highlight:: python
-    .. code-block:: python
-
-        X - X.rolling().mean()
-
     """
+
+    #.. highlight:: python
+    #.. code-block:: python
+    #(X - X.rolling().mean())
 
     def __init__(self, window: int, min_points: int, name: Optional[str] = None):
         super().__init__(name=name)
@@ -219,13 +215,13 @@ class RollingCentering(TransformerStep):
 
 class ExpandingNormalization(TransformerStep):
     """Normalize the life features using an expanding window
-
-    .. highlight:: python
-    .. code-block:: python
-
-        (X - X.expanding().mean()) / (X.expanding().std())
-
     """
+
+    #.. highlight:: python
+    #.. code-block:: python
+
+    #(X - X.expanding().mean()) / (X.expanding().std())
+
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -247,7 +243,7 @@ class Accumulate(TransformerStep):
     This is useful to compute the count of binary features.
 
     Parameters:
-        normalize: https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6621413
+        normalize: Weather to apply the normalization or not, by default False
     """ 
 
     def __init__(self, normalize: bool = False, *args):
