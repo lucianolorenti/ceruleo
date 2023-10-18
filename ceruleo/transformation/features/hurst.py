@@ -29,10 +29,10 @@ def hurst_rs(x: np.array, min_chunksize: int, max_chunksize: int, num_chunksize:
         
     References
     ----------
-    Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
-    Transactions, 116(776), 770-808.
-    Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
-    197. http://dx.doi.org/10.1140/epjb/e20020150
+        Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
+        Transactions, 116(776), 770-808.
+        Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
+        197. http://dx.doi.org/10.1140/epjb/e20020150
     """
     N = len(x)
     max_chunksize += 1
@@ -74,7 +74,7 @@ def hurst_rs(x: np.array, min_chunksize: int, max_chunksize: int, num_chunksize:
     out[0] = H
 
 
-def hurst_dma(prices: np.array, min_chunksize: int=8, max_chunksize=200, num_chunksize=5) -> float:
+def hurst_dma(prices: np.array, min_chunksize: int=8, max_chunksize: int=200, num_chunksize: int=5) -> float:
     """
     Estimate the Hurst exponent using the DMA method.
 
@@ -99,8 +99,8 @@ def hurst_dma(prices: np.array, min_chunksize: int=8, max_chunksize=200, num_chu
 
     References
     ----------
-    Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
-    197. http://dx.doi.org/10.1140/epjb/e20020150
+        Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
+        197. http://dx.doi.org/10.1140/epjb/e20020150
 
     """
     max_chunksize += 1
@@ -137,12 +137,14 @@ def hurst_dsod(x: np.array) -> float:
     Returns:
        Estimation of the Hurst exponent for the given time series.
     
-    References:
+    References
+    ----------
         Istas, J.; G. Lang (1994), “Quadratic variations and estimation of the local
         Hölder index of data Gaussian process,” Ann. Inst. Poincaré, 33, pp. 407–436.
 
 
-    Notes:
+    Notes
+    ----------
         This hurst_ets is data literal traduction of wfbmesti.m of waveleet toolbox from matlab.
     """
     y = np.cumsum(np.diff(x, axis=0), axis=0)
@@ -185,7 +187,8 @@ def hurst_exponent(prices: Option[np.ndarray, pd.Series, pd.DataFrame], min_chun
         Estimation of hurst_exponent according to the method selected.
         
 
-    References:
+    References
+    ----------
         RS: Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
             Transactions, 116(776), 770-808.
         DMA: Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002)
@@ -194,12 +197,14 @@ def hurst_exponent(prices: Option[np.ndarray, pd.Series, pd.DataFrame], min_chun
             the local Hölder index of data Gaussian process,” Ann. Inst. Poincaré,
             33, pp. 407–436.
 
-    Notes:
+    Notes
+    ----------
         The hurst exponent is an estimation which is important because there is no
         data closed equation for it instead we have some methods to estimate it with
         high variations among them.
 
-    See Also:
+    See Also
+    ----------
         hurst_rs, hurst_dma, hurst_dsod
     """
     if len(prices) == 0:
