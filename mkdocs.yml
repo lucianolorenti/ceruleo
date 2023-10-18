@@ -67,6 +67,8 @@ nav:
         - Scalers: transformation/features/scalers.md
         - Slicing: transformation/features/slicing.md
         - Split: transformation/features/split.md
+        - Rolling Windows: transformation/features/rolling_windows.md
+        - Operations: transformation/features/operations.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
