@@ -69,6 +69,7 @@ nav:
         - Split: transformation/features/split.md
         - Rolling Windows: transformation/features/rolling_windows.md
         - Operations: transformation/features/operations.md
+        - Global Transformations: transformation/features/transformation.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
