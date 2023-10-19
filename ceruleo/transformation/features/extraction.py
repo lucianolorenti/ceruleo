@@ -618,7 +618,7 @@ class ExpandingStatistics(TransformerStep):
     def __init__(
         self,
         *,
-        min_points=2,
+        min_points: int=2,
         to_compute: List[str] = None,
         specific: Optional[Dict[str, List[str]]] = None,
         name: Optional[str] = None,
