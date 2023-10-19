@@ -226,12 +226,15 @@ class SimpleEncodingCategorical(TransformerStep):
 
         return self
 
-    def fit(self, X: pd.DataFrame, y=None):
+    def fit(self, X: pd.DataFrame, y=None) -> Self:
         """
         Compute the set of possible categories
 
         Parameters:
             X: The input life
+        
+        Returns:
+            Instance of class SimpleEncodingCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]
