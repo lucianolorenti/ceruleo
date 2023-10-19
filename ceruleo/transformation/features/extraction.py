@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Self
 
 import emd
 import mmh3
@@ -210,11 +210,14 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X: pd.DataFrame, y=None):
+    def partial_fit(self, X: pd.DataFrame, y=None) -> Self:
         """Compute incrementally the set of possible categories
 
         Parameters:
             X: The input life
+
+        Returns:
+            Instance of class SimpleEncodingCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]
@@ -228,7 +231,7 @@ class SimpleEncodingCategorical(TransformerStep):
         Compute the set of possible categories
 
         Parameters:
-        X: The input life
+            X: The input life
         """
         if self.feature is None:
             self.feature = X.columns[0]
@@ -236,7 +239,7 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories.update(set(X[self.feature].unique()))
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         """Return a new DataFrame with the feature  encoded with integer numbers
 
         Parameters:
