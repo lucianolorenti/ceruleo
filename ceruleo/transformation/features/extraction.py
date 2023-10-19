@@ -169,7 +169,7 @@ class HashingEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def transform(self, X: pd.DataFrame, y: Opitional[type]=None) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame, y: Optional[type]=None) -> pd.DataFrame:
         """
         Return a new DataFrame with the feature  encoded with integer numbers
 
@@ -210,14 +210,11 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X: pd.DataFrame, y=None) -> SimpleEncodingCategorical:
+    def partial_fit(self, X: pd.DataFrame, y=None):
         """Compute incrementally the set of possible categories
 
         Parameters:
             X: The input life
-
-        Returns:
-            SimpleEncodingCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]
@@ -226,14 +223,12 @@ class SimpleEncodingCategorical(TransformerStep):
 
         return self
 
-    def fit(self, X: pd.DataFrame, y=None) -> OneHotCategorical:
-        """Compute the set of possible categories
+    def fit(self, X: pd.DataFrame, y=None):
+        """
+        Compute the set of possible categories
 
         Parameters:
         X: The input life
-
-        Returns:
-            OneHotCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]

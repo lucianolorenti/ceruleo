@@ -1,7 +1,8 @@
 import numpy as np 
+from typing import Callable
 
 # Window len = L, Stride len/stepsize = S
-def _strided_app(a: np.array, L: int, S: int):  
+def _strided_app(a: np.array, L: int, S: int) -> np.array:  
     """
     Returns an array that is strided
 
@@ -24,7 +25,7 @@ def _strided_app(a: np.array, L: int, S: int):
     return l
     
 
-def apply_rolling_data(values : np.ndarray, function: fun, window: int, step: int =1) -> np.array:
+def apply_rolling_data(values : np.ndarray, function: Callable[[np.ndarray], np.ndarray], window: int, step: int =1) -> np.array:
     """
     Perform a rolling window analysis at the column `col` from `data`
 

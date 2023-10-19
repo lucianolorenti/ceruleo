@@ -163,7 +163,7 @@ class PandasVarianceThreshold(TransformerStep):
         self.min_variance = min_variance
         self.selected_columns_ = None
 
-    def partial_fit(self, X:pd.Dataframe, y=None):
+    def partial_fit(self, X:pd.DataFrame, y=None):
         """ 
         Find the indexes of the features with variance higher than the threshold
 

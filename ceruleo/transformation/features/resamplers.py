@@ -107,7 +107,7 @@ class IntegerIndexResamplerTransformer(TransformerStep):
         self.steps = steps
         self.drop_time_feature = drop_time_feature
 
-    def partial_fit(self, X: pd.DataFrame) -> IntegerIndexResamplerTransformer:
+    def partial_fit(self, X: pd.DataFrame):
         """
         Obtain the name of the feature used as time
 
