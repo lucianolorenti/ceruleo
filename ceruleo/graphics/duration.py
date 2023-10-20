@@ -40,37 +40,31 @@ def durations_histogram(
 ) ->  matplotlib.axes.Axes:
     """Generate an histogram from the lives durations of the dataset
 
-
     Example:
-
+    '''
         durations_histogram(
             [train_dataset,validation_dataset],
             label=['Train','Validation'],
             xlabel='Unit Cycles',
             units='cycles',
             figsize=(17, 5));
+    '''
 
     Parameters:
-
         datasets: Dataset from which take the lives durations
-        xlabel: Label of the x axis
-        label: Label of each dataset to use as label in the boxplot
-        bins:  Number of bins to compute in the histogram
-        units: Units of time of the lives. Useful to generate labels
-        vlines: Vertical lines to be added to the plot
-
-            Each element of the list should be the x position in the first element of the tuple,
-            and the second elmenet of the tuple should be the label of the line
-        ax: Axis where to draw the plot.
-            If missing a new figure will be created
-        add_mean: Whether to add a vertical line with the mean value
-        add_median: whether to add a vertical line with the median value
-        transform: A function to transform each duration
-        threshold: Includes duration less than the threshold
+        xlabel: Label of the x axis, by default Cycle Duration
+        label: Label of each dataset to use as label in the boxplot, by default 1
+        bins:  Number of bins to compute in the histogram, by default 15
+        units: Units of time of the lives. Useful to generate labels, by default m
+        vlines: Vertical lines to add to the figure in the form [(x_coordinate, label)]
+        ax: Axis where to draw the plot. If missing a new figure will be created
+        add_mean: Whether to add a vertical line with the mean value, by default True
+        add_median: whether to add a vertical line with the median value, by default True
+        transform: A function to transform each duration, by default identity transform
+        threshold: Includes duration less than the threshold, by default np.inf
 
     Returns:
-
-        ax: The axis in which the histogram was created
+        The axis in which the histogram was created
 
     """
     if isinstance(datasets, list):
@@ -114,30 +108,7 @@ def histogram_from_durations(
     alpha=1.0,
     **kwargs,
 ) ->  matplotlib.axes.Axes:
-    """Generate an histogram from the lives durations
-
-    Parameters:
-
-        durations: Duration of each run-to-failure cycle
-        xlabel: Label of the x axis
-        label: Label of each dataset to use as label in the boxplot
-        bins:  Number of bins to compute in the histogram
-        units: Units of time of the lives. Useful to generate labels
-        vlines: Vertical lines to be added to the plot
-
-            Each element of the list should be the x position in the first element of the tuple,
-            and the second elmenet of the tuple should be the label of the line
-        ax: Axis where to draw the plot.
-            If missing a new figure will be created
-        add_mean: Whether to add a vertical line with the mean value
-        add_median: whether to add a vertical line with the median value
-        transform: A function to transform each duration
-        threshold: Includes duration less than the threshold
-
-    Returns:
-
-        ax: The axis in which the histogram was created
-    """
+    
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
@@ -193,24 +164,17 @@ def durations_boxplot(
             figsize=(17, 5))
 
     Parameters:
-
         datasets: Dataset from which take the lives durations
         xlabel:  Label of each dataset to use as label in the boxplot
         ylabel: Label of the y axis
-        ax: Axis where to draw the plot.
-            If missing a new figure will be created
-        hlines: Horizontal lines to be added to the plot
-
-            Each element of the list should be the y position in the first element of the tuple,
-            and the second element of the tuple should be the label of the line
+        ax: Axis where to draw the plot.If missing a new figure will be created
+        hlines: Horizontal lines to add to the figure in the form [(y_coordinate, label)]
         units: Units of time of the lives. Useful to generate labels
         transform: A function to transform each duration
         maxy: Maximum y value of the plot
 
-
     Returns:
-
-        ax: Axis where plot has been drawn
+        Axis where plot has been drawn
     """
     if isinstance(datasets, list):
         assert isinstance(xlabel, list)
@@ -245,23 +209,7 @@ def boxplot_from_durations(
     maxy: Optional[float] = None,
     **kwargs,
 )->  matplotlib.axes.Axes:
-    """Generate an histogram from a list of durations
-
-    Parameters:
-
-        durations: Durations of run-to-cycle-failure
-        xlabel: Label of each dataset to use as label in the boxplot
-        ylabel: Label of the y axis
-        ax: Axes where the figure will be plotted
-        hlines: Horizontal lines to add to the figure in the form
-            [(y_coordinate, label)]
-        units: Units of the y axis
-        maxy: Maximum y-axis value
-
-    Returns:
-        ax: Axes where the figure has been drawn
-
-    """
+    
     if isinstance(durations[0], list):
         assert isinstance(xlabel, list)
         assert len(durations) == len(xlabel)
