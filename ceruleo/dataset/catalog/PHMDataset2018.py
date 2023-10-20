@@ -75,11 +75,10 @@ class FailureType(Enum):
 
     Possible values are
 
-    ```py
+    ```python
     FailureType.FlowCoolPressureDroppedBelowLimit
     FailureType.FlowcoolPressureTooHighCheckFlowcoolPump
     FailureType.FlowcoolLeak
-    ```
 
     """
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
@@ -105,14 +104,11 @@ def merge_data_with_faults(
     """Merge the raw sensor data with the fault information
 
     Parameters:
-
         data_file: Path where the raw sensor data is located
         fault_data_file: Path where the fault information is located
 
     Returns:
-
-        df: Dataframe indexed by time with the raw sensors and faults
-            The dataframe contains also a fault_number column
+        A Dataframe indexed by time with the raw sensors and faults. The dataframe contains also a fault_number column
     """
     data = pd.read_csv(data_file).set_index("time")
 
@@ -180,18 +176,14 @@ class PHMDataset2018(AbstractLivesDataset):
     [Dataset reference](https://phmsociety.org/conference/annual-conference-of-the-phm-society/annual-conference-of-the-prognostics-and-health-management-society-2018-b/phm-data-challenge-6/)
 
     Example:
- 
-    ```py
+    ```python
     dataset = PHMDataset2018(
        failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
         tools=['01_M02']
     )
     ```
 
-
-    
     Parameters:
-
         failure_types: List of failure types
         tools: List of tools
         path: Path where the dataset is located

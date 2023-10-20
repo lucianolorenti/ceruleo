@@ -142,9 +142,7 @@ class CMAPSS2Dataset(AbstractLivesDataset):
     [Dataset reference](https://data.phmsociety.org/2021-phm-conference-data-challenge/)
 
     Parameters:
-
         train: Wether to obtain the train data provided
-        models: Names of the models
     """
     def __init__(
         self,
