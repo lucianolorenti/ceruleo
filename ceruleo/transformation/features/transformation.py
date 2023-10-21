@@ -31,6 +31,7 @@ class MeanCentering(TransformerStep):
             self
         """
         self.mean = X.mean()
+        return self
 
     def partial_fit(self, X: pd.DataFrame, y=None):
         """Compute incrementally the mean of the dataset
@@ -94,6 +95,7 @@ class MedianCentering(TransformerStep):
             self
         """
         self.median = X.median()
+        return self
 
     def partial_fit(self, X: pd.DataFrame, y=None):
         """Compute incrementally the mean of the dataset
@@ -192,8 +194,8 @@ class Scale(TransformerStep):
         Name of the step, by default None
     """
 
-    def __init__(self, scale_factor: float, name: Optional[str] = None):
-        super().__init__(name)
+    def __init__(self, *, scale_factor: float, name: Optional[str] = None):
+        super().__init__(name=name)
         self.scale_factor = scale_factor
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -249,7 +251,7 @@ class RollingCentering(TransformerStep):
 
     """
 
-    def __init__(self, window: int, min_points: int, name: Optional[str] = None):
+    def __init__(self, *,  window: int, min_points: int, name: Optional[str] = None):
         super().__init__(name=name)
         self.window = window
         self.min_points = min_points
@@ -309,8 +311,8 @@ class Accumulate(TransformerStep):
         https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6621413
     """
 
-    def __init__(self, normalize: bool = False, *args):
-        super().__init__(*args)
+    def __init__(self, *, normalize: bool = False,  name: Optional[str] = None):
+        super().__init__(name=name)
         self.normalize = normalize
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -379,8 +381,8 @@ class StringConcatenate(TransformerStep):
 class Apply(TransformerStep):
     """Apply the function element-wise"""
 
-    def __init__(self, fun, *args):
-        super().__init__(*args)
+    def __init__(self, *, fun, name: Optional[str] = None):
+        super().__init__(name=name)
         self.fun = fun
 
     def transform(self, X):
@@ -432,13 +434,16 @@ class SubstractLinebase(TransformerStep):
 class Peaks(TransformerStep):
     """Peaks"""
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    distance: float
+
+    def __init__(self, *, distance:float, name : Optional[str] = None):
+        super().__init__(name=name)
+        self.distance = distance
 
     def transform(self, X):
         new_X = pd.DataFrame(np.zeros(X.shape), index=X.index, columns=X.columns)
         for i, c in enumerate(X.columns):
-            peaks_positions, _ = find_peaks(X[c].values, distance=50)
+            peaks_positions, _ = find_peaks(X[c].values, distance=self.distance)
             new_X.iloc[peaks_positions, i] = 1
 
         return new_X
