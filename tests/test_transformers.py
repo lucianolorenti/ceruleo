@@ -6,31 +6,26 @@ import pytest
 import scipy.stats
 
 from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.iterators.iterators import RelativeToEnd, RelativeToStart
 from ceruleo.transformation.features.entropy import LocalEntropyMeasures
 from ceruleo.transformation.features.extraction import (
-    EMD,
-    ChangesDetector,
-    Difference,
-    ExpandingStatistics,
-    OneHotCategorical,
-    RollingStatistics,
-    SimpleEncodingCategorical,
-    SlidingNonOverlappingEMD,
-)
+    EMD, ChangesDetector, Difference, ExpandingStatistics, OneHotCategorical,
+    RollingStatistics, SimpleEncodingCategorical, SlidingNonOverlappingEMD)
 from ceruleo.transformation.features.outliers import (
-    EWMAOutOfRange,
-    IQROutlierRemover,
-    IsolationForestOutlierRemover,
-    ZScoreOutlierRemover,
-)
-from ceruleo.transformation.features.resamplers import IntegerIndexResamplerTransformer
-from ceruleo.transformation.features.selection import (
-    ByNameFeatureSelector,
-    NullProportionSelector,
-)
-from ceruleo.transformation.features.transformation import Accumulate
+    EWMAOutOfRange, IQROutlierRemover, IsolationForestOutlierRemover,
+    ZScoreOutlierRemover)
+from ceruleo.transformation.features.resamplers import \
+    IntegerIndexResamplerTransformer
+from ceruleo.transformation.features.selection import (ByNameFeatureSelector,
+                                                       NullProportionSelector)
+from ceruleo.transformation.features.slicing import SliceRows
+from ceruleo.transformation.features.transformation import (
+    Accumulate, Apply, Clip, Diff, ExpandingCentering, ExpandingNormalization, MeanCentering,
+    MedianCentering, Peaks, RollingCentering, Scale, Sqrt, Square, StringConcatenate, SubstractLinebase)
 from ceruleo.transformation.functional.pipeline.pipeline import Pipeline
-from ceruleo.transformation.utils import QuantileEstimator
+from ceruleo.transformation.utils import (IdentityTransformerStep,
+                                          PandasToNumpy, QuantileEstimator,
+                                          TransformerLambda)
 
 
 def manual_expanding(df: pd.DataFrame, min_points: int = 1):
@@ -717,3 +712,130 @@ class TestResamplers:
         resampler.partial_fit(A)
         q = resampler.transform(A)
         assert np.sum(q["B"] - np.array([0, 4, 8])) < 0.000005
+
+
+def test_utils():
+
+    input = pd.DataFrame({"a": [1, 2, 3]})
+    out = PandasToNumpy().fit_transform(input)
+    assert isinstance(out, np.ndarray)
+    assert out.shape == (3, 1)
+
+    out = TransformerLambda(callback=lambda x: x*2).fit_transform(input)
+    assert out["a"].tolist() == [2, 4, 6]
+
+    out = IdentityTransformerStep().fit_transform(input)
+    assert out["a"].tolist() == [1, 2, 3]
+
+    out = IdentityTransformerStep().fit_transform(input.values)
+    assert out.tolist() == [[1], [2], [3]]
+
+
+def test_transformation():
+    input = pd.DataFrame({"a": [5, 10, 15]})
+    out = MeanCentering().fit_transform(input)
+    assert out["a"].tolist() == [-5, 0, 5]
+
+    out = MedianCentering().fit_transform(input)
+    assert out["a"].tolist() == [-5, 0, 5]
+
+    input1 = pd.DataFrame({"a": np.random.randn(200)*5 + 50})
+    input2 = pd.DataFrame({"a": np.random.randn(200)*15 + 50})
+
+    
+    centering = (MedianCentering()
+            .partial_fit(input1)
+            .partial_fit(input2)
+    )
+    
+    assert np.abs(centering.median["a"] - 50 ) < 1
+    out = centering.transform(input1)
+    assert out.equals(input1 - centering.median)
+
+    centering = (MedianCentering()
+            .partial_fit(pd.DataFrame({"a": np.random.randn(1)*5 + 50}))
+    )
+    assert centering.median is None
+
+    square = Square()
+    out = square.fit_transform(input)
+    assert out["a"].tolist() == [25, 100, 225]
+
+    scaler = Scale(scale_factor=2)
+    out = scaler.fit_transform(input)
+    assert out["a"].tolist() == [10, 20, 30]
+    
+    
+    expanding_centering = ExpandingCentering()
+    out = expanding_centering.fit_transform(input1)
+    assert out.equals(input1 - input1.expanding().mean())
+
+    input = pd.DataFrame({"a": np.random.randn(200)*5 + 50})
+    rolling_centering = RollingCentering(window=5, min_points=1)
+    out = rolling_centering.fit_transform(input)
+    assert out.equals(input - input.rolling(window=5, min_periods=1).mean())
+
+    input = pd.DataFrame({"a": np.random.randn(200)*5 + 50})
+    sqrt = Sqrt()
+    out = sqrt.fit_transform(input)
+    assert out["a"].tolist() == np.sqrt(input["a"]).tolist()
+
+    expanding_normalization = ExpandingNormalization()
+    out = expanding_normalization.fit_transform(input)
+    assert out.equals((input - input.expanding().mean()) / (input.expanding().std()))
+
+    accumulate = Accumulate()
+    out = accumulate.fit_transform(input)
+    assert out.equals(input.cumsum())
+
+    accumulate = Accumulate(normalize=True)
+    out = accumulate.fit_transform(input)
+    cummulated = input.cumsum()
+    assert out.equals(cummulated / cummulated.abs().apply(np.sqrt))
+
+    peaks = Peaks(distance=3)
+    input = pd.DataFrame({"a": np.cos(np.arange(-np.pi, 3*np.pi, np.pi/4))})
+    out = peaks.fit_transform(input)
+    assert out["a"].sum() == 2
+    assert out["a"].iloc[4] == 1
+    assert out["a"].iloc[12] == 1
+
+    clip = Clip(lower=0, upper=1)
+    input = pd.DataFrame({"a": np.linspace(-1, 2, 10)})
+    out = clip.fit_transform(input)
+    assert out["a"].min() == 0
+    assert out["a"].max() == 1
+
+    substract_linebase = SubstractLinebase()
+    input = pd.DataFrame({"a": np.linspace(5, 10, 10)})
+    out = substract_linebase.fit_transform(input)
+    assert out["a"].min() == 0
+    assert out["a"].max() == 5
+
+    diff = Diff()
+    input = pd.DataFrame({"a": np.linspace(5, 10, 10)})
+    out = diff.fit_transform(input)
+    assert out.equals(input.diff())
+
+    apply = Apply(fun=lambda x: x**2)
+    input = pd.DataFrame({"a": np.linspace(5, 10, 10)})
+    out = apply.fit_transform(input)
+    assert out.equals(input.apply(lambda x: x**2))
+
+    string_concat = StringConcatenate()
+    input = pd.DataFrame({"a": ["a", "b", "c"],
+                          "b": ["d", "e", "f"]})
+    out = string_concat.fit_transform(input)
+    assert out["concatenation"].tolist() == ["a-d", "b-e", "c-f"]
+    
+
+
+
+def test_slicing():
+    slicer = SliceRows(
+        initial = RelativeToStart(5),
+        final = RelativeToEnd(5),
+    )
+    input = pd.DataFrame({"a": np.linspace(5, 10, 10)})
+    out = slicer.fit_transform(input)
+    assert out.equals(input.iloc[5:-5])

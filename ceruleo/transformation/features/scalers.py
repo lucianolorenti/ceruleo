@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from ceruleo.transformation import TransformerStep
 from ceruleo.transformation.features.tdigest import TDigest
-from ceruleo.transformation.utils import QuantileComputer, QuantileEstimator
+from ceruleo.transformation.utils import  QuantileEstimator
 
 
 class RobustMinMaxScaler(TransformerStep):
@@ -212,7 +212,7 @@ class RobustStandardScaler(TransformerStep):
     def __init__(self, *, quantile_range=(0.25, 0.75), prefer_partial_fit:bool = False, **kwargs):
         super().__init__( **kwargs,prefer_partial_fit=prefer_partial_fit)
         self.quantile_range = quantile_range
-        self.quantile_estimator = QuantileComputer()
+        self.quantile_estimator = QuantileEstimator()
         self.IQR = None
         self.median = None
 
