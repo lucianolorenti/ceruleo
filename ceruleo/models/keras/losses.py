@@ -6,8 +6,13 @@ import tensorflow.keras.backend as K
 from tensorflow.python.keras.losses import LossFunctionWrapper
 
 
-def root_mean_squared_error(y_true, y_pred):
-    """Root mean squared error"""
+def root_mean_squared_error(y_true: np.array, y_pred: np.array) -> float:
+    """Root mean squared error
+
+    Parameters:
+            y_true: True RUL values
+            y_pred: Predicted RUL values
+    """
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=0))
 
 
@@ -22,8 +27,9 @@ def asymmetric_loss_pm(
     alpha_r,
     gamma_r,
     relative_weight: bool = True,
-):
-    """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
+) -> float:
+    """
+    Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
 
 
     Ehrig, L., Atzberger, D., Hagedorn, B., Klimke, J., & Döllner, J. (2020, October).
@@ -34,7 +40,6 @@ def asymmetric_loss_pm(
     [Reference](https://ieeexplore.ieee.org/document/9287246)
 
     Parameters:
-
         y_true: True RUL values
         y_pred: Predicted RUL values
         theta_l: Linear to exponential change point for overpredictions (Positive)
@@ -46,7 +51,6 @@ def asymmetric_loss_pm(
         relative_weight: Wether to use weigthing relative to the RUL
 
     Returns:
-
         l: the loss computed
     """
 
@@ -82,9 +86,9 @@ def asymmetric_loss_pm(
     return a
 
 
-
 class AsymmetricLossPM(LossFunctionWrapper):
-    """Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
+    """
+    Customizable Asymmetric Loss Functions for Machine Learning-based Predictive Maintenance
 
 
     Ehrig, L., Atzberger, D., Hagedorn, B., Klimke, J., & Döllner, J. (2020, October).
@@ -130,15 +134,14 @@ class AsymmetricLossPM(LossFunctionWrapper):
 
 
 def relative_mae(C: float = 0.9):
-    """MAE weighted by the relative error
+    """
+    MAE weighted by the relative error
 
     Parameters:
-
         C: Minimal value for the RUL
 
     Returns:
-
-        callable: The loss function
+        The loss function
     """
     mae = tf.keras.losses.MeanAbsoluteError()
 
@@ -153,15 +156,14 @@ def relative_mae(C: float = 0.9):
 
 
 def relative_mse(C: float = 0.9):
-    """MSE weighted by the relative error
+    """
+    MSE weighted by the relative error
 
     Parameters:
-
         C: Minimal value for the RUL
 
     Returns:
-
-        callable: The loss function
+        The loss function
     """
     mse = tf.keras.losses.MeanSquaredError()
 
@@ -173,4 +175,3 @@ def relative_mse(C: float = 0.9):
         return mse(y_true, y_pred, sample_weight=sw)
 
     return concrete_relative_mse
-

@@ -19,7 +19,11 @@ from typing import Any, Callable, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 from ceruleo.dataset.transformed import TransformedDataset
-from ceruleo.iterators.sample_weight import AbstractSampleWeights, NotWeighted, SampleWeight
+from ceruleo.iterators.sample_weight import (
+    AbstractSampleWeights,
+    NotWeighted,
+    SampleWeight,
+)
 from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 from tqdm.auto import tqdm
 import functools
@@ -28,27 +32,27 @@ import functools
 logger = logging.getLogger(__name__)
 
 
-
 def seq_to_seq_signal_generator(
-    signal_X:np.ndarray,
-    signal_Y:np.ndarray,
+    signal_X: np.ndarray,
+    signal_Y: np.ndarray,
     i: int,
     window_size: int,
     output_size: int = 1,
     right_closed: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Generator for sequence to sequence models
+    """
+    Generator for sequence to sequence models
 
     Parameters:
         signal_X: The input signal
         signal_Y: The output signal
         i: Current index
-        window_size: indow size
-        output_size: Output sequence length, by default 1
-        right_closed: Wether the lsat input of the windwo is included or not, by default True
+        window_size: Window size
+        output_size: Output sequence length
+        right_closed: Weather the last input of the window is included or not
 
     Returns:
-        Input and ouput sequences
+        A Tuple with the Input and output sequences
 
     """
     initial = max(i - window_size + 1, 0)
@@ -73,23 +77,22 @@ def windowed_signal_generator(
     window_size: int,
     output_size: int = 1,
     right_closed: bool = True,
-):
+) -> Tuple[np.ndarray, float]:
     """
     Return a lookback window and the value to predict.
 
     Parameters:
-
         data: Matrix of size (life_length, n_features) with the information of the life
         target: Target feature of size (life_length)
         i: Position of the value to predict
         window_size: Size of the lookback window
         output_size: Number of points of the target
-        right_closed: Wether the las sample of the window should be included or not
+        right_closed: Wether the last sample of the window should be included or not
 
 
     Returns:
+        A tuple containing the lookback window and the value to predict.
 
-        tuple (np.array, float)
     """
     initial = max(i - window_size + 1, 0)
     is_df = isinstance(data, pd.DataFrame)
@@ -110,19 +113,19 @@ def windowed_signal_generator(
         signal_y_1 = np.expand_dims(signal_y_1, axis=1)
     else:
         if is_df:
-            signal_y_1 = target.iloc[i : min(i + output_size, target.shape[0]), :].values
+            signal_y_1 = target.iloc[
+                i : min(i + output_size, target.shape[0]), :
+            ].values
         else:
             signal_y_1 = target[i : min(i + output_size, target.shape[0]), :]
 
         if signal_y_1.shape[0] < output_size:
-
             padding = np.zeros(
                 ((output_size - signal_y_1.shape[0]), signal_y_1.shape[1])
             )
             signal_y_1 = np.concatenate((signal_y_1, padding), axis=0)
 
     if signal_X_1.shape[0] < window_size:
-
         signal_X_1 = np.vstack(
             (
                 np.zeros((window_size - signal_X_1.shape[0], signal_X_1.shape[1])),
@@ -134,23 +137,16 @@ def windowed_signal_generator(
 
 
 class IterationType(Enum):
-    """Iteration type
-    
-    Possible values are
-
-    - SEQ_TO_SEQ = 1:
-
-        The seq to seq iterator will return as a target a window of a same size 
-        as the input aligned with it
-        
-
-    - FORECAST = 2
-    
-        The forecast iterator produces as target the values of the Y transformers 
-        that start where the X data ends.
-        
-
     """
+    Iteration type
+
+    Possible values are:
+
+    - SEQ_TO_SEQ = 1: The seq to seq iterator will return as a target a window of a same size as the input aligned with it
+    - FORECAST = 2: The forecast iterator produces as target the values of the Y transformers
+        that start where the X data ends.
+    """
+
     SEQ_TO_SEQ = 1
     FORECAST = 2
 
@@ -168,12 +164,12 @@ def valid_sample(
 
 
 class RelativePosition:
-    """Relative position selector base class
-
-    The relative position selectors allow specifying
-    the iteration starts and end relative to the beginning
-    or the end of the run-to-cycle failure
     """
+    Relative position selector base class
+
+    The relative position selectors allow specifying the iteration starts and end relative to the beginning or the end of the run-to-cycle failure
+    """
+
     def __init__(self, i: int):
         self.i = i
 
@@ -183,14 +179,12 @@ class RelativePosition:
 
 
 class RelativeToEnd(RelativePosition):
-    """Specify positions relative to the end of the run-to-failure cycle
+    """
+    Specify positions relative to the end of the run-to-failure cycle
 
     Example:
-
-        An iterator that iterate each run-to-failure cycle starting
-        in the last 500 samples of each cycle.
-
-        ``` py
+        An iterator that iterates each run-to-failure cycle starting in the last 500 samples of each cycle.
+        ```
         iterator = WindowedDatasetIterator(
                 transformed_ds,
                 window_size=3,
@@ -199,20 +193,18 @@ class RelativeToEnd(RelativePosition):
                 horizon=1)
         ```
     """
+
     def get(self, time_series_length: int):
         return max(time_series_length - self.i, 0)
 
 
-
 class RelativeToStart(RelativePosition):
-    """Specify positions relative to the start of the run-to-failure cycle
+    """
+    Specify positions relative to the start of the run-to-failure cycle
 
     Example:
-
-        An iterator that iterate each run-to-failure cycle skipping the first
-        200 samples of each cycle.
-
-        ``` py
+        An iterator that iterate each run-to-failure cycle skipping the first 200 samples of each cycle.
+        ```
         iterator = WindowedDatasetIterator(
                 transformed_ds,
                 window_size=3,
@@ -221,36 +213,31 @@ class RelativeToStart(RelativePosition):
                 horizon=1)
         ```
     """
+
     def get(self, time_series_length: int):
         return self.i
 
 
 class WindowedDatasetIterator:
-    """Iterate a dataset using windows
+    """
+    Iterate a dataset using windows
 
     Parameters:
-
         dataset: The transformed dataset
         window_size: Size of the lookback window
-        step: Separation between two consecutive size
-            If step == window_size there are not overlapping
-            between two consecutive windows
-        horizon: Horizon to be predicted.
-            If this value is 3, for each window, 3 elements
-            of the target are expected to be predicted
+        step: Separation between two consecutive size. If step == window_size there is no overlapping between two consecutive windows
+        horizon: Horizon to be predicted. If this value is 3, for each window, 3 elements of the target are expected to be predicted
         shuffler: How the data should be shuffled
         sample_weight: Which are the sample weight for each sample
-        right_closed: Wether the last point of the window should be included or not
-        padding: Wether to pad elements if the samples are not enough to fill the window
-            Usually this happens at the beginning of the window
-        iteration_type: Specify its the underlying model its a forecasting in which
-             an scalar is predicted, or a sequence to sequence model similar
-             to an autoencoder 
+        right_closed: Weather the last point of the window should be included or not
+        padding: Wether to pad elements if the samples are not enough to fill the window. Usually this happens at the beginning of the window
+        iteration_type: Specify if the underlying model it's a forecasting model in which a scalar is predicted, or a sequence to sequence model similar to an autoencoder
         start_index: Initial index of each run-tu-failure cycle
         end_index: Final index of each run-to-failure cycle
-        valid_sample: A callable that returns wether a sample is valid or not
-        last_point: Wether to add the last point
+        valid_sample: A callable that returns weather a sample is valid or not
+        last_point: Weather to add the last point
     """
+
     def __init__(
         self,
         dataset: TransformedDataset,
@@ -265,8 +252,7 @@ class WindowedDatasetIterator:
         start_index: Union[int, RelativePosition] = 0,
         end_index: Optional[Union[int, RelativePosition]] = None,
         valid_sample: Callable[[int, int, int, int, int], bool] = valid_sample,
-        last_point: bool = True
-
+        last_point: bool = True,
     ):
         self.last_point = last_point
         if isinstance(start_index, int):
@@ -283,9 +269,6 @@ class WindowedDatasetIterator:
         self.step = step
         self.shuffler.initialize(self)
         self.iteration_type = iteration_type
-
-
-
 
         if self.iteration_type == IterationType.FORECAST:
             self.slicing_function = windowed_signal_generator
@@ -310,14 +293,11 @@ class WindowedDatasetIterator:
             valid_sample, self.padding, self.window_size
         )
 
-
-
     def __len__(self):
         """
         Return the length of the iterator
 
-        If it not was iterated once, it will compute the length by iterating
-        from the entire dataset
+        If it was not iterated once, it will compute the length by iterating from the entire dataset
         """
         if self.length is None:
             self.length = sum(1 for _ in self)
@@ -350,16 +330,18 @@ class WindowedDatasetIterator:
         )
         return curr_X, curr_y, [self.sample_weight(y, timestamp, metadata)]
 
-    def get_data(self, flatten: bool = True, show_progress: bool = False):
-        """Obtain a 
+    def get_data(
+        self, flatten: bool = True, show_progress: bool = False
+    ) -> Tuple[np.ndarray, np.array, np.array]:
+        """
+        Obtain data, target and sample weights as numpy arrays.
 
         Parameters:
-        
             flatten: Wether to flatten data
             show_progress: Wether to show progress
 
         Returns:
-            X, y, sw: Data, target and sample weights
+            Data, target and sample weights
         """
         N_points = len(self)
 
@@ -394,23 +376,19 @@ class WindowedDatasetIterator:
 
     @property
     def n_features(self) -> int:
-        """Number of features of the transformed dataset
-        This is a helper method to obtain the transformed
-        dataset information from the WindowedDatasetIterator
-        Returns
-        -------
-        int
+        """Number of features of the transformed dataset. This is a helper method to obtain the transformed dataset information from the WindowedDatasetIterator
+
+        Returns:
             Number of features of the transformed dataset
         """
         return self.dataset.transformer.n_features
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """Tuple containing (window_size, n_features)
+        """
+        Tuple containing (window_size, n_features)
 
-        Returns
-        -------
-        Tuple[int, int]
+        Returns:
             Tuple containing (window_size, n_features)
         """
         return (self.window_size, self.n_features)

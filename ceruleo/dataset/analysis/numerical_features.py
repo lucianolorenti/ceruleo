@@ -14,33 +14,31 @@ from ceruleo.dataset.ts_dataset import AbstractLivesDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
 
 
-def entropy(s: np.ndarray)-> float:
-    """Approximate entropy
+def entropy(s: np.ndarray) -> float:
+    """
+    Approximate entropy
 
     The approximate entropy quantifies the amount of regularity and the unpredictability of fluctuations over time-series data.
 
     Parameters:
-    
         s: A single feature
 
     Returns:
-
-        ae: Approximate entropy of feature s
+        Approximate entropy of feature s
     """
     return ant.app_entropy(s)
 
 
-def correlation(s: np.ndarray, y:Optional[np.ndarray]=None):
-    """Correlation of the feature with the target
+def correlation(s: np.ndarray, y: Optional[np.ndarray] = None) -> float:
+    """
+    Correlation of the feature with the target
 
     Parameters:
-
         s: A single feature
         y: The RUL target
 
     Returns:
-
-        c: Correlation between the feature ant the RUL target
+        Correlation between the feature and the RUL target
     """
     N = s.shape[0]
     if not (s[0] == s).all():
@@ -51,31 +49,29 @@ def correlation(s: np.ndarray, y:Optional[np.ndarray]=None):
     return corr
 
 
-def autocorrelation(s: np.ndarray)-> float:
-    """Autocorrelation of a feature
+def autocorrelation(s: np.ndarray) -> float:
+    """
+    Autocorrelation of a feature
 
     Parameters:
-
         s: A single feature
 
     Returns:
-
-        ac: Autocorrelation of the feature
+        Autocorrelation of the feature
     """
     diff = np.diff(s)
-    return np.sum(diff ** 2) / s.shape[0]
+    return np.sum(diff**2) / s.shape[0]
 
 
 def monotonicity(s: np.ndarray) -> float:
-    """Monotonicity of a feature
+    """
+    Monotonicity of a feature, the two extreme values are 0 if the feature is constant and 1 if it is strictly monotonic.
 
     Parameters:
-
         s: A single feature
 
     Returns:
-    
-        f: Monotonicity of the feature
+        Monotonicity of the feature
     """
     N = s.shape[0]
     diff = np.diff(s)
@@ -83,60 +79,59 @@ def monotonicity(s: np.ndarray) -> float:
 
 
 def n_unique(s: np.ndarray) -> int:
-    """Number of unique values in the array
+    """
+    Number of unique values in the array
 
     Parameters:
-
         s: A single feature
 
     Returns:
-
-        n: Number of unique values
+        Number of unique values
     """
     return len(np.unique(s))
 
+
 def null(s: np.ndarray) -> float:
-    """Null proportion for a given feature
+    """
+    Null proportion for a given feature
 
     Parameters:
         s: A feature
 
     Returns:
-    
-        n: Null proportion
+        Null proportion
     """
     return np.mean(~np.isfinite(s))
 
-def mutual_information(x:np.ndarray, y:np.ndarray):
+
+def mutual_information(x: np.ndarray, y: np.ndarray) -> float:
     """Mutual information between a feature and the target
 
     [Reference](Remaining Useful Life Prediction Using Ranking Mutual Information Based Monotonic Health Indicator)
 
     Parameters:
-    
         x: A single feature
         y: RUL Target
 
-    Returns:    
-        float: Mutual information between x and y
+    Returns:
+        Mutual information between x and y
 
     """
     x = x.reshape(-1, 1)
     x = np.nan_to_num(x)
     return mutual_info_regression(x, y)
 
+
 metrics = {
     "std": lambda x, y: np.std(x),
-    "correlation": lambda x,y: correlation(x, y),
-    "autocorrelation": lambda x,y:autocorrelation(x),
-    "monotonicity": lambda x,y:monotonicity(x),
-    "number_of_unique_elements": lambda x,y:n_unique(x),    
-    'mutual_information': mutual_information,
-    'null': lambda x, y: null(x),
-    'entropy': lambda x, y: entropy(x)
+    "correlation": lambda x, y: correlation(x, y),
+    "autocorrelation": lambda x, y: autocorrelation(x),
+    "monotonicity": lambda x, y: monotonicity(x),
+    "number_of_unique_elements": lambda x, y: n_unique(x),
+    "mutual_information": mutual_information,
+    "null": lambda x, y: null(x),
+    "entropy": lambda x, y: entropy(x),
 }
-
-
 
 
 def analysis_single_time_series(
@@ -146,18 +141,18 @@ def analysis_single_time_series(
     data: Optional[Dict] = None,
     what_to_compute: List[str] = [],
 ) -> dict:
-    """Compute the analysis for a single run-to-failure cycle
+    """
+    Compute the analysis for a single run-to-failure cycle
 
     Parameters:
-
-        X: Features            
+        X: Input Features
         y: RUL Target
         column_names: Column names of the features
         data: Initial data
         what_to_compute: Features to compute
 
     Returns:
-        dict: Computed info
+        Dictionary containing the computed info
     """
 
     if data is None:
@@ -171,12 +166,11 @@ def analysis_single_time_series(
 
             m = metrics[what](x_ts, y)
 
-            
             data[column_name][what].append(m)
     return data
 
 
-def merge_analysis(data: dict):
+def merge_analysis(data: dict) -> pd.DataFrame:
     data_df = defaultdict(lambda: defaultdict(list))
     for column_name in data.keys():
         for what in data[column_name]:
@@ -195,25 +189,26 @@ def analysis(
     show_progress: bool = False,
     what_to_compute: List[str] = [],
 ) -> pd.DataFrame:
-    """Compute analysis of numerical features
+    """
+    Compute analysis of numerical features
 
     Parameters:
-
-        transformed_dataset: A transformed dataset with a features and target
+        dataset: A transformed dataset with features and target
         show_progress: Wether to show the progress when computing the features
-        what_to_compute: Elements available to compute        
-                        - std
-                        - correlation
-                        - autocorrelation,
-                        - monotonicity
-                        - number_of_unique_elements
-                        - mutual_information
-                        - null
-                        - entropy
+        what_to_compute: Elements available to compute:
+
+            - std
+            - Correlation
+            - Autocorrelation
+            - Monotonicity
+            - Number of unique elements
+            - Mutual information
+            - Null
+            - Entropy
+
 
     Returns:
-
-        df: Dataframe with the columns specified by what_to_compute
+        Dataframe with the columns specified by what_to_compute
     """
 
     if len(what_to_compute) == 0:
@@ -229,7 +224,5 @@ def analysis(
         column_names = dataset.numeric_features()
     for X, y in iterate_over_features_and_target(dataset):
         y = np.squeeze(y)
-        data = analysis_single_time_series(
-            X, y, column_names, data, what_to_compute
-        )
+        data = analysis_single_time_series(X, y, column_names, data, what_to_compute)
     return merge_analysis(data)

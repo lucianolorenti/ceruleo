@@ -9,13 +9,11 @@ from ceruleo.dataset.transformed import TransformedDataset
 
 
 class BaselineModel:
-    """Predict the RUL using the mean of the median value of the duration
-       of the dataset
+    """
+    Predict the RUL using the mean or the median value of the duration of the dataset
 
     Parameters:
-
-        mode: Method for computing the duration of the dataset
-              Possible values are: 'mean' and 'median'
+        mode: Method for computing the duration of the dataset. Possible values are: 'mean' and 'median'
     """
 
     def __init__(self, mode: str = "mean", RUL_threshold: Optional[float] = None):
@@ -23,7 +21,8 @@ class BaselineModel:
         self.RUL_threshold = RUL_threshold
 
     def fit(self, ds: Union[TransformedDataset, AbstractLivesDataset]):
-        """Compute the mean or median RUL using the given dataset
+        """
+        Compute the mean or median RUL using the given dataset
 
         Parameters:
             ds:  Dataset from which obtain the true RUL
@@ -42,16 +41,15 @@ class BaselineModel:
         elif self.mode == "median":
             self.fitted_RUL = np.median(true)
 
-    def predict(self, ds: TransformedDataset):
-        """Predict the whole life using the fitted values
+    def predict(self, ds: TransformedDataset) -> np.ndarray:
+        """
+        Predict the whole life using the fitted values
 
         Parameters:
-        
             ds: Dataset iterator from which obtain the true RUL
 
         Returns:
-        
-            d: Predicted target
+            Predicted RUL
         """
         output = []
         for y in iterate_over_target(ds):
@@ -62,10 +60,10 @@ class BaselineModel:
 
 
 class FixedValueBaselineModel:
-    """A model that predicts always  the same duration for each run-to-failure cycle
+    """
+    A model that predicts always  the same duration for each run-to-failure cycle
 
     Parameters:
-
         value: Fixed RUL
     """
 
@@ -75,16 +73,17 @@ class FixedValueBaselineModel:
     def fit(self, *args):
         return self
 
-    def predict(self, ds: TransformedDataset, RUL_threshold: Optional[float] = None):
-        """Predict the whole life using the fixed values
+    def predict(
+        self, ds: TransformedDataset, RUL_threshold: Optional[float] = None
+    ) -> np.ndarray:
+        """
+        Predict the whole life using the fixed values
 
         Parameters:
-
             ds: Dataset iterator from which obtain the true RUL
 
         Returns:
-
-            true_RUL: Predicted target
+            Predicted RUL
         """
         output = []
         for y in iterate_over_target(ds):
