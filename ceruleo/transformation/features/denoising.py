@@ -27,7 +27,7 @@ class SavitzkyGolayTransformer(TransformerStep):
 
         Parameters:
             X: Input life
-            
+
         Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """
@@ -65,12 +65,12 @@ class MeanFilter(TransformerStep):
         self.center = center
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        """ 
+        """
         Return a new dataframe with the features filtered
 
         Parameters:
             X: Input life
-        
+
         Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """
@@ -101,7 +101,7 @@ class MedianFilter(TransformerStep):
 
         Parameters:
             X: Input life
-        
+
         Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """
@@ -116,7 +116,7 @@ class OneDimensionalKMeans(TransformerStep):
 
     Parameters:
         n_clusters: Number of clusters, by default 5
-        
+
     """
 
     def __init__(self, n_clusters: int = 5, name: Optional[str] = None):
@@ -147,7 +147,7 @@ class OneDimensionalKMeans(TransformerStep):
 
         Parameters:
             X: Input life
-            
+
         Returns:
             A new DataFrame with the same index as the input. Each feature is replaced with the clusters of each point
         """
@@ -188,7 +188,7 @@ class MultiDimensionalKMeans(TransformerStep):
 
         Parameters:
             X: Input life
-            
+
         Returns:
             A new DataFrame in which each point was replaced by the centroid it belongs to
         """
@@ -217,7 +217,7 @@ class EWMAFilter(TransformerStep):
 
         Parameters:
             X: Input life
-        
+
         Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """
@@ -251,12 +251,12 @@ class GaussianFilter(TransformerStep):
         self.min_points = min_points
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """ 
+        """
         Return a new dataframe with the features filtered
 
         Parameters:
             X: Input life
-        
+
         Returns:
             A new DatafFrame with the same index as the input with the features filtered
         """

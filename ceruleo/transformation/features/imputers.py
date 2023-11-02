@@ -129,8 +129,9 @@ class NaNtoInf(TransformerStep):
         Returns:
             A dataframe with she same index as the input with the NaN values replaced with inf
         """
-        #return X.replace([np.inf, -np.inf], np.nan)
-        return X.replace(np.nan,np.inf)
+        return X.replace([np.inf, -np.inf], np.nan)
+        #It should be -> X.replace(np.nan,[np.inf, -np.inf])
+        #return X.replace(np.nan,np.inf)
 
 
 class MedianImputer(TransformerStep):

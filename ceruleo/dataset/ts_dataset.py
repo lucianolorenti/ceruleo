@@ -1,18 +1,20 @@
-
 from collections.abc import Iterable
 from re import S
-from typing import Any, List, Tuple, Union, Self
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+
 try:
     import tensorflow as tf
+
     TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
 from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
 from abc import abstractmethod, abstractproperty
+
 
 class DatasetIterator:
     def __init__(self, dataset):
@@ -86,10 +88,12 @@ class AbstractTimeSeriesDataset:
     def __call__(self, i):
         return self[i]
 
-    def get_features_of_life(self, i:int ) -> pd.DataFrame:
+    def get_features_of_life(self, i: int) -> pd.DataFrame:
         return self[i]
 
-    def __getitem__(self, i: Union[int, Iterable]) -> Union[pd.DataFrame, Self]:
+    def __getitem__(
+        self, i: Union[int, Iterable]
+    ) -> Union[pd.DataFrame, "FoldedDataset"]:
         """Obtain a time-series or an splice of the dataset using a FoldedDataset
 
         Parameters:
@@ -164,7 +168,6 @@ class AbstractTimeSeriesDataset:
         )
 
         for i in bar(range(self.n_time_series)):
-
             if proportion_of_lives < 1.0 and np.random.rand() > proportion_of_lives:
                 continue
 
@@ -213,14 +216,16 @@ class AbstractTimeSeriesDataset:
             )
         return self._common_features
 
-    def map(self, transformer: Self, cache_size: int = None) -> Self:
+    def map(
+        self, transformer: "TransformedDataset", cache_size: int = None
+    ) -> "TransformedDataset":
         """
         Apply a transformation to the dataset
 
         Parameters:
             transformer: The transformation to apply
             cache_size: The size of the cache to use, by default None
-        
+
         Returns:
             The transformed dataset as an instance of class TransformedDataset
         """
@@ -232,7 +237,7 @@ class AbstractTimeSeriesDataset:
         """Obtain the list of the common numeric features in the dataset
 
         Parameters:
-            show_progress : Whether to show progress when computing the common features, by default False
+            show_progress: Whether to show progress when computing the common features, by default False
 
         Returns:
             List of columns containing the common numeric features
@@ -250,7 +255,7 @@ class AbstractTimeSeriesDataset:
         """Obtain the list of the common categorical features in the dataset
 
         Parameters:
-            show_progress : Whether to show progress when computing the common features, by default False
+            show_progress: Whether to show progress when computing the common features
 
         Returns:
             List of columns containing the common numeric features
@@ -268,6 +273,7 @@ class FoldedDataset(AbstractTimeSeriesDataset):
     """
     Dataset containing a subset of the time-series. An instanc of this class can be obtained by slicing an AbstractTimeSeriesDataset with a list of indexes
     """
+
     def __init__(self, dataset: AbstractTimeSeriesDataset, indices: list):
         super().__init__()
         self.dataset = dataset
@@ -308,7 +314,7 @@ class FoldedDataset(AbstractTimeSeriesDataset):
 
         Parameters:
             i: Index of the life
-        
+
         Returns:
             The index of the i-th time-series in the original dataset
         """
@@ -353,10 +359,10 @@ class AbstractLivesDataset(AbstractTimeSeriesDataset):
     * `n_time_series(self) -> int`: The property return the total number of lives present in the dataset
     * `rul_column(self) -> str`: The property should return the name of the RUL column
     """
+
     @abstractproperty
     def rul_column(self) -> str:
         raise NotImplementedError
 
     def duration(self, life: pd.DataFrame) -> float:
         return life[self.rul_column].max()
-

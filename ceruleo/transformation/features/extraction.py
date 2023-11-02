@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Dict, List, Optional, Self
+from typing import Dict, List, Optional
 
 import emd
 import mmh3
@@ -210,7 +210,7 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X: pd.DataFrame, y=None) -> Self:
+    def partial_fit(self, X: pd.DataFrame, y=None) -> "SimpleEncodingCategorical":
         """Compute incrementally the set of possible categories
 
         Parameters:
@@ -226,7 +226,7 @@ class SimpleEncodingCategorical(TransformerStep):
 
         return self
 
-    def fit(self, X: pd.DataFrame, y=None) -> Self:
+    def fit(self, X: pd.DataFrame, y=None) -> "SimpleEncodingCategorical":
         """
         Compute the set of possible categories
 
