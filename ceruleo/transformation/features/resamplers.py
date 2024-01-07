@@ -15,19 +15,25 @@ class Subsample(TransformerStep):
 
 class IndexMeanResampler(TransformerStep):
     """Resample 
-
-
     When the index of the run-to-failure cycle is a time feature
 
     Parameters:
-
-        rule: 
+        rule: Time frequency or rule according to which the data should be resampled
     """
-    def __init__(self, *, rule,  **kwargs):
+    def __init__(self, *, rule: str,  **kwargs):
         super().__init__(**kwargs)
         self.rule = rule
     
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life
+        
+        Returns: 
+            The resampled DataFrame
+        """
         return X.resample(self.rule).mean().dropna()
         
 
@@ -38,7 +44,6 @@ class SubsamplerTransformer(TransformerStep):
     Resample the time series with an integer index and interpolate linearly the values
 
     Parameters:
-
         time_feature: Time feature
         steps:  Number of steps
         drop_time_feature: Drop the time feature
@@ -54,14 +59,11 @@ class SubsamplerTransformer(TransformerStep):
     def partial_fit(self, X: pd.DataFrame):
         """Obtain the name of the feature used as time
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The current time-series to be fitted
+        Parameters:
+            X: The current time-series to be fitted
 
-        Returns
-        -------
-        self
+        Returns:
+            Instance of class IntegerIndexResamplerTransformer
 
         """
         if self._time_feature is None:
@@ -71,7 +73,16 @@ class SubsamplerTransformer(TransformerStep):
 
         return self
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life
+        
+        Returns: 
+            The resampled DataFrame
+        """
         X = X.groupby(X[self._time_feature] // self.steps, sort=False).mean()
         if self.drop_time_feature:
             X = X.drop(columns=[self._time_feature])
@@ -80,18 +91,13 @@ class SubsamplerTransformer(TransformerStep):
 
 
 class IntegerIndexResamplerTransformer(TransformerStep):
-    """IntegerIndexResamplerTransformer
-
+    """
     Resample the time series with an integer index and interpolate linearly the values
 
-    Parameters
-    ----------
-    time_feature : str
-        Time feature
-    steps : int
-        Number of steps
-    drop_time_feature: bool
-        Drop the time feature
+    Parameters:
+        time_feature: Time feature
+        steps: Number of steps
+        drop_time_feature: Drop the time feature
     """
 
     def __init__(self, *args, time_feature: str, steps: int, drop_time_feature: bool):
@@ -102,23 +108,29 @@ class IntegerIndexResamplerTransformer(TransformerStep):
         self.drop_time_feature = drop_time_feature
 
     def partial_fit(self, X: pd.DataFrame):
-        """Obtain the name of the feature used as time
+        """
+        Obtain the name of the feature used as time
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The current time-series to be fitted
+        Parameters:
+            X: The current time-series to be fitted
 
-        Returns
-        -------
-        self
-
+        Returns:
+            Instance of class IntegerIndexResamplerTransformer
         """
         if self._time_feature is None:
             self._time_feature = self.find_feature(X, self._time_feature_name)
         return self
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life
+        
+        Returns: 
+            The resampled DataFrame
+        """
         Told = X[self._time_feature].values
         Tnew = np.arange(Told.min(), Told.max(), self.steps)
         new_columns = X.columns.values

@@ -1,15 +1,16 @@
-"""Shufflers are helpers classes used by the iterator to change
+"""
+Shufflers are helpers classes used by the iterator to change
 the order of the run-to-failure cycles and the timestamps inside
 each cycle
 
 There are six types of shuffles
 
 - NotShuffled: All the cycles are processed in order
-- AllShuffled: 
-- IntraTimeSeriesShuffler
-- InverseOrder: 
-- TimeSeriesOrderIntraSignalShuffling
-- TimeSeriesOrderShuffling
+- AllShuffled: Everything is shuffled
+- IntraTimeSeriesShuffler: Each point of the time series is shuffled, but the TS are kept in order
+- InverseOrder: The data points will be fed in RUL decreasing order
+- TimeSeriesOrderIntraSignalShuffling: Each point in the ts is shuffled, and the ts order are shuffled also.
+- TimeSeriesOrderShuffling: Time series are shuffled, but each point inside the time series kept  its order
 """
 from typing import Callable, Optional, Tuple
 
@@ -18,7 +19,9 @@ import math
 
 
 class AbstractShuffler:
-    """A Shuffler is used by the iterator to interleave samples of different run-to-fail cycles"""
+    """
+    A Shuffler is used by the iterator to interleave samples of different run-to-fail cycles
+    """
 
     class Iterator:
         def __init__(self, shuffler, iterator):
@@ -36,28 +39,26 @@ class AbstractShuffler:
         return AbstractShuffler.Iterator(self, iterator)
 
     def at_end(self) -> bool:
-        """Determines wether the iterator reached to its end
+        """
+        Determines weather the iterator reached to its end
 
         Returns:
-
             bool: Wether the iterator is at its end
         """
         return self.current_time_series == self.wditerator.dataset.n_time_series
 
     def next_element(self) -> Tuple[int, int]:
-        """Iterating function
+        """
+        Iterating function
 
         The method takes the current time serie, and the current time stamp
         and calls the advance method
 
         Returns:
-            ts_index, timestamp: Index of the current run-to-failure cycle and
-                          current timestamp of that cycle
+            Index of the current run-to-failure cycle andcurrent timestamp of that cycle
 
         Raises:
-
-            StopIteration: When the iteration reached to an end
-
+           When the iteration reaches the end
         """
 
         if self.at_end():
@@ -69,31 +70,30 @@ class AbstractShuffler:
         return ts_index, timestamp
 
     def start(self, iterator: "WindowedDatasetIterator"):
-        """start the shuffler given an iterator
+        """
+        Start the shuffler given an iterator
 
         Parameters:
-
-            iterator: An Windowed iterator
+            iterator: An Windowed Iterator
         """
         self.initialize(iterator)
 
     def time_series(self) -> int:
-        """Current time series
+        """
+        Current time series
 
         Returns:
-
-            current_time_series: Current Time Series
+            Current Time Series
         """
         return self.current_time_series
 
     def initialize(self, iterator: "WindowedDatasetIterator"):
-        """Initialize the current shuffler
+        """
+        Initialize the current shuffler
 
-        This method is in charge of initializing everything to
-        allow the correct iteration
+        This method is in charge of initializing everything to allow the correct iteration
 
         Parameters:
-
             iterator: WindowedDatasetIterator
 
         """
@@ -133,11 +133,11 @@ class AbstractShuffler:
         return self._samples_per_time_series[time_series_index]
 
     def number_of_samples_of_current_time_series(self) -> int:
-        """Obtain the number of samples for the current time series
+        """
+        Obtain the number of samples for the current time series
 
         Returns:
-
-            int: Number of samples
+            Number of samples
 
         """
 
@@ -196,7 +196,6 @@ class IntraTimeSeriesShuffler(AbstractShuffler):
         self.n_time_series = iterator.dataset.n_time_series
 
     def timestamp(self) -> int:
-
         ret = self.timestamps[self.current_timestamp_index]
         return ret
 
@@ -239,7 +238,6 @@ class TimeSeriesOrderShuffling(AbstractShuffler):
         return ret
 
     def advance(self):
-
         if self.current_timestamp == self.current_time_series_size() - 1:
             self.time_series_changed()
         else:
@@ -264,7 +262,7 @@ class TimeSeriesOrderIntraSignalShuffling(AbstractShuffler):
      Each point in the ts is shuffled, and the ts order are shuffled also.
 
     !!! note
-    
+
         Iteration 1: | TS 1 | TS 1 | TS 1 | TS 2 | TS 2 | TS 2
                      |   3  | 2    |  1   |   1  |   3  |   2
         Iteration 2: | TS 2 | TS 2 | TS 2 | TS 1 | TS 1 | TS 1
@@ -378,7 +376,6 @@ class AllShuffled(AbstractShuffler):
         while (
             self.number_samples_of_time_series(l) == self.timestamps_per_ts_indices[l]
         ):
-
             l = np.random.randint(self.wditerator.dataset.n_time_series)
         self.current_time_series = l
 
@@ -423,8 +420,7 @@ class AllShuffled(AbstractShuffler):
 
 class NotShuffled(AbstractShuffler):
     """
-    Nothing is shuffled. Each sample of each run-to-failure cycle
-    are iterated in order
+    Nothing is shuffled. Each sample of each run-to-failure cycle are iterated in order
 
         Iteration 1: | Life 1 | Life 1  | Life 1 | Life 2 | Life 3 | Life 3
                      |   1    | 2       |  3     |   1    |   2    |   1

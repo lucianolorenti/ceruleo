@@ -3,18 +3,18 @@ import tensorflow as tf
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 import numpy as np
 
-def tf_regression_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
-    """Create a forecast tf.data.Dataset from the iterator
 
-    The dataset is is constructed from a generator
+def tf_regression_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
+    """
+    Create a forecast tf.data.Dataset from the iterator
+
+    The dataset is constructed from a generator
 
     Parameters:
-
         iterator: The data iterator
 
     Returns:
-    
-        d: A tensorlfow dataset
+        A tensorflow dataset
     """
     n_features = iterator.n_features
 
@@ -25,9 +25,7 @@ def tf_regression_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
     a = tf.data.Dataset.from_generator(
         generator_function,
         output_signature=(
-            tf.TensorSpec(
-                shape=(iterator.window_size, n_features), dtype=tf.float32
-            ),
+            tf.TensorSpec(shape=(iterator.window_size, n_features), dtype=tf.float32),
             tf.TensorSpec(shape=(iterator.horizon, 1), dtype=tf.float32),
             tf.TensorSpec(shape=(1), dtype=tf.float32),
         ),
@@ -37,18 +35,17 @@ def tf_regression_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
 
 
 def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
-    """Create a sequence to sequence tf.data.Dataset from the iterator
+    """
+    Create a sequence to sequence tf.data.Dataset from the iterator
 
-    The dataset is is constructed from a generator
+    The dataset is constructed from a generator
 
     Parameters:
-
         iterator: The data iterator
 
     Returns:
-    
-        d: A tensorlfow dataset
-    """    
+        A tensorflow dataset
+    """
     n_features = iterator.n_features
 
     def generator_function():
@@ -58,10 +55,10 @@ def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
     a = tf.data.Dataset.from_generator(
         generator_function,
         output_signature=(
+            tf.TensorSpec(shape=(iterator.window_size, n_features), dtype=tf.float32),
             tf.TensorSpec(
-                shape=(iterator.window_size, n_features), dtype=tf.float32
+                shape=(iterator.window_size, iterator.horizon), dtype=tf.float32
             ),
-            tf.TensorSpec(shape=(iterator.window_size, iterator.horizon), dtype=tf.float32),
             tf.TensorSpec(shape=(1), dtype=tf.float32),
         ),
     )
@@ -70,18 +67,17 @@ def tf_seq_to_seq_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
 
 
 def tf_autoencoder_dataset(iterator: WindowedDatasetIterator) -> tf.data.Dataset:
-    """Create an autoencoder tf.data.Dataset from the iterator
+    """
+    Create an autoencoder tf.data.Dataset from the iterator
 
-    The dataset is is constructed from a generator
+    The dataset is constructed from a generator
 
     Parameters:
-
         iterator: The data iterator
 
     Returns:
-    
-        d: A tensorlfow dataset
-    """    
+        A tensorflow dataset
+    """
     n_features = iterator.n_features
 
     def gen_train():

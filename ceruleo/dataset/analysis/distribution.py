@@ -19,7 +19,6 @@ def histogram_per_life(
     bins_to_use: np.ndarray,
     normalize: bool = True,
 ) -> List[np.ndarray]:
-
     try:
         d = life[feature]
         h, _ = np.histogram(d, bins=bins_to_use)
@@ -49,27 +48,22 @@ def features_divergeces(
     columns: Optional[List[str]] = None,
     show_progress: bool = False,
 ) -> pd.DataFrame:
-    """Compute the divergence between features
+    """
+    Compute the divergence between features
 
     Parameters:
-
         ds: The dataset
         number_of_bins: Number of bins
         columns: Which columns to use
 
     Returns:
-        df: A DataFrame in which cach row contains the 
-            distances between a feature of two run-to-failure cycle
-            with the following columns:
+        A DataFrame in which each row contains the distances between a feature of two run-to-failure cycle with the following columns:
 
-                - Life 1: Run-to-failure cycle 1
-                - Life 2: Run-to-failure cycle 2
-                - W: Wasserstein
-                - KL: KL Divergence
-                - feature: The feature name
-
-           
-        
+            - Life 1: Run-to-failure cycle 1
+            - Life 2: Run-to-failure cycle 2
+            - W: Wasserstein
+            - KL: KL Divergence
+            - feature: The feature name
     """
     if columns is None:
         columns = ds.numeric_features()
@@ -88,11 +82,13 @@ def features_divergeces(
             histograms[feature].append(
                 histogram_per_life(life, feature, features_bins[feature])
             )
-    
+
     df_data = []
     for feature in columns:
         data = {}
-        for ((i, h1), (j, h2)) in itertools.combinations(enumerate(histograms[feature]), 2):
+        for (i, h1), (j, h2) in itertools.combinations(
+            enumerate(histograms[feature]), 2
+        ):
             kl = (np.mean(kl_div(h1, h2)) + np.mean(kl_div(h2, h1))) / 2
             wd = wasserstein_distance(h1, h2)
             df_data.append((i, j, wd, kl, feature))

@@ -12,18 +12,17 @@ def plot_correlation_analysis(
     features: Optional[List[str]] = None,
     ax: Optional[matplotlib.axes.Axes] = None,
     **kwargs,
-):
+) -> matplotlib.axes.Axes:
     """Plot the correlated features in a dataset
 
     Parameters:
-
         dataset: The dataset
         corr_threshold: Minimum threshold to consider that the correlation is high
         features: List of features
         ax: The axis where to draw
 
     Returns:
-        ax: the axis
+        The plot axis
     """
 
     if features is not None:

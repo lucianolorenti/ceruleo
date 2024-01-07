@@ -22,24 +22,10 @@ from ceruleo.iterators.shufflers import AbstractShuffler, NotShuffled
 
 
 class Batcher:
-    """WindowedIterator Batcher
-
-    Example:
-
-        ``` py 
-        batcher = Batcher.new(transformed_dataset,
-                              window=150,
-                              batch_size=64,
-                              step=1,
-                              horizon=1)
-        X, y, data = next(batcher)     
-        X.shape
-
-        (64, 150, n_features)       
-        ```                  
+    """
+    WindowedIterator Batcher   
 
     Parameters:
-
         iterator: Dataset iterator
         batch_size: int
 
@@ -66,17 +52,17 @@ class Batcher:
         sample_weight: SampleWeight = NotWeighted(),
         right_closed: bool = True,
         padding: bool = False,
-    ):
-        """Batcher constructor from a dataset
+    ) -> "Batcher":
+        """
+        Batcher constructor from a dataset
 
-        The method constructs WindowedDatasetIterator from the dataset and
+        The method constructs a WindowedDatasetIterator from the dataset and
         then a Batcher from the iterator.
         Most of the parameters come from the WindowedDatasetIterator,
 
 
         Example:
-
-            ``` py 
+            ```
             batcher = Batcher.new(transformed_dataset,
                                 window=150,
                                 batch_size=64,
@@ -86,23 +72,20 @@ class Batcher:
             X.shape
 
             (64, 150, n_features)       
-            ```                  
+            ```                         
 
         Parameters:
-
             dataset: Dataset from which the batcher will be created
             batch_size: Batch size
             step: strides
-            horizon: Size of the horizon to predict. By default 1
+            horizon: Size of the horizon to predict.
             shuffle: AbstractShuffler
             sample_weight: SampleWeight
             right_closed: bool
-            padding: wheter to pad data if there are not enough points
-                     to fill the window
+            padding: wheter to pad data if there are not enough points to fill the window
 
         Returns:
-
-            batcher: A new constructed batcher
+            A new constructed batcher
         """
         iterator = WindowedDatasetIterator(
             dataset,
@@ -118,11 +101,11 @@ class Batcher:
         return b
 
     def __len__(self) -> int:
-        """Number of batches
+        """
+        Number of batches
 
         Returns:
-
-            batches: Number of batches in the iterator
+            Number of batches in the iterator
         """
         if len(self.iterator) is None:
             return None
@@ -136,47 +119,45 @@ class Batcher:
 
     @property
     def n_features(self) -> int:
-        """Number of features of the transformed dataset
+        """
+        Number of features of the transformed dataset
 
-        This is a helper method to obtain the transformed
-        dataset information from the WindowedDatasetIterator
+        This is a helper method to obtain the transformed dataset information from the WindowedDatasetIterator
 
         Returns:
-
-            features: Number of features of the transformed dataset
+           Number of features of the transformed dataset
         """
         return self.iterator.n_features
 
     @property
     def window_size(self) -> int:
-        """Lookback window size
+        """
+        Lookback window size
 
-        This is a helper method to obtain the WindowedDatasetIterator
-        information
+        This is a helper method to obtain the WindowedDatasetIterator information
 
         Returns:
-
-            window: Lookback window size
+            Lookback window size
         """
         return self.iterator.window_size
 
     @property
     def output_shape(self) -> int:
-        """Number of values returned as target by each sample
+        """
+        Number of values returned as target by each sample
 
         Returns:
-
-            output_size: Number of values returned as target by each sample
+            Number of values returned as target by each sample
         """
         return self.iterator.output_size
 
     @property
     def input_shape(self) -> Tuple[int, int]:
-        """Tuple containing (window_size, n_features)
+        """
+        Tuple containing (window_size, n_features)
 
         Returns:
-
-            window_size, n_features
+            (window_size, n_features)
         """
         return self.iterator.input_shape
 

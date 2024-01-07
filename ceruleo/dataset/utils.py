@@ -35,20 +35,22 @@ def iterate_over_target(ds: Union[TransformedDataset, AbstractLivesDataset]):
 
     Parameters:
         ds: The dataset
-        
+
     Returns:
 
         it: The iterator
     """
     if isinstance(ds, TransformedDataset):
         return map(lambda x: x[1], ds)
-    elif hasattr(ds, 'rul_column'):
+    elif hasattr(ds, "rul_column"):
         return map(lambda x: x[ds.rul_column], ds)
     else:
-        raise ValueError('Invalid dataset type used')
-    
+        raise ValueError("Invalid dataset type used")
 
-def iterate_over_features_and_target(ds: Union[TransformedDataset, AbstractLivesDataset]):
+
+def iterate_over_features_and_target(
+    ds: Union[TransformedDataset, AbstractLivesDataset]
+):
     """Helper function to iterate over the features and RUL target in a dataset
     Example:
 
@@ -60,14 +62,14 @@ def iterate_over_features_and_target(ds: Union[TransformedDataset, AbstractLives
 
     Parameters:
         ds: The dataset
-        
+
     Returns:
 
         it: The iterator
     """
     if isinstance(ds, TransformedDataset):
         return map(lambda x: (x[0], x[1]), ds)
-    elif hasattr(ds, 'rul_column'):
+    elif hasattr(ds, "rul_column"):
         return map(lambda x: (x, x[ds.rul_column]), ds)
     else:
-        raise ValueError('Invalid dataset type used')
+        raise ValueError("Invalid dataset type used")

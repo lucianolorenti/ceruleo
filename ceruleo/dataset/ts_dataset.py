@@ -1,18 +1,20 @@
-
 from collections.abc import Iterable
 from re import S
 from typing import Any, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+
 try:
     import tensorflow as tf
+
     TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
 from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
 from abc import abstractmethod, abstractproperty
+
 
 class DatasetIterator:
     def __init__(self, dataset):
@@ -59,20 +61,20 @@ class AbstractTimeSeriesDataset:
         """Obtain the duration of the time-series
 
         Parameters:
-            i: Index of the life
+            life: The input life
 
         Returns:
-            duration: Duration of the life
+            Duration of the life
         """
         v = life.index
         return v.max() - v.min()
 
     def durations(self, show_progress: bool = False) -> List[float]:
-        """Obtain the length of each life
+        """
+        Obtain the length of each life
 
         Return:
-
-            durations: List of durations
+            List of durations
         """
         if self._durations is None:
             if show_progress:
@@ -86,15 +88,16 @@ class AbstractTimeSeriesDataset:
     def __call__(self, i):
         return self[i]
 
-    def get_features_of_life(self, i:int ) -> pd.DataFrame:
+    def get_features_of_life(self, i: int) -> pd.DataFrame:
         return self[i]
 
-    def __getitem__(self, i: Union[int, Iterable]):
+    def __getitem__(
+        self, i: Union[int, Iterable]
+    ) -> Union[pd.DataFrame, "FoldedDataset"]:
         """Obtain a time-series or an splice of the dataset using a FoldedDataset
 
         Parameters:
-
-            i: If the parameter is an in it will return a pd.DataFrame with the i-th time-series.
+            i: If the parameter is an int it will return a pd.DataFrame with the i-th time-series.
                 If the parameter is a list of int it will return a FoldedDataset with the
                 time-series whose id are present in the list
 
@@ -102,8 +105,8 @@ class AbstractTimeSeriesDataset:
             ValueError: When the list does not contain integer parameters
 
         Returns:
-            pd.DataFrame: the i-th time-series
-            FoldedDataset: The dataset with the lives specified by the list
+            The i-th time-series
+            An instance of class FoldedDataset containing the dataset with the lives specified by the list
         """
         if isinstance(i, slice):
             i = range(
@@ -126,12 +129,12 @@ class AbstractTimeSeriesDataset:
     def shape(self) -> Tuple[int, int]:
         return (self.n_time_series, 1)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
+        Compute the number of lifes in the dataset
+
         Return:
-
-            n: The number of time-series in the dataset
-
+            Number of time-series in the dataset
         """
         return self.n_time_series
 
@@ -145,12 +148,12 @@ class AbstractTimeSeriesDataset:
         Create a dataset with the time-series concatenated
 
         Parameters:
-
-            proportion_of_lives: Proportion of lives to use.
+            proportion_of_lives: Proportion of lives to use, by default 1
+            subsample_proportion: Proportion of samples to use, by default 1
+            show_progress: Whether to show progress when concatenating the lives, by default False
 
         Returns:
-
-            df: a DataFrame with all the lives concatenated
+            A DataFrame with all the lives concatenated
         """
         if show_progress:
             bar = tqdm
@@ -165,7 +168,6 @@ class AbstractTimeSeriesDataset:
         )
 
         for i in bar(range(self.n_time_series)):
-
             if proportion_of_lives < 1.0 and np.random.rand() > proportion_of_lives:
                 continue
 
@@ -198,13 +200,35 @@ class AbstractTimeSeriesDataset:
     def common_features(
         self, show_progress: bool = False, proportion_of_lives: float = 1.0
     ) -> List[str]:
+        """
+        Compute the common features of the dataset among the different lives
+
+        Parameters:
+            proportion_of_lives: Proportion of lives to use, by default 1
+            show_progress: Whether to show progress when computing the common features, by default False
+
+        Returns:
+            A list with the common features
+        """
         if self._common_features is None:
             self._common_features = self._compute_common_features(
                 proportion_of_lives, show_progress=show_progress
             )
         return self._common_features
 
-    def map(self, transformer, cache_size: int = None):
+    def map(
+        self, transformer: "TransformedDataset", cache_size: int = None
+    ) -> "TransformedDataset":
+        """
+        Apply a transformation to the dataset
+
+        Parameters:
+            transformer: The transformation to apply
+            cache_size: The size of the cache to use, by default None
+
+        Returns:
+            The transformed dataset as an instance of class TransformedDataset
+        """
         from ceruleo.dataset.transformed import TransformedDataset
 
         return TransformedDataset(self, transformer, cache_size=cache_size)
@@ -213,12 +237,10 @@ class AbstractTimeSeriesDataset:
         """Obtain the list of the common numeric features in the dataset
 
         Parameters:
-
-            show_progress : Whether to show progress when computing the common features, by default False
+            show_progress: Whether to show progress when computing the common features, by default False
 
         Returns:
-
-            l: List of columns
+            List of columns containing the common numeric features
         """
 
         features = self.common_features(show_progress=show_progress)
@@ -230,6 +252,14 @@ class AbstractTimeSeriesDataset:
         )
 
     def categorical_features(self, show_progress: bool = False) -> List[str]:
+        """Obtain the list of the common categorical features in the dataset
+
+        Parameters:
+            show_progress: Whether to show progress when computing the common features
+
+        Returns:
+            List of columns containing the common numeric features
+        """
         features = self.common_features(show_progress=show_progress)
         df = self.get_time_series(0)
         return list(
@@ -240,6 +270,10 @@ class AbstractTimeSeriesDataset:
 
 
 class FoldedDataset(AbstractTimeSeriesDataset):
+    """
+    Dataset containing a subset of the time-series. An instanc of this class can be obtained by slicing an AbstractTimeSeriesDataset with a list of indexes
+    """
+
     def __init__(self, dataset: AbstractTimeSeriesDataset, indices: list):
         super().__init__()
         self.dataset = dataset
@@ -252,22 +286,62 @@ class FoldedDataset(AbstractTimeSeriesDataset):
             return self.dataset.__getattribute__(__name)
 
     @property
-    def n_time_series(self):
+    def n_time_series(self) -> int:
+        """
+        Compute the number of lifes in the folded dataset
+
+        Return:
+            Number of time-series in the folded dataset
+
+        """
         return len(self.indices)
 
-    def get_time_series(self, i: int):
+    def get_time_series(self, i: int) -> pd.DataFrame:
+        """
+        Obtain the i-th time-series in the folded dataset
+
+        Parameters:
+            i: Index of the life
+
+        Returns:
+            The i-th time-series
+        """
         return self.dataset[self.indices[i]]
 
-    def _original_index(self, i: int):
+    def _original_index(self, i: int) -> int:
+        """
+        Obtain the index of the i-th time-series in the original dataset
+
+        Parameters:
+            i: Index of the life
+
+        Returns:
+            The index of the i-th time-series in the original dataset
+        """
         if isinstance(self.dataset, FoldedDataset):
             return self.dataset._original_index(self.indices[i])
         else:
             return self.indices[i]
 
-    def original_indices(self):
+    def original_indices(self) -> List[int]:
+        """
+        Obtain the original indices for all the time-series in the FoldedDataset
+
+        Returns:
+            The original indices for all the time-series in the FoldedDataset
+        """
         return [self._original_index(i) for i in range(len(self.indices))]
 
     def number_of_samples_of_time_series(self, i: int) -> int:
+        """
+        Compute the number of samples of the i-th time-series in the FoldedDataset
+
+        Parameters:
+            i: Index of the life
+
+        Returns:
+            Number of samples of the i-th time-series in the FoldedDataset
+        """
         return self[i][0].shape[0]
 
     def __reduce_ex__(self, __protocol) -> Union[str, Tuple[Any, ...]]:
@@ -275,7 +349,8 @@ class FoldedDataset(AbstractTimeSeriesDataset):
 
 
 class AbstractLivesDataset(AbstractTimeSeriesDataset):
-    """Base class for RUL estimation dataset
+    """
+    Base class for RUL estimation dataset
 
     Three abstract methods must be implemented to start
     using CERULEo with your data:
@@ -284,10 +359,10 @@ class AbstractLivesDataset(AbstractTimeSeriesDataset):
     * `n_time_series(self) -> int`: The property return the total number of lives present in the dataset
     * `rul_column(self) -> str`: The property should return the name of the RUL column
     """
+
     @abstractproperty
     def rul_column(self) -> str:
         raise NotImplementedError
 
     def duration(self, life: pd.DataFrame) -> float:
         return life[self.rul_column].max()
-

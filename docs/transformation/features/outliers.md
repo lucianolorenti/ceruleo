@@ -2,5 +2,5 @@
 
 ::: ceruleo.transformation.features.outliers
     options:
-      show_source: false
+      show_source: True
       heading_level: 3 

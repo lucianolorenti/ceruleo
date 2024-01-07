@@ -19,7 +19,6 @@ from tqdm.auto import tqdm
 logger = logging.getLogger(__name__)
 
 
-
 COMPRESSED_FILE = "phm_data_challenge_2018.tar.gz"
 FOLDER = "phm_data_challenge_2018"
 
@@ -44,25 +43,23 @@ def prepare_raw_dataset(path: Path):
         download(path)
     logger.info("Decompressing  dataset...")
     with tarfile.open(path / OUTPUT, "r") as tarball:
+
         def is_within_directory(directory, target):
-            
             abs_directory = os.path.abspath(directory)
             abs_target = os.path.abspath(target)
-        
+
             prefix = os.path.commonprefix([abs_directory, abs_target])
-            
+
             return prefix == abs_directory
-        
+
         def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-        
             for member in tar.getmembers():
                 member_path = os.path.join(path, member.name)
                 if not is_within_directory(path, member_path):
                     raise Exception("Attempted Path Traversal in Tar File")
-        
-            tar.extractall(path, members, numeric_owner=numeric_owner) 
-            
-        
+
+            tar.extractall(path, members, numeric_owner=numeric_owner)
+
         safe_extract(tarball, path=path, members=track_progress(tarball))
     shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
     shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
@@ -73,15 +70,14 @@ def prepare_raw_dataset(path: Path):
 class FailureType(Enum):
     """Failure types availables for the dataset.
 
-    Possible values are
-
-    ```py
+    Possible values are:
+    ```
     FailureType.FlowCoolPressureDroppedBelowLimit
     FailureType.FlowcoolPressureTooHighCheckFlowcoolPump
     FailureType.FlowcoolLeak
     ```
-
     """
+
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
     FlowcoolPressureTooHighCheckFlowcoolPump = (
         "Flowcool Pressure Too High Check Flowcool Pump"
@@ -105,14 +101,11 @@ def merge_data_with_faults(
     """Merge the raw sensor data with the fault information
 
     Parameters:
-
         data_file: Path where the raw sensor data is located
         fault_data_file: Path where the fault information is located
 
     Returns:
-
-        df: Dataframe indexed by time with the raw sensors and faults
-            The dataframe contains also a fault_number column
+        A Dataframe indexed by time with the raw sensors and faults. The dataframe contains also a fault_number column
     """
     data = pd.read_csv(data_file).set_index("time")
 
@@ -167,9 +160,9 @@ def prepare_dataset(dataset_path: Path):
 class PHMDataset2018(AbstractLivesDataset):
     """PHM 2018 Dataset
 
-    The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different 
-    ion milling machines. They distinguish three different failure causes and provide 22 features, 
-    including user-defined variables and sensors. 
+    The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different
+    ion milling machines. They distinguish three different failure causes and provide 22 features,
+    including user-defined variables and sensors.
 
     Three faults are present in the dataset
 
@@ -180,22 +173,18 @@ class PHMDataset2018(AbstractLivesDataset):
     [Dataset reference](https://phmsociety.org/conference/annual-conference-of-the-phm-society/annual-conference-of-the-prognostics-and-health-management-society-2018-b/phm-data-challenge-6/)
 
     Example:
- 
-    ```py
+    ```
     dataset = PHMDataset2018(
-       failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
-        tools=['01_M02']
+    failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,tools=['01_M02']
     )
     ```
 
-
-    
     Parameters:
-
         failure_types: List of failure types
         tools: List of tools
         path: Path where the dataset is located
     """
+
     def __init__(
         self,
         failure_types: Union[FailureType, List[FailureType]] = [l for l in FailureType],
@@ -245,8 +234,8 @@ class PHMDataset2018(AbstractLivesDataset):
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
-        df.index = pd.to_timedelta(df.index, unit='s')
-        df = df[df['FIXTURESHUTTERPOSITION'] == 1]
+        df.index = pd.to_timedelta(df.index, unit="s")
+        df = df[df["FIXTURESHUTTERPOSITION"] == 1]
         df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
 
         return df

@@ -53,13 +53,25 @@ class TimeToPreviousBinaryValue(TransformerStep):
 class ColumnWiseSum(TransformerStep):
     """
     Compute the column-wise sum each column
+
+    Parameters:
+        column_name: Name of the unique column which is returned 
     """
 
     def __init__(self, column_name: str, name: Optional[str] = None):
         super().__init__(name=name)
         self.column_name = column_name
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life 
+
+        Parameters:
+            X: The input life 
+
+        Returns:
+            A single-column DataFrame containing the column-wise sum for each input sample
+        """
         return pd.DataFrame(X.sum(axis=1), columns=[self.column_name])
 
 
@@ -67,6 +79,15 @@ class SampleNumber(TransformerStep):
     """Return a column with increasing number"""
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life
+
+        Returns:
+            A DataFrame with increasing sample indexes. 
+        """
         df = pd.DataFrame(index=X.index)
         df["sample_number"] = list(range(X.shape[0]))
         return df
@@ -113,6 +134,15 @@ class OneHotCategorical(TransformerStep):
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life
+
+        Returns:
+            A DataFrame with shape equal to (X.shape[0],n_unique(feature)) containin the One Hot Encoding for the input feature
+        """
         categories = sorted(list([c for c in self.categories if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
 
@@ -139,21 +169,19 @@ class HashingEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def transform(self, X, y=None):
-        """Return a new DataFrame with the feature  encoded with integer numbers
+    def transform(self, X: pd.DataFrame, y: Optional[type]=None) -> pd.DataFrame:
+        """
+        Return a new DataFrame with the feature  encoded with integer numbers
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-        y : [type], optional
+        Parameters;
+            X: The input life
+            y: [type], optional
 
-
-        Returns
-        -------
-        pd.DataFrame
-            A new dataframe with the same index as the input
-            with 1 column
+        Parameters:
+            X: The input life
+        
+        Returns:
+            A new dataframe with the same index as the input with 1 column containing the encoding of the input feature. 
         """
 
         def hash(x):
@@ -171,12 +199,9 @@ class HashingEncodingCategorical(TransformerStep):
 class SimpleEncodingCategorical(TransformerStep):
     """Compute a simple numerical encoding for a given feature
 
-    Parameters
-    ----------
-    feature : str
-        Feature name from which compute the simple encoding
-    name : Optional[str], optional
-        Step name, by default None
+    Parameters:
+        feature: Feature name from which compute the simple encoding
+        name: Step name, by default None
     """
 
     def __init__(self, *, feature: Optional[str] = None, name: Optional[str] = None):
@@ -185,18 +210,14 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories = set()
         self.encoder = None
 
-    def partial_fit(self, X: pd.DataFrame, y=None):
+    def partial_fit(self, X: pd.DataFrame, y=None) -> "SimpleEncodingCategorical":
         """Compute incrementally the set of possible categories
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
+        Parameters:
+            X: The input life
 
-        Returns
-        -------
-        SimpleEncodingCategorical
-            self
+        Returns:
+            Instance of class SimpleEncodingCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]
@@ -205,19 +226,15 @@ class SimpleEncodingCategorical(TransformerStep):
 
         return self
 
-    def fit(self, X: pd.DataFrame, y=None):
-        """Compute the set of possible categories
+    def fit(self, X: pd.DataFrame, y=None) -> "SimpleEncodingCategorical":
+        """
+        Compute the set of possible categories
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-
-
-        Returns
-        -------
-        OneHotCategorical
-            self
+        Parameters:
+            X: The input life
+        
+        Returns:
+            Instance of class SimpleEncodingCategorical
         """
         if self.feature is None:
             self.feature = X.columns[0]
@@ -225,21 +242,14 @@ class SimpleEncodingCategorical(TransformerStep):
         self.categories.update(set(X[self.feature].unique()))
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         """Return a new DataFrame with the feature  encoded with integer numbers
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            The input life
-        y : [type], optional
+        Parameters:
+            X: The input life
 
-
-        Returns
-        -------
-        pd.DataFrame
-            A new dataframe with the same index as the input
-            with 1 column
+        Returns:
+            A new dataframe with the same index as the input with 1 column with the Simple Encoding of the input feature. 
         """
         categories = sorted(list([c for c in self.categories if c is not None]))
         d = pd.Categorical(X[self.feature], categories=categories)
@@ -272,16 +282,9 @@ class LifeStatistics(TransformerStep):
     - Hurst
 
 
-    Parameters
-    ----------
-    to_compute : List[str], optional
-        List of the features to compute, by default None
-        Valid values are:
-        'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
-        'clearance', 'rms', 'shape', 'crest', 'hurst'
-    name : Optional[str], optional
-        Name of the step, by default None
-
+    Parameters:
+        to_compute: List of the features to compute, by default None. Valid values are:'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse','clearance', 'rms', 'shape', 'crest', 'hurst'
+        name: Name of the step, by default None
     """
 
     def __init__(
@@ -367,19 +370,14 @@ class LifeStatistics(TransformerStep):
             return 0
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Compute features from the given life
+        """
+        Compute features from the given life
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Input life
+        Parameters:
+            X: The input life
 
-        Returns
-        -------
-        pd.DataFrame
-            A new DataFrame with one row with n columns.
-            Let m be the number of features of the life and
-            f the len(to_compute) ten  where n = m x f,
+        Returns:
+            A new DataFrame with one row and with n columns. Let m be the number of features of the life and f the len(to_compute), then n = m x f,
         """
         X_new = pd.DataFrame(index=[0])
         for c in X.columns:
@@ -409,19 +407,11 @@ class RollingStatistics(TransformerStep):
     - Shape
     - Crest
 
-    Parameters
-    ----------
-    window:int
-        Size of the rolling window
-    min_points : int, optional
-        The minimun number of points of the expanding window, by default 15
-    to_compute : Optional[List[Str]], optional
-        Name of features to compute
-    Possible values are:
-    'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
-    'clearance', 'rms', 'shape', 'crest'
-    name: Optiona[str]
-        Name of the step, by default None
+    Parameters:
+        window: Size of the rolling window, by default 15
+        min_points: The minimun number of points of the expanding window
+        to_compute: Name of features to compute. Possible values are: 'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse', 'clearance', 'rms', 'shape', 'crest'
+        name: Name of the step, by default None
 
     """
 
@@ -575,7 +565,16 @@ class RollingStatistics(TransformerStep):
                 out = getattr(self, f"_{stats}")(X[c], rolling[c], abs_rolling[c])
                 X_new.loc[:, feature] = out.values
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Compute features from the given life
+
+        Parameters:
+            X: The input life
+
+        Returns:
+            A new DataFrame with one row and with n columns. Let m be the number of features of the life and f the len(to_compute), then n = m x f
+        """
         columns = self._compute_column_names(X)
 
         X_new = pd.DataFrame(index=X.index, columns=columns)
@@ -609,24 +608,17 @@ class ExpandingStatistics(TransformerStep):
     - Hurst
 
 
-    Parameters
-    ----------
-    min_points : int, optional
-        The minimun number of points of the expanding window, by default 2
-    to_compute : List[str], optional
-        List of the features to compute, by default None
-        Valid values are:
-        'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse',
-        'clearance', 'rms', 'shape', 'crest', 'hurst'
-    name : Optional[str], optional
-        Name of the step, by default None
+    Parameters:
+        min_points: The minimun number of points of the expanding window, by default 2
+        to_compute: List of the features to compute, by default None. Valid values are: 'kurtosis', 'skewness', 'max', 'min', 'std', 'peak', 'impulse','clearance', 'rms', 'shape', 'crest', 'hurst'
+        name: Name of the step, by default None
 
     """
 
     def __init__(
         self,
         *,
-        min_points=2,
+        min_points: int=2,
         to_compute: List[str] = None,
         specific: Optional[Dict[str, List[str]]] = None,
         name: Optional[str] = None,
@@ -889,7 +881,17 @@ class ExpandingStatistics(TransformerStep):
                 )
                 X_new.loc[:, feature] = out.values
 
-    def transform(self, X: pd.DataFrame):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Compute features from the given life
+
+        Parameters:
+            X: The input life
+
+        Returns:
+            A new DataFrame with one row and with n columns. Let m be the number of features of the life and f the len(to_compute), then n = m x f,
+        """
+        
         columns = self._compute_column_names(X)
 
         X_new = pd.DataFrame(index=X.index, columns=columns)
@@ -911,16 +913,14 @@ class Difference(TransformerStep):
 
         X[features1] - X[features2]
 
-    Parameters
-
+    Parameters:
         feature_set1: Feature list of the first group to substract
         feature_set2:Feature list of the second group to substract
         name: Name of the step, by default None
-
     """
 
     def __init__(
-        self, *, feature_set1: list, feature_set2: list, name: Optional[str] = None
+        self, *, feature_set1: List[str], feature_set2: List[str], name: Optional[str] = None
     ):
         super().__init__(name=name)
         if len(feature_set1) != len(feature_set2):
@@ -932,6 +932,15 @@ class Difference(TransformerStep):
         self.feature_names_computed = False
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life 
+
+        Parameters:
+            X: The input life
+
+        Returns: 
+            A DataFrame with two columns containing the result of the differences between the two sets of input features 
+        """
         if not self.feature_names_computed:
             self.feature_set1 = [self.find_feature(X, c) for c in self.feature_set1]
             self.feature_set2 = [self.find_feature(X, c) for c in self.feature_set2]
@@ -944,19 +953,25 @@ class Difference(TransformerStep):
 class EMD(TransformerStep):
     """Compute the empirical mode decomposition of each feature
 
-    Parameters
-    ----------
-    n : int
-        Number of modes to compute
-    name : Optional[str], optional
-        [description], by default 'EMD'
+    Parameters:
+        n: Number of modes to compute
+        name: Name of the step, by default None
     """
 
     def __init__(self, *, n: int, name: Optional[str] = "EMD"):
         super().__init__(name=name)
         self.n = n
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """ Apply transformation to the input life
+        
+        Parameters:
+            X: The input life
+
+        Returns:
+            A DataFrame where the number of columns is n times the one of the input life, since each features is substituted by the n modes of its EMD
+
+        """
         new_X = pd.DataFrame(index=X.index)
         for c in X.columns:
             try:
@@ -974,6 +989,7 @@ class EMD(TransformerStep):
 
 
 class SlidingNonOverlappingEMD(TransformerStep):
+
     def __init__(
         self, *, window_size: int, max_imfs: int, keep: Optional[int] = None, **kwargs
     ):
@@ -1012,12 +1028,13 @@ class SlidingNonOverlappingEMD(TransformerStep):
 
 
 class EMDFilter(TransformerStep):
-    """Filter the signals using Empirical Mode decomposition
+    """
+    Filter the signals using Empirical Mode decomposition
 
-    Parameters
-    ----------
-    n: int
-       Number of
+    Parameters:
+        n: Number of modes
+        min_imf: Min Intrinsic Mode Function
+        max_imf: Max Intrinsic Mode Function
     """
 
     def __init__(
@@ -1028,7 +1045,16 @@ class EMDFilter(TransformerStep):
         self.min_imf = min_imf
         self.max_imf = max_imf
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to the input life
+
+        Parameters:
+            X: The input life 
+
+        Returns: 
+            A DataFrame with the same shape of the input life and with the result of the EMD Filter application
+        """
         new_X = pd.DataFrame(index=X.index)
 
         for c in X.columns:
@@ -1043,10 +1069,21 @@ class EMDFilter(TransformerStep):
 
 class ChangesDetector(TransformerStep):
     """Compute how many changes there are in a categorical variable
+
+
     ['a', 'a', 'b', 'c] -> [0, 0, 1, 1]
     """
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Appply the transformation to the input life
+
+        Parameters:
+            X: The input life 
+        
+        Returns:
+            A DataFrame with boolean values representing weather changes were applied to the input variable or not
+        """
         return X != X.shift(axis=0)
 
 
@@ -1054,6 +1091,16 @@ class Interactions(TransformerStep):
     """Compute pairwise interactions between the features"""
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Apply the transformation to one life 
+
+        Parameters:
+            X: The input life
+
+        Returns:
+            DataFrame containing the pairwise interaction values 
+        
+        """
         X_new = pd.DataFrame(index=X.index)
         for c1, c2 in itertools.combinations(X.columns, 2):
             X_new[f"{c1}_{c2}"] = X[c1] * X[c2]
