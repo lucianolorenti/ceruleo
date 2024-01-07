@@ -2,6 +2,7 @@
 
 import numpy as np
 from ceruleo.iterators.iterators import windowed_signal_generator
+from ceruleo.utils.download import download
 
 
 class TestWindowGeneratorTest:
@@ -28,3 +29,6 @@ class TestWindowGeneratorTest:
 
         assert X_w[-1, 0] == X[2, 0]
         assert (np.squeeze(y[[3, 4]]) == np.squeeze(y_w)).all()
+
+def test_download():
+    download("http://www.google.com", "test.html")

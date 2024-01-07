@@ -1,5 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -14,9 +14,11 @@ class PandasToNumpy(TransformerStep):
 
 
 class TransformerLambda(TransformerStep):
-    def __init__(self, f, name: Optional[str] = None):
-        super().__init__(name)
-        self.f = f
+    def __init__(
+        self, *, callback: Callable[[pd.DataFrame], pd.DataFrame], name: Optional[str] = None
+    ):
+        super().__init__(name=name)
+        self.f = callback
 
     def transform(self, X, y=None):
         return self.f(X)
@@ -89,9 +91,15 @@ def build_tdigest(tdigest, values, column):
 
 class QuantileEstimator:
     """Approximate the quantile of each feature in the dataframe
-       using t-digest
+    using t-digest
     """
-    def __init__(self, tdigest_size:int = 200, max_workers:int = 1, subsample:Optional[Union[int, float]] = None):
+
+    def __init__(
+        self,
+        tdigest_size: int = 200,
+        max_workers: int = 1,
+        subsample: Optional[Union[int, float]] = None,
+    ):
         self.tdigest_dict = None
         self.tdigest_size = tdigest_size
         self.max_workers = max_workers
@@ -102,11 +110,10 @@ class QuantileEstimator:
             return self
 
         columns = X.columns
-        
+
         if self.tdigest_dict is None:
             self.tdigest_dict = {c: TDigest(self.tdigest_size) for c in columns}
 
-        
         results = []
         with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
             for i, c in enumerate(columns):
@@ -114,7 +121,7 @@ class QuantileEstimator:
                 x = X.iloc[:, i].dropna()
                 if self.subsample is not None:
 
-                    if isinstance( self.subsample, int):
+                    if isinstance(self.subsample, int):
                         points_to_sample = self.subsample
                     else:
                         points_to_sample = self.subsample * X.shape[0]
@@ -131,17 +138,17 @@ class QuantileEstimator:
 
     def estimate_quantile(self, *args, **kwargs):
         return self.quantile(*args, **kwargs)
-        
+
     def quantile(
         self, q: float, feature: Optional[str] = None
     ) -> Union[pd.Series, float]:
         """Estimate the quantile for a set of features
-        
+
         Parameters
         ----------
         q:float
           The quantile to estimate
-        feature:Optional[Str] """
+        feature:Optional[Str]"""
         if feature is not None:
             return self.tdigest_dict[feature].estimate_quantile(q)
         else:
@@ -152,47 +159,17 @@ class QuantileEstimator:
                 }
             )
 
-class QuantileComputer:
-    """Approximate the quantile of each feature in the dataframe
-       using t-digest
-    """
-    def __init__(self, subsample_rate:float = 1):
-        self.values = None
-        self.tdigest_size = subsample_rate
-
-    def update(self, X: pd.DataFrame):
-        if X.shape[0] < 2:
-            return self
-
-        columns = X.columns
-        
-        if self.values_dict is None:
-            self.values = X.copy()
-        else:
-            self.values = pd.concat(self.values, X)
-
-        
-        return self
-
-    def quantile(
-        self, q: float, feature: Optional[str] = None
-    ) -> Union[pd.Series, float]:
-        if feature is not None:
-            return self.values.quantile(q)
-        else:
-            return self.values[feature].quantile(q)
-
 
 class Literal(TransformerStep):
     def __init__(self, literal, *args):
         super().__init__(*args)
-        self.literal = literal 
-        
+        self.literal = literal
+
     def transform(self, X):
         return self.literal
 
 
 def ensure_step(step):
     if isinstance(step, TransformerStep):
-        return step    
+        return step
     return Literal(step)

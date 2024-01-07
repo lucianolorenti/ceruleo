@@ -9,6 +9,7 @@ from tensorflow.keras.layers import (
     Permute,
     Reshape,
 )
+from tensorflow.keras import Input, Model
 
 
 def MVCNN(
