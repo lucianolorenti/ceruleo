@@ -195,7 +195,7 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     color_palette: str = "hls",
     bar_width: float=1/1.5,
     **kwargs,
-) -> Tuple[matplotlib.figure,matplotlib.axes.Axes]:
+) -> Tuple[matplotlib.figure.Figure ,matplotlib.axes.Axes]:
     """
     Plot the barplots given the errors
 
