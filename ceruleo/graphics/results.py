@@ -557,7 +557,7 @@ def plot_J_Cost(
 
 def plot_life(
     life: FittedLife,
-    ax: Oprional[matplotlib.axes.Axes]=None,
+    ax: Optional[matplotlib.axes.Axes]=None,
     units: Optional[str] = "",
     markersize: float = 0.7,
     add_fitted: bool = False,
