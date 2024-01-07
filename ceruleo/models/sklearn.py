@@ -34,6 +34,7 @@ import sklearn.pipeline as sk_pipeline
 from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics._scorer import get_scorer
+from typing import List
 
 logger = logging.getLogger(__name__)
 
