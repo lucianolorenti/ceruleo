@@ -37,6 +37,10 @@ class TransformedDataset(AbstractRunToFailureCyclesDataset):
 
     def __call__(self, i: int):
         return self[i]
+    
+    @property
+    def rul_column(self):
+        return self.dataset.rul_column
 
     def number_of_samples_of_time_series(self, i: int) -> int:
         _, y, _ = self[i]
@@ -117,3 +121,4 @@ class TransformedSerializedDataset(TransformedDataset):
 
     def __len__(self):
         return self.n_time_series
+

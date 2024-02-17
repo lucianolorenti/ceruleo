@@ -18,7 +18,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from ceruleo import CACHE_PATH, DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset, CeruleoDataset
+from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset, PDMDataset
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class FailureType(Enum):
         return None
 
 
-class PHMDataset2018(CeruleoDataset):
+class PHMDataset2018(PDMDataset):
     """PHM 2018 Dataset
 
     The 2018 PHM dataset is a public dataset released by Seagate which contains the execution of 20 different

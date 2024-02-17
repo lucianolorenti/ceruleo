@@ -25,48 +25,49 @@ Since usually the breakages are considered more harmful, a possible approach to 
 
 """
 import logging
-from dataclasses import dataclass
-from typing import  Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from ceruleo.results.picewise_regression import (PiecewesieLinearFunction,
-                                                PiecewiseLinearRegression)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from sklearn.metrics import mean_squared_error as mse
 from uncertainties import ufloat
+
+from ceruleo.results.picewise_regression import (
+    PiecewesieLinearFunction,
+    PiecewiseLinearRegression,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MetricsResult:
-    """An object that store regression metrics and times
-    """
+    """An object that store regression metrics and times"""
+
     mae: float
     mse: float
-    fitting_time: float = 0
-    prediction_time: float = 0
+    fitting_time: float = field(default_factory=lambda: 0)
+    prediction_time: float = field(default_factory=lambda: 0)
 
 
 @dataclass
 class PredictionResult:
-    """A prediction result is composed by a name
-    """
+    """A prediction result is composed by a name"""
+
     name: str
     true_RUL: np.ndarray
     predicted_RUL: np.ndarray
-    metrics: MetricsResult = MetricsResult(0, 0)
+    metrics: MetricsResult = field(default_factory=lambda: MetricsResult(0, 0))
 
     def compute_metrics(self):
         self.metrics.mae = mae(self.true_RUL, self.predicted_RUL)
         self.metrics.mse = mse(self.true_RUL, self.predicted_RUL)
 
-
-    def __init__(self, name:str,     true_RUL: np.ndarray, predicted_RUL: np.ndarray):
-        self.name = name
-        self.true_RUL = np.squeeze(true_RUL)
-        self.predicted_RUL = np.squeeze(predicted_RUL)
+    def __post_init__(self):    
+        self.true_RUL = np.squeeze(self.true_RUL)
+        self.predicted_RUL = np.squeeze(self.predicted_RUL)
         self.compute_metrics()
 
 
@@ -92,17 +93,18 @@ def compute_rul_line(rul: float, n: int, tt: Optional[np.array] = None):
 
 class CVResults:
     """
-        Compute the error histogram
+    Compute the error histogram
 
-        Compute the error with respect to the RUL considering the results of different
-        folds
+    Compute the error with respect to the RUL considering the results of different
+    folds
 
-        Parameters:
-            y_true: List with the true values of each hold-out set of a cross validation
-            y_pred: List with the predictions of each hold-out set of a cross validation
-            nbins: Number of bins to compute the histogram
+    Parameters:
+        y_true: List with the true values of each hold-out set of a cross validation
+        y_pred: List with the predictions of each hold-out set of a cross validation
+        nbins: Number of bins to compute the histogram
 
     """
+
     def __init__(
         self,
         y_true: List[List],
@@ -110,7 +112,6 @@ class CVResults:
         nbins: int = 5,
         bin_edges: Optional[np.array] = None,
     ):
-
         if bin_edges is None:
             max_value = np.max([np.max(y) for y in y_true])
             bin_edges = np.linspace(0, max_value, nbins + 1)
@@ -129,7 +130,6 @@ class CVResults:
         y_true = np.squeeze(y_true)
 
         for j in range(len(self.bin_edges) - 1):
-
             mask = (y_true >= self.bin_edges[j]) & (y_true <= self.bin_edges[j + 1])
             indices = np.where(mask)[0]
 
@@ -180,7 +180,6 @@ def models_cv_results(
     bin_edges = np.linspace(0, max_y_value, nbins + 1)
     model_results = {}
     for model_name in results_dict.keys():
-
         model_results[model_name] = model_cv_results(
             results_dict[model_name], bin_edges=bin_edges
         )
@@ -218,7 +217,6 @@ class FittedLife:
             if isinstance(time, np.ndarray):
                 self.time = time
             else:
-
                 self.time = np.array(np.linspace(0, y_true[0], n=len(y_true)))
 
         else:
@@ -242,7 +240,9 @@ class FittedLife:
         self.y_true_fitted = p(self.time)
 
     @staticmethod
-    def compute_time_feature(y_true: np.array, RUL_threshold: Optional[float] = None) -> Tuple[float, np.ndarray]:
+    def compute_time_feature(
+        y_true: np.array, RUL_threshold: Optional[float] = None
+    ) -> Tuple[float, np.ndarray]:
         """Compute the time feature based on the target
 
         Parameters:
@@ -283,7 +283,7 @@ class FittedLife:
                 degrading_start = degrading_start_i[0][0]
         else:
             d = np.diff(y_true) == 0
-            while (degrading_start< len(d)) and (d[degrading_start]):
+            while (degrading_start < len(d)) and (d[degrading_start]):
                 degrading_start += 1
         return degrading_start
 
@@ -307,7 +307,7 @@ class FittedLife:
         """
         if len(y_true) == 1:
             return np.array([0])
-        
+
         time_diff = np.diff(np.squeeze(y_true)[degrading_start:][::-1])
         time = np.zeros(len(y_true))
         if degrading_start > 0:
@@ -316,7 +316,7 @@ class FittedLife:
             else:
                 time[0 : degrading_start + 1] = 1
         time[degrading_start + 1 :] = time_diff
-        
+
         return np.cumsum(time)
 
     def _fit_picewise_linear_regression(self, y: np.array) -> PiecewesieLinearFunction:
@@ -494,9 +494,6 @@ def split_lives(
     return lives
 
 
-
-
-
 def unexploited_lifetime(d: PredictionResult, window_size: int, step: int):
     bb = [split_lives(cv) for cv in d]
     return unexploited_lifetime_from_cv(bb, window_size, step)
@@ -511,7 +508,6 @@ def unexploited_lifetime_from_cv(
     for m in windows:
         jj = []
         for r in lives:
-
             ul_cv_list = [life.unexploited_lifetime(m) for life in r]
 
             jj.extend(ul_cv_list)
@@ -602,13 +598,7 @@ def metric_J(d, window_size: int, step: int):
 def cv_regression_metrics_single_model(
     results: List[PredictionResult], threshold: float = np.inf
 ):
-    errors = {
-        "MAE": [],
-        "MAE SW": [],
-        "MSE": [],
-        "MSE SW": [],
-        "MAPE": []
-    }
+    errors = {"MAE": [], "MAE SW": [], "MSE": [], "MSE SW": [], "MAPE": []}
     for result in results:
         y_mask = np.where(result.true_RUL <= threshold)[0]
         y_true = np.squeeze(result.true_RUL[y_mask])
@@ -619,7 +609,6 @@ def cv_regression_metrics_single_model(
 
         if len(np.unique(y_pred)) == 1:
             continue
-
 
         sw = compute_sample_weight(
             "relative",
@@ -667,7 +656,9 @@ def cv_regression_metrics_single_model(
 
     errors1 = {}
     for k in errors.keys():
-        errors1[k] = ufloat(np.round(np.mean(errors[k]),2), np.round(np.std(errors[k]), 2))
+        errors1[k] = ufloat(
+            np.round(np.mean(errors[k]), 2), np.round(np.std(errors[k]), 2)
+        )
     return errors1
 
 
@@ -677,15 +668,15 @@ def cv_regression_metrics(
     """Compute regression metrics for each model
 
     Parameters:
-    
+
         data: Dictionary with the model predictions.
-            
+
         threshold: Compute metrics errors only in RUL values less than the threshold
 
     Returns:
 
 
-        d: { ['Model]: 
+        d: { ['Model]:
                 {
                     'MAE': {
                         'mean':
@@ -701,7 +692,7 @@ def cv_regression_metrics(
                     },
                 }
             ]
-            
+
     """
     out = {}
     for model_name in results_dict.keys():

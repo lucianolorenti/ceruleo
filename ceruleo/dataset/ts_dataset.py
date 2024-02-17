@@ -13,7 +13,7 @@ except:
     TENSORFLOW_ENABLED = False
 from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
-from abc import abstractmethod, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 
 class DatasetIterator:
     def __init__(self, dataset):
@@ -28,7 +28,7 @@ class DatasetIterator:
         return a
 
 
-class AbstractRunToFailureCyclesDataset:
+class AbstractRunToFailureCyclesDataset(ABC):
     def __init__(self):
         self._common_features = None
         self._durations = None
@@ -36,10 +36,12 @@ class AbstractRunToFailureCyclesDataset:
     def __iter__(self):
         return DatasetIterator(self)
 
+    @abstractproperty
     @property
     def n_time_series(self) -> int:
         raise NotImplementedError
 
+    @abstractmethod
     def get_time_series(self, i: int) -> pd.DataFrame:
         """
 
@@ -269,12 +271,14 @@ class FoldedDataset(AbstractRunToFailureCyclesDataset):
     def __reduce_ex__(self, __protocol) -> Union[str, Tuple[Any, ...]]:
         return (self.__class__, (self.dataset, self.indices))
 
+    @property
+    def rul_column(self):
+        return self.dataset.rul_column
 
 
 
 
-
-class CeruleoDataset(AbstractRunToFailureCyclesDataset):
+class PDMDataset(AbstractRunToFailureCyclesDataset):
     def __init__(self, path:Path):
         super().__init__()
         self.dataset_path = path
@@ -290,8 +294,7 @@ class CeruleoDataset(AbstractRunToFailureCyclesDataset):
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
-        #df.index = pd.to_timedelta(df.index, unit="s")
-        #df = df[df["FIXTURESHUTTERPOSITION"] == 1]
-        #df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
-
         return df
+    
+class PDMInMemoryDataset(AbstractRunToFailureCyclesDataset):
+    pass

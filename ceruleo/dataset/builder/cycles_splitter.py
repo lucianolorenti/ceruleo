@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
+
 import pandas as pd 
-from pathlib import Path 
+from pathlib import Path
+
+from ceruleo.dataset.builder.output import OutputMode 
 
 def merge_data_with_faults(
         data:pd.DataFrame,
@@ -27,24 +30,27 @@ def merge_data_with_faults(
 
 
 class CyclesSplitter(ABC):
+
     @abstractmethod
-    def split(self, data: pd.DataFrame):
+    def split(self, data: pd.DataFrame, output: OutputMode):
         raise NotImplementedError
 
 
-class IncreasingFeatureCycleSplitter:
+class IncreasingFeatureCycleSplitter(CyclesSplitter):
     def __init__(self, increasing_feature: str):
         self.increasing_feature = increasing_feature
 
-    def split(self, data: pd.DataFrame):
-        restart_points = df[df[self.increasing_feature].diff() < 0].index.tolist()
-        subsets = []
+    
+    def split(self, data: pd.DataFrame, output: OutputMode):
+        restart_points = data[data[self.increasing_feature].diff() < 0].index.tolist()
         start_idx = 0
+        i = 1
         for restart_idx in restart_points:
-            subset = df.iloc[start_idx:restart_idx]
-            subsets.append(subset)
+            subset = data.iloc[start_idx:restart_idx]
+            output.store(f"Cycle_{i}", subset)
             start_idx = restart_idx
-        subsets.append(df.iloc[start_idx:])
+            i+=1
+        output.store(f"Cycle_{i}", data.iloc[start_idx:])
 
 
 class LifeIdCycleSplitter:

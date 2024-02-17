@@ -7,6 +7,7 @@ from tqdm.auto import tqdm
 import logging
 
 from ceruleo.dataset.builder.cycles_splitter import CyclesSplitter
+from ceruleo.dataset.builder.output import OutputMode
 from ceruleo.dataset.builder.rul_column import RULColumn 
 
 
@@ -16,41 +17,43 @@ logger = logging.getLogger(__name__)
 
 class DatasetBuilder:
     splitter: CyclesSplitter
-    rul_column: RULColumn
+    output_mode: OutputMode
 
     def __init__(self):
-        self.metadata_mapping = None
+        self.output_mode = None
         self.splitter = None
-        self.rul_column = None
+       
+
+    @staticmethod
+    def one_file_format():
+        return DatasetBuilder()
 
     def set_splitting_method(self, splitter: CyclesSplitter):
         self.splitter = splitter
         return self
 
-    def set_rul_column(self, rul_column:RULColumn):
-        self.rul_column = rul_column
-
-    def set_life_id_feature(self, name: str):
-        self._life_id_feature = name
-        return self
-
-    def set_life_end_indicator_feature(self, name: str):
-        self._life_end_indicator_feature = name
-        return self
-
     def set_machine_id_feature(self, name: str):
         self._machine_type_feature = name
         return self
-
-    def set_failure_list(self, failures: pd.DataFrame):
-        self._failures = failures
+    
+    def set_output_mode(self, output_mode: OutputMode):
+        self.output_mode = output_mode
         return self
 
-    def build(self, input_path:Path, output_path: Path):
-        (output_path / "processed" / "cycles").mkdir(exist_ok=True, parents=True)
+    def _validate(self):
+        if self.output_mode is None:
+            raise ValueError("Output mode not set")
+        if self.splitter is None:
+            raise ValueError("Splitting method not set")
 
+    def build(self, input_path:Path):
+        self._validate()
+        self.splitter.split(input_path, self.output_mode)
 
-        self.splitter.split(input_path)
+    def build_from_df(self, df: pd.DataFrame):
+        self._validate()
+        self.splitter.split(df, self.output_mode)
+        return self.output_mode.build_dataset()
 
 
 
