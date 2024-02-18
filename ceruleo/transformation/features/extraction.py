@@ -1017,7 +1017,7 @@ class SlidingNonOverlappingEMD(TransformerStep):
         for c in X.columns:
             for i in range(self.keep):
                 column_list.append(f"imf_{i}_{c}")
-        out = pd.DataFrame(index=X.index, columns=column_list, dtype=np.float32)
+        out = pd.DataFrame(index=X.index, columns=column_list, dtype=np.float64)
         for c in X.columns:
             emd_computed = apply_rolling_data(
                 X[c].values, _emd, self.window_size, self.strides

@@ -8,9 +8,6 @@ import tarfile
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Union
-from ceruleo.dataset.builder.builder import DatasetBuilder
-from ceruleo.dataset.builder.cycles_splitter import FailureDataCycleSplitter
-from ceruleo.dataset.builder.rul_column import NumberOfRowsRULColumn
 
 import gdown
 import numpy as np
@@ -18,6 +15,10 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from ceruleo import CACHE_PATH, DATA_PATH
+from ceruleo.dataset.builder.builder import DatasetBuilder
+from ceruleo.dataset.builder.cycles_splitter import FailureDataCycleSplitter
+from ceruleo.dataset.builder.output import LocalStorageOutputMode
+from ceruleo.dataset.builder.rul_column import NumberOfRowsRULColumn
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset, PDMDataset
 
 logger = logging.getLogger(__name__)
@@ -95,15 +96,15 @@ class PHMDataset2018(PDMDataset):
         url: str = URL
     ):
         self.url = url
-        super().__init__(path)
-
+        super().__init__(path / "phm_data_challenge_2018")
+        self._prepare_dataset()
 
 
     def _prepare_dataset(self):
         if self.lives_table_filename.is_file():
             return
         if not (self.dataset_path / "raw" / "train").is_dir():
-            self.prepare_raw_dataset(self.dataset_path)
+            self.prepare_raw_dataset()
         files = list(
             Path(self.dataset_path / "raw" / "train").resolve().glob("*.csv")
         )
@@ -116,15 +117,14 @@ class PHMDataset2018(PDMDataset):
         (
             DatasetBuilder()
             .set_splitting_method(FailureDataCycleSplitter())
-            .set_rul_column(NumberOfRowsRULColumn())
-            .add_cycle_metadata({
-                "Tool": "Tool",
-                "Failure Type": "Failure Type",
-            })
+            .set_rul_column_method(NumberOfRowsRULColumn())
+            .set_output_mode(LocalStorageOutputMode(self.dataset_path / "processed"))
             .build(
-                raw=self.dataset_path / "raw",
-                output=self.dataset_path / "processed",
+                data_files=files,
+                fault_files=faults_files,
             )
+           
+            
         )
 
     @property
@@ -160,8 +160,9 @@ class PHMDataset2018(PDMDataset):
             for member in tqdm(members, total=70):
                 yield member
 
-        path = self.output_path / "raw"
+        path = self.dataset_path / "raw"
         path.mkdir(parents=True, exist_ok=True)
+        print(path / OUTPUT)
         if not (path / OUTPUT).resolve().is_file():
             download(self.url, path)
         logger.info("Decompressing  dataset...")
