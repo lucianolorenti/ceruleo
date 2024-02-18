@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
@@ -48,7 +48,7 @@ seed(1)
 tf.random.set_seed(2)
 
 
-class SimpleDataset(AbstractRunToFailureCyclesDataset):
+class SimpleDataset(AbstractPDMDataset):
     def __init__(self):
 
         self.lives = [
@@ -69,7 +69,7 @@ class SimpleDataset(AbstractRunToFailureCyclesDataset):
         return len(self.lives)
 
 
-class MockDataset(AbstractRunToFailureCyclesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
 
         self.lives = [

@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from ceruleo import DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from tqdm.auto import tqdm
 
 from ceruleo.utils.download import download
@@ -128,7 +128,7 @@ class CMAPSS2PreProcessor:
 
 
 
-class CMAPSS2Dataset(AbstractRunToFailureCyclesDataset):
+class CMAPSS2Dataset(AbstractPDMDataset):
     """C-MAPSS-2 Dataset
 
     The dataset provides a new realistic dataset of run-to-failure trajectories for a small fleet of aircraft

@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features
 from scipy.special import kl_div
 from scipy.stats import wasserstein_distance
@@ -32,7 +32,7 @@ def histogram_per_life(
         logger.info(f"Error {e} when computing the distribution for feature {feature}")
 
 
-def compute_bins(ds: AbstractRunToFailureCyclesDataset, feature: str, number_of_bins: int = 15):
+def compute_bins(ds: AbstractPDMDataset, feature: str, number_of_bins: int = 15):
     min_value = ds.get_features_of_life(0)[feature].min()
     max_value = ds.get_features_of_life(0)[feature].max()
 
@@ -44,7 +44,7 @@ def compute_bins(ds: AbstractRunToFailureCyclesDataset, feature: str, number_of_
 
 
 def features_divergeces(
-    ds: AbstractRunToFailureCyclesDataset,
+    ds: AbstractPDMDataset,
     number_of_bins: int = 15,
     columns: Optional[List[str]] = None,
     show_progress: bool = False,

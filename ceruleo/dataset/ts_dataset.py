@@ -28,7 +28,7 @@ class DatasetIterator:
         return a
 
 
-class AbstractRunToFailureCyclesDataset(ABC):
+class AbstractPDMDataset(ABC):
     def __init__(self):
         self._common_features = None
         self._durations = None
@@ -237,8 +237,8 @@ class AbstractRunToFailureCyclesDataset(ABC):
         )
 
 
-class FoldedDataset(AbstractRunToFailureCyclesDataset):
-    def __init__(self, dataset: AbstractRunToFailureCyclesDataset, indices: list):
+class FoldedDataset(AbstractPDMDataset):
+    def __init__(self, dataset: AbstractPDMDataset, indices: list):
         super().__init__()
         self.dataset = dataset
         self.indices = indices
@@ -278,7 +278,7 @@ class FoldedDataset(AbstractRunToFailureCyclesDataset):
 
 
 
-class PDMDataset(AbstractRunToFailureCyclesDataset):
+class PDMDataset(AbstractPDMDataset):
     def __init__(self, path:Path):
         super().__init__()
         self.dataset_path = path
@@ -296,5 +296,22 @@ class PDMDataset(AbstractRunToFailureCyclesDataset):
         df = self._load_life(self.lives.iloc[i]["Filename"])
         return df
     
-class PDMInMemoryDataset(AbstractRunToFailureCyclesDataset):
-    pass
+class PDMInMemoryDataset(AbstractPDMDataset):
+    data: List[pd.DataFrame]
+    _rul_column: str
+
+    def __init__(self, data: List[pd.DataFrame], rul_column: str):
+        super().__init__()
+        self.data = data
+        self._rul_column = rul_column
+
+    def get_time_series(self, i: int) -> pd.DataFrame:
+        return self.data[i]
+    
+    @property
+    def n_time_series(self) -> int:
+        return len(self.data)
+    
+    @property
+    def rul_column(self) -> int:
+        return self._rul_column

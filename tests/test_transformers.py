@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import scipy.stats
 
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.transformation.features.entropy import LocalEntropyMeasures
 from ceruleo.transformation.features.extraction import (
     EMD,
@@ -150,7 +150,7 @@ def manual_features(s: pd.Series, name: str):
     return feature_functions[name](s)
 
 
-class DatasetFromPandas(AbstractRunToFailureCyclesDataset):
+class DatasetFromPandas(AbstractPDMDataset):
     def __init__(self, lives: List[pd.DataFrame]):
 
         self.lives = lives
@@ -167,7 +167,7 @@ class DatasetFromPandas(AbstractRunToFailureCyclesDataset):
         return len(self.lives)
 
 
-class MockDataset(AbstractRunToFailureCyclesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
 
         self.lives = [
@@ -193,7 +193,7 @@ class MockDataset(AbstractRunToFailureCyclesDataset):
         return len(self.lives)
 
 
-class MockDataset2(AbstractRunToFailureCyclesDataset):
+class MockDataset2(AbstractPDMDataset):
     def __init__(self, nlives: int):
         N = 500
         self.lives = [

@@ -2,14 +2,14 @@
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.batcher import Batcher
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
 from ceruleo.transformation import ( Transformer)
 import math
 
-class MockDataset(AbstractRunToFailureCyclesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
 
         self.lives = [

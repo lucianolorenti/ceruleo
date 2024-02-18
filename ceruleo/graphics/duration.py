@@ -6,7 +6,7 @@ import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 
 
 def add_vertical_line(ax, v_x, label, color, line, n_lines):
@@ -24,7 +24,7 @@ def add_vertical_line(ax, v_x, label, color, line, n_lines):
 
 
 def durations_histogram(
-    datasets: Union[AbstractRunToFailureCyclesDataset, List[AbstractRunToFailureCyclesDataset]],
+    datasets: Union[AbstractPDMDataset, List[AbstractPDMDataset]],
     xlabel: str = 'Cycle Duration',
     label: Union[str, List[str]] = "1",
     bins: int = 15,
@@ -172,7 +172,7 @@ def histogram_from_durations(
 
 
 def durations_boxplot(
-    datasets: Union[AbstractRunToFailureCyclesDataset, List[AbstractRunToFailureCyclesDataset]],
+    datasets: Union[AbstractPDMDataset, List[AbstractPDMDataset]],
     xlabel: Union[str, List[str]],
     ylabel: str = 'Cycle Duration',
     ax:Optional[matplotlib.axes.Axes]=None,

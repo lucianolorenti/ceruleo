@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.transformation.functional.transformers import Transformer
 from ceruleo.utils.lrucache import LRUDataCache
 from sklearn.utils.validation import check_is_fitted
@@ -19,7 +19,7 @@ def _transform(transformer, dataset, i: int):
     return (i, transformer.transform(data))
 
 
-class TransformedDataset(AbstractRunToFailureCyclesDataset):
+class TransformedDataset(AbstractPDMDataset):
     def __init__(
         self, dataset, transformer: Transformer, cache_size: Optional[int] = None
     ):

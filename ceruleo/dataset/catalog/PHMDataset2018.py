@@ -18,7 +18,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from ceruleo import CACHE_PATH, DATA_PATH
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset, PDMDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset, PDMDataset
 
 logger = logging.getLogger(__name__)
 

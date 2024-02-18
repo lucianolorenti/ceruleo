@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 from uncertainties import ufloat
 
 from ceruleo.dataset.transformed import TransformedDataset
-from ceruleo.dataset.ts_dataset import AbstractRunToFailureCyclesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
 
 
@@ -190,7 +190,7 @@ def merge_analysis(data: dict):
 
 
 def analysis(
-    dataset: Union[TransformedDataset, AbstractRunToFailureCyclesDataset],
+    dataset: Union[TransformedDataset, AbstractPDMDataset],
     *,
     show_progress: bool = False,
     what_to_compute: List[str] = [],

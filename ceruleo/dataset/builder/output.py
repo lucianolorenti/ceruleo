@@ -11,8 +11,9 @@ class OutputMode(ABC):
         pass
 
     @abstractmethod
-    def build_dataset(self) ->  PDMDataset:
+    def build_dataset(self, builder:"DatasetBuilder") ->  PDMDataset:
         pass
+
 
 class InMemoryOutputMode(OutputMode):
     def __init__(self):
@@ -21,9 +22,10 @@ class InMemoryOutputMode(OutputMode):
     def store(self, cycle_id:str, df: pd.DataFrame):
         self.out[cycle_id] = df
 
-    def build_dataset(self) -> PDMDataset:
+    def build_dataset(self, builder:"DatasetBuilder") -> PDMDataset:
         return PDMInMemoryDataset(
-            self.out
+            list(self.out.values()),
+            "RUL"
         )
 
 class LocalStorageOutputMode(OutputMode):
