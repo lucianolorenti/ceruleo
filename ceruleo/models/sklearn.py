@@ -1,6 +1,6 @@
 """This module provides interoperability 
 
-Scikit learn models can be used wit the ceruleo Transformers
+Scikit learned models can be used wit the ceruleo Transformers
 
 
 The `TimeSeriesWindowTransformer`  is a scikit-learn transformers that takes
@@ -34,18 +34,19 @@ import sklearn.pipeline as sk_pipeline
 from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics._scorer import get_scorer
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 
 class EstimatorWrapper(TransformerMixin, BaseEstimator):
-    """Wrapper around sklearn estimators to allow calling the fit and predict
+    """
+    Wrapper around sklearn estimators to allow calling the fit and predict
 
     The transformer keeps the X and y together. This wrapper
     divide the X,y and call the fit(X,y) and predict(X,y) of the estimator
 
     Parameters:
-
         estimator: A scikit-learn estimator
     """
 
@@ -63,11 +64,11 @@ class EstimatorWrapper(TransformerMixin, BaseEstimator):
 
 
 class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
-    """A scikit-learn transformer for obtaining a windowed time-series from the run-to-cycle failures
+    """
+    A scikit-learn transformer for obtaining a windowed time-series from the run-to-cycle failures
 
     Parameters:
-
-        transformer:
+        transformer: A scikit-learn transformer
         window_size: Window size of the iterator
         step: Stride of the iterators
         horizon: Horizon of the predictions
@@ -98,6 +99,12 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
         self.padding = padding
 
     def fit(self, dataset: AbstractPDMDataset):
+        """
+        Fit the transformer with the given dataset
+
+        Parameters:
+            dataset: Dataset to fit the transformer
+        """
         self.transformer.fit(dataset)
         return self
 
@@ -120,20 +127,22 @@ class TimeSeriesWindowTransformer(TransformerMixin, BaseEstimator):
     def true_values(self, dataset: AbstractPDMDataset):
         X, y, sw = self._iterator(dataset).get_data()
         return y.ravel()
-    
+
     def get_params(self, deep=None):
         params = super().get_params(deep)
         if deep:
-            params['ts_window_transformer__transformer'] = self.transformer.get_params(deep)
+            params["ts_window_transformer__transformer"] = self.transformer.get_params(
+                deep
+            )
         return params
 
 
 class CeruleoRegressor(RegressorMixin, BaseEstimator):
-    """A regressor wrapper similar to sklearn.compose.TransformedTargetRegressor
+    """
+    A regressor wrapper similar to sklearn.compose.TransformedTargetRegressor
 
 
     Parameters:
-
         features_transformer: The transformer
         regressor: A scikit-learn regressor
     """
@@ -173,17 +182,19 @@ class CeruleoRegressor(RegressorMixin, BaseEstimator):
 
 
 class CeruleoMetricWrapper:
-    """A wrapper around sklearn metrics
+    """
+    A wrapper around sklearn metrics
 
         Example:
-
+        '''
             grid_search = GridSearchCV(
                 estimator=regressor_gs,
                 param_grid={
                     'regressor': [RandomForestRegressor(max_depth=5)]
                 },
                 scoring=CeruleoMetricWrapper('neg_mean_absolute_error')
-    )
+            )
+        '''
     """
 
     def __init__(self, scoring):
@@ -201,22 +212,18 @@ def train_model(
     model,
     train_iterator: WindowedDatasetIterator,
     val_windowed_iterator: Optional[WindowedDatasetIterator] = None,
-    **fit_kwargs
+    **fit_kwargs,
 ):
-    """Fit the model with the given dataset iterator
-
+    """
+    Fit the model with the given dataset iterator
     Parameters:
-
-        train_iterator:
-
+        train_iterator: Training Iterator
 
     Keyword arguments:
-
         fit_kwargs: Arguments for the fit method
 
     Returns:
-
-        model: SKLearn model
+        A SKLearn model
     """
     X, y, sample_weight = train_iterator.get_data()
 
@@ -234,32 +241,32 @@ def train_model(
 
 
 def predict(model, dataset_iterator: WindowedDatasetIterator):
-    """Get the predictions for the given iterator
+    """
+    Get the predictions for the given iterator
 
     Parameters:
-
         dataset_iterator: Dataset iterator from which obtain data to predict
 
     Returns:
-
-        array: Array with the predictiosn
+       Array with the predictiosn
     """
     X, _, _ = dataset_iterator.get_data()
     return model.predict(X)
 
 
-def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
-    """Fit the model using the given batcher
+def fit_batch(
+    model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15
+) -> Tuple["Model", List]:
+    """
+    Fit the model using the given batcher
 
     Parameters:
-
         model: SKLearn Model
         train_batcher: Train dataset batcher
         val_batcher: Validation dataset batcher
         n_epochs: Number of epochs, by default 15
 
     Returns:
-
         model: the model
         history: history of errors
     """
@@ -273,18 +280,17 @@ def fit_batch(model, train_batcher: Batcher, val_batcher: Batcher, n_epochs=15):
     return model, history
 
 
-def predict_batch(model, dataset_batcher: Batcher):
-    """Predict the values using the given batcher
+def predict_batch(model, dataset_batcher: Batcher) -> np.ndarray:
+    """
+    Predict the values using the given batcher
 
     Parameters:
-
         model: SKLearn model
         dataset_batcher: The batcher
 
 
     Returns:
-
-        RUL_predicted: Predictions array
+        RUL Prediction array
     """
     y_pred = []
     for X, y in dataset_batcher:

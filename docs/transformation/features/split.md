@@ -1,6 +1,6 @@
-## Denoising 
+## Split
 
-::: ceruleo.transformation.features.denoising
+::: ceruleo.transformation.features.split
     options:
       show_source: True
       heading_level: 3

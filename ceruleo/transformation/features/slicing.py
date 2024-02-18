@@ -14,11 +14,12 @@ from ceruleo.iterators.iterators import (
 
 
 class SliceRows(TransformerStep):
-    """Slice portion of the run-to-failure cycle
+    """
+    Slice portion of the run-to-failure cycle
     
     Parameters:
-        initial: Initial position of the slice
-        final: Final position of the slice
+        initial: Initial position of the slice, default RelativeToStart(0)
+        final: Final position of the slice, default RelativeToEnd(0)
     """
 
     def __init__(
@@ -35,6 +36,15 @@ class SliceRows(TransformerStep):
         self.final = final
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Slice the run-to-failure cycle
+
+        Parameters:
+            X: Input dataframe
+        
+        Returns:
+            A dataframe with the sliced run-to-failure cycle
+        """
         if isinstance(self.initial, RelativePosition):
             initial = self.initial.get(X.shape[0])
         else:

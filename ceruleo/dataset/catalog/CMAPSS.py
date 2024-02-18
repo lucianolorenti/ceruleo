@@ -19,7 +19,7 @@ URL = "https://data.nasa.gov/download/ff5v-kuh6/application%2Fzip"
 
 
 # Features used by
-# Multiobjective Deep Belief Networks Ensemble forRemaining Useful Life Estimation in
+# Multiobjective Deep Belief Networks Ensemble for Remaining Useful Life Estimation in
 # Prognostics Chong Zhang, Pin Lim, A. K. Qin,Senior Member, IEEE, and Kay Chen Tan,Fellow, IEEE
 sensor_indices = np.array([2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]) + (4 - 1)
 
@@ -44,7 +44,6 @@ def obtain_raw_files(raw_data_path: Path = DATASET_PATH, ):
     """Download and unzip the raw files
 
     Parameters:
-    
         raw_data_path: Path where to store the dataset
     """
     raw_data_path = raw_data_path / "files"
@@ -136,17 +135,14 @@ class CMAPSSDataset(AbstractPDMDataset):
 
 
     Example:
-    
-        ``` py
+        ```
         train_dataset = CMAPSSDataset(train=True, models='FD001')
-
         validation_dataset = CMAPSSDataset(train=False, models='FD001')
         ```
 
     Parameters:
-    
-        train: Wether to obtain the train data provided
-        models: Names of the models
+        train: Weather to obtain the train data provided, by default True
+        models: Names of the models, by default None (all models)
     """
     def __init__(
         self, train: bool = True, models: Optional[Union[str, List[str]]] = None

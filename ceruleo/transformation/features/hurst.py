@@ -1,45 +1,38 @@
 from numba import guvectorize
 import numpy as np
+import pandas as pd
 
 @guvectorize("float64[:], int64, int64, int64, float64[:]", "(m),(),(),()->()",
              cache=True, nopython=True)
-def hurst_rs(x, min_chunksize, max_chunksize, num_chunksize, out):
-    """Estimate the Hurst exponent using R/S method.
+def hurst_rs(x: np.array, min_chunksize: int, max_chunksize: int, num_chunksize: int, out: np.array) -> float:
+    """
+    Estimate the Hurst exponent using R/S method.
 
     Estimates the Hurst (H) exponent using the R/S method from the time series.
     The R/S method consists of dividing the series into pieces of equal size
-    `series_len` and calculating the rescaled range. This repeats the process
+    series_len and calculating the rescaled range. This repeats the process
     for several `series_len` values and adjusts data regression to obtain the H.
     `series_len` will take values between `min_chunksize` and `max_chunksize`,
     the step size from `min_chunksize` to `max_chunksize` can be controlled
     through the parameter `step_chunksize`.
 
-    Parameters
-    ----------
-    x : 1D-array
-        A time series to calculate hurst exponent, must have more elements
-        than `min_chunksize` and `max_chunksize`.
-    min_chunksize : int
-        This parameter allow you control the minimum window size.
-    max_chunksize : int
-        This parameter allow you control the maximum window size.
-    num_chunksize : int
-        This parameter allow you control the size of the step from minimum to
-        maximum window size. Bigger step means fewer calculations.
-    out : 1-element-array, optional
-        one element array to store the output.
+    Parameters:
+        x: A time series to calculate hurst exponent, must have more elements than `min_chunksize` and `max_chunksize`.
+        min_chunksize: This parameter allow you control the minimum window size.
+        max_chunksize: This parameter allow you control the maximum window size.
+        num_chunksize: This parameter allow you control the size of the step from minimum to maximum window size. Bigger step means fewer calculations.
+        out: One element array to store the output.
+            
 
-    Returns
-    -------
-    H : float
-        A estimation of Hurst exponent.
-
+    Returns:
+        Estimation of Hurst exponent.
+        
     References
     ----------
-    Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
-    Transactions, 116(776), 770-808.
-    Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
-    197. http://dx.doi.org/10.1140/epjb/e20020150
+        Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
+        Transactions, 116(776), 770-808.
+        Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
+        197. http://dx.doi.org/10.1140/epjb/e20020150
     """
     N = len(x)
     max_chunksize += 1
@@ -81,8 +74,9 @@ def hurst_rs(x, min_chunksize, max_chunksize, num_chunksize, out):
     out[0] = H
 
 
-def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
-    """Estimate the Hurst exponent using R/S method.
+def hurst_dma(prices: np.array, min_chunksize: int=8, max_chunksize: int=200, num_chunksize: int=5) -> float:
+    """
+    Estimate the Hurst exponent using the DMA method.
 
     Estimates the Hurst (H) exponent using the DMA method from the time series.
     The DMA method consists on calculate the moving average of size `series_len`
@@ -93,22 +87,20 @@ def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
     `min_chunksize` to `max_chunksize` can be controlled through the parameter
     `step_chunksize`.
 
-    Parameters
-    ----------
-    prices
-    min_chunksize
-    max_chunksize
-    num_chunksize
+    Parameters:
+        prices: A time series to calculate hurst exponent, must have more elements than `min_chunksize` and `max_chunksize`.
+        min_chunksize: This parameter allow you control the minimum window size.
+        max_chunksize: This parameter allow you control the maximum window size.
+        num_chunksize: This parameter allow you control the size of the step from minimum to maximum window size. Bigger step means fewer calculations.
 
-    Returns
-    -------
-    hurst_exponent : float
+    Returns:
         Estimation of hurst exponent.
+       
 
     References
     ----------
-    Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
-    197. http://dx.doi.org/10.1140/epjb/e20020150
+        Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
+        197. http://dx.doi.org/10.1140/epjb/e20020150
 
     """
     max_chunksize += 1
@@ -129,34 +121,31 @@ def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
     return H
 
 
-def hurst_dsod(x):
-    """Estimate Hurst exponent on data timeseries.
+def hurst_dsod(x: np.array) -> float:
+    """
+    Estimate Hurst exponent on data timeseries using the DSOD (Discrete Second Order Derivative).
 
     The estimation is based on the discrete second order derivative. Consists on
     get two different noise of the original series and calculate the standard
     deviation and calculate the slope of two point with that values.
     source: https://gist.github.com/wmvanvliet/d883c3fe1402c7ced6fc
 
-    Parameters
-    ----------
-    x : numpy array
-        time series to estimate the Hurst exponent for.
+    Parameters:
+        x: Time series to estimate the Hurst exponent for.
+        
 
-    Returns
-    -------
-    h : float
-        The estimation of the Hurst exponent for the given time series.
-
+    Returns:
+       Estimation of the Hurst exponent for the given time series.
+    
     References
     ----------
-    Istas, J.; G. Lang (1994), “Quadratic variations and estimation of the local
-    Hölder index of data Gaussian process,” Ann. Inst. Poincaré, 33, pp. 407–436.
+        Istas, J.; G. Lang (1994), “Quadratic variations and estimation of the local
+        Hölder index of data Gaussian process,” Ann. Inst. Poincaré, 33, pp. 407–436.
 
 
     Notes
-    -----
-    This hurst_ets is data literal traduction of wfbmesti.m of waveleet toolbox
-    from matlab.
+    ----------
+        This hurst_ets is data literal traduction of wfbmesti.m of waveleet toolbox from matlab.
     """
     y = np.cumsum(np.diff(x, axis=0), axis=0)
 
@@ -176,56 +165,47 @@ def hurst_dsod(x):
     return 0.5 * np.log2(s2 / s1)
 
 
-def hurst_exponent(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5,
-                   method='RS'):
-    """Estimates Hurst Exponent.
+def hurst_exponent(prices: Option[np.ndarray, pd.Series, pd.DataFrame], min_chunksize: int =8, max_chunksize: int =200, num_chunksize: int =5,
+                   method: str ='RS') -> float:
+    """
+    Estimates Hurst Exponent.
 
     Estimate the hurst exponent following one of 3 methods. Each method
 
-    Parameters
-    ----------
-    prices : numpy.ndarray, pandas.Series or pandas.DataFrame
-        A time series to estimate hurst exponent.
-    min_chunksize : int, optional
-        Minimum chunk  size of the original series. This parameter doesn't have
-        any effect with DSOD method.
-    max_chunksize : int, optional
-        Maximum chunk size of the original series. This parameter doesn't have
-        any effect with DSOD method.
-    step_chunksize : int, optional
-        Step used to select next the chunk size which divide the original
-        series. This parameter doesn't have any effect with DSOD method.
-    method : {'RS', 'DMA', 'DSOD', 'all'}
-        The methods can take one of that values,
-            RS : rescaled range.
-            DMA : deviation moving average.
-            DSOD : discrete second order derivative.
+    Parameters:
+        prices: A time series to estimate hurst exponent.
+        min_chunksize : int, optional
+            Minimum chunk  size of the original series. This parameter doesn't have any effect with DSOD method, by default 8
+        max_chunksize : int, optional
+            Maximum chunk size of the original series. This parameter doesn't have any effect with DSOD method. by default 200.
+        num_chunksize : int, optional
+            Step used to select next the chunk size which divide the original series. This parameter doesn't have any effect with DSOD method, by default 5.
+        method : {'RS', 'DMA', 'DSOD', 'all'}. Valid values are: RS : rescaled range, DMA : deviation moving average, DSOD : discrete second order derivative.
 
 
-    Returns
-    -------
-    hurst_exponent : float
+    Returns:
         Estimation of hurst_exponent according to the method selected.
+        
 
     References
     ----------
-    RS : Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
-         Transactions, 116(776), 770-808.
-    DMA : Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002)
-         27: 197. http://dx.doi.org/10.1140/epjb/e20020150
-    DSOD : Istas, J.; G. Lang (1994), “Quadratic variations and estimation of
-        the local Hölder index of data Gaussian process,” Ann. Inst. Poincaré,
-        33, pp. 407–436.
+        RS: Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
+            Transactions, 116(776), 770-808.
+        DMA: Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002)
+            27: 197. http://dx.doi.org/10.1140/epjb/e20020150
+        DSOD: Istas, J.; G. Lang (1994), “Quadratic variations and estimation of
+            the local Hölder index of data Gaussian process,” Ann. Inst. Poincaré,
+            33, pp. 407–436.
 
     Notes
-    -----
-    The hurst exponent is an estimation which is important because there is no
-    data closed equation for it instead we have some methods to estimate it with
-    high variations among them.
+    ----------
+        The hurst exponent is an estimation which is important because there is no
+        data closed equation for it instead we have some methods to estimate it with
+        high variations among them.
 
     See Also
-    --------
-    hurst_rs, hurst_dma, hurst_dsod
+    ----------
+        hurst_rs, hurst_dma, hurst_dsod
     """
     if len(prices) == 0:
         return np.nan

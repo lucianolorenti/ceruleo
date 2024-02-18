@@ -30,7 +30,6 @@ def plot_lives(ds: TransformedDataset):
     Plot each life
 
     Parameters:
-
         ds: A transformed dataset
     """
     fig, ax = plt.subplots()
@@ -152,12 +151,12 @@ def boxplot_errors_wrt_RUL(
     x_axis_label: Optional[str] = None,
     ax=None,
     **kwargs,
-):
-    """Boxplots of difference between true and predicted RUL over Cross-validated results
+) -> matplotlib.axes.Axes:
+    """
+    Boxplots of difference between true and predicted RUL over Cross-validated results
 
 
     Parameters:
-    
         results_dict: Dictionary with the results of the fitted models
         nbins: Number of bins to divide the
         y_axis_label: Optional string to be added to the y axis
@@ -166,11 +165,10 @@ def boxplot_errors_wrt_RUL(
             If an axis is not provided, it will create one.
 
     Keyword arguments:
-
         **kwargs
 
     Return:
-        ax
+        The axis in which the plot has been made
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -197,21 +195,19 @@ def _cv_barplot_errors_wrt_RUL_multiple_models(
     color_palette: str = "hls",
     bar_width: float=1/1.5,
     **kwargs,
-):
-    """Plot the barplots given the errors
+) -> Tuple[matplotlib.figure.Figure ,matplotlib.axes.Axes]:
+    """
+    Plot the barplots given the errors
 
     Parameters:
-
         bin_edges: np.ndarray:
-
         model_results: Dictionary with the results
         ax: Axis
         y_axis_label: Y Label
         x_axis_label: X Label
 
     Returns:
-
-        Tuple[fig, axis]
+        The plot axis
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -285,10 +281,10 @@ def barplot_errors_wrt_RUL(
     color_palette: str = "hls",
     **kwargs,
 ):
-    """Barlots of difference between true and predicted RUL
+    """
+    Barlots of difference between true and predicted RUL
 
     Parameters:
-
         results_dict: Dictionary with the results for each model
         nbins: Number of bins in wich divide the RUL target
         y_axis_label: Y label
@@ -311,15 +307,20 @@ def barplot_errors_wrt_RUL(
 
 
 def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
-    bin_edges,
-    model_results,
-    ax=None,
-    y_axis_label=None,
-    x_axis_label=None,
+    bin_edges: np.array,
+    model_results: dict,
+    ax: Optional[matplotlib.axes.Axes]=None,
+    y_axis_label: Optional[str] =None,
+    x_axis_label: Optional[str] =None,
     **kwargs,
 ):
     """Plot a shaded regions for each model
 
+    Parameters:
+        bin_edges: Bin Edges
+        model_results: Dictionary with the results for the model
+        y_axis_label: Y label
+        x_axis_label: X label
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -398,22 +399,23 @@ def _cv_shadedline_plot_errors_wrt_RUL_multiple_models(
 def shadedline_plot_errors_wrt_RUL(
     results_dict: dict,
     nbins: int,
-    y_axis_label=None,
-    x_axis_label=None,
-    ax=None,
+    y_axis_label: Optional[str] =None,
+    x_axis_label: Optional[str] =None,
+    ax: Optional[matplotlib.axes.Axes] =None,
     **kwargs,
-):
-    """Shaded line
+) -> matplotlib.axes.Axes:
+    """
+    Shaded line
 
     Parameters:
-        results_dict: _description_
-        nbins:_description_
-        y_axis_label: _description_, by default None
-        x_axis_label:_description_, by default None
-        ax: _description_, by default None
+        results_dict: Dictionary with the results for the model
+        nbins: Number of bins
+        y_axis_label: Y label
+        x_axis_label: X label
+        ax: Plot axis 
 
     Returns:
-        ax: The axis
+        The plot axis
     """
 
     if ax is None:
@@ -464,7 +466,8 @@ def plot_unexpected_breaks(
     add_shade: bool = True,
     **kwargs,
 ) -> matplotlib.axes.Axes:
-    """Plot the risk of unexpected breaks with respect to the maintenance window
+    """
+    Plot the risk of unexpected breaks with respect to the maintenance window
 
     Parameters:
         results_dict: Dictionary with the results
@@ -474,8 +477,7 @@ def plot_unexpected_breaks(
         units: Units to use in the xlabel, by default ""
 
     Returns:
-
-        ax: The axis in which the plot was made
+        The axis in which the plot was made
     """
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
@@ -555,17 +557,18 @@ def plot_J_Cost(
 
 def plot_life(
     life: FittedLife,
-    ax=None,
+    ax: Optional[matplotlib.axes.Axes]=None,
     units: Optional[str] = "",
     markersize: float = 0.7,
     add_fitted: bool = False,
-    plot_target:bool = True,
-    add_regressed:bool = True,
+    plot_target: bool = True,
+    add_regressed: bool = True,
     start_x:int= 0,
     label:str = '',
     **kwargs,
-):
-    """Plot a single life
+) -> matplotlib.axes.Axes:
+    """
+    Plot a single life
 
     Parameters:
         life: A fitted life
@@ -580,8 +583,7 @@ def plot_life(
         label: 
 
     Returns:
-    
-        ax: Axis
+        The plot axis
     """
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
@@ -630,24 +632,23 @@ def plot_life(
 def plot_predictions_grid(
     results: Union[PredictionResult, List[PredictionResult]],
     ncols: int = 3,
-    alpha=1.0,
+    alpha: float =1.0,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
     **kwargs,
 ):
-    """Plot a matrix of predictions
+    """
+    Plot a matrix of predictions
 
     Parameters:
-    
         results: Dictionary with the results
-        ncols: Number of colmns in the plot, by default 3
-        alpha: Opacity of the predicted curves, by default 1.0
-        xlabel: Xlabel, by default None
-        ylabel: YLabel, by default None
+        ncols: Number of colmns in the plot
+        alpha: Opacity of the predicted curves
+        xlabel: Xlabel
+        ylabel: YLabel
 
     Return:
-
-        ax: The axis on which the plot has been made
+        The axis on which the plot has been made
     """
 
     def linear_to_subindices(i, ncols):
@@ -700,10 +701,10 @@ def plot_predictions(
     model_name:str = '',
     **kwargs,
 ) -> matplotlib.axes.Axes:
-    """Plots the predicted and the true remaining useful lives
+    """
+    Plots the predicted and the true remaining useful lives
 
     Parameters:
-    
         result: A PredictionResult object or a tuple with (y_true, y_predicted)
         ax:  Axis to plot. If it is missing a new figure will be created
         units: Units of time to be used in the axis labels
@@ -714,8 +715,7 @@ def plot_predictions(
         
 
     Returns:
-
-        ax: The axis on which the plot has been made
+        The axis on which the plot has been made
     """
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)

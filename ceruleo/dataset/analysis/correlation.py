@@ -1,5 +1,3 @@
-
-
 from itertools import combinations
 from typing import List, Optional, Tuple
 
@@ -18,22 +16,21 @@ def correlation_analysis(
     Compute the correlation between all the features given an Iterable of executions.
 
     Parameters:
-    
         dataset: Dataset of time series
         corr_threshold: Threshold to consider two features of a single execution highly correlated
         features: List of features to consider when computing the correlations
 
     Returns:
+        A DataFrame indexed with the column names with the following columns:
 
-        pd.DataFrame: A DataFrame indexed with the column names with the following columns:
+            - Mean Correlation
+            - Std Correlation
+            - Percentage of lives with a high correlation
+            - Abs mean correlation
+            - Std mean correlation
+            - Max correlation
+            - Min correlation
 
-                    - Mean Correlation
-                    - Std Correlation
-                    - Percentage of lives with a high correlation
-                    - Abs mean correlation
-                    - Std mean correlation
-                    - Max correlation
-                    - Min correlation
     """
     if features is None:
         features = sorted(list(dataset.common_features()))
@@ -41,7 +38,7 @@ def correlation_analysis(
         features = sorted(list(set(features).intersection(dataset.common_features())))
     features = dataset.get_features_of_life(0)[features].corr().columns
     correlated_features = []
-    
+
     for ex in iterate_over_features(dataset):
         ex = ex[features]
         corr_m = ex.corr().fillna(0)

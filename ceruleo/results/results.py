@@ -191,12 +191,11 @@ class FittedLife:
     """Represent a Fitted run-to-cycle failure
 
     Parameters:
-
         y_true: The true RUL target
         y_pred: The predicted target
         time: Time feature
         fit_line_not_increasing: Wether the fitted line can increase or not.
-        RUL_threshold: Indicates the thresholding value used during  de fit
+        RUL_threshold: Indicates the thresholding value used during  the fit
 
     """
 
@@ -246,14 +245,11 @@ class FittedLife:
         """Compute the time feature based on the target
 
         Parameters:
-
             y_true: RUL target
             RUL_threshold:
 
-        Returns
-        -------
-
-            Degradind start time and time
+        Returns:
+            Degrading start time and time
         """
         degrading_start = FittedLife._degrading_start(y_true, RUL_threshold)
         time = FittedLife._compute_time(y_true, degrading_start)
@@ -263,17 +259,16 @@ class FittedLife:
     def _degrading_start(
         y_true: np.array, RUL_threshold: Optional[float] = None
     ) -> float:
-        """Obtain the index when the life value is lower than the RUL_threshold
+        """
+        Obtain the index when the life value is lower than the RUL_threshold
 
         Parameters:
-
             y_true: Array of true values of the RUL of the life
             RUL_threshold: float
 
 
         Return:
-
-            degrading_start: if RUL_threshold is None, the degradint start if the first index.
+            If RUL_threshold is None, the degrading start if the first index.
             Otherwise it is the first index in which y_true < RUL_threshold
         """
         degrading_start = 0
@@ -289,21 +284,20 @@ class FittedLife:
 
     @staticmethod
     def _compute_time(y_true: np.array, degrading_start: int) -> np.array:
-        """Compute the passage of time from the true RUL
+        """
+        Compute the passage of time from the true RUL
 
         The passage of time is computed as the cumulative sum of the first
         difference of the true labels. In case there are tresholded values,
         the time steps of the thresholded zone is assumed to be as the median values
-        of the time steps computed of the zones of the life in which we have information.
+        of the time steps computed in the zones of the life in which we have information.
 
         Parameters:
-
             y_true: The true RUL labels
-            degrading_start : The index in which the true RUL values starts to be lower than the treshold
+            degrading_start: The index in which the true RUL values starts to be lower than the treshold
 
         Returns:
-
-            t: Time component
+            Time component
         """
         if len(y_true) == 1:
             return np.array([0])
@@ -320,16 +314,12 @@ class FittedLife:
         return np.cumsum(time)
 
     def _fit_picewise_linear_regression(self, y: np.array) -> PiecewesieLinearFunction:
-        """Fit the array trough a picewise linear regression
+        """
+        Fit the array trough a picewise linear regression
 
-        Parameters
-        ----------
-        y : np.array
-            Points to be fitted
-
-        Returns
-        -------
-        PiecewesieLinearFunction
+        Parameters:
+            y: Points to be fitted
+        Returns:
             The Picewise linear function fitted
         """
         pwlr = PiecewiseLinearRegression(not_increasing=self.fit_line_not_increasing)
@@ -350,11 +340,15 @@ class FittedLife:
         return np.mean(sw * np.abs(self.y_true[:N] - self.y_pred))
 
     def noisiness(self) -> float:
-        """How much the predictions resemble a line
+        """
+        How much the predictions resembles a line
 
         This metric is computed as the mse of the fitted values
         with respect to the least squares fitted line of this
         values
+
+        Returns:
+            The Mean Absolute Error of the fitted values with respect to the least squares fitted line
         """
         return mae(self.y_pred_fitted, self.y_pred)
 
@@ -379,36 +373,32 @@ class FittedLife:
         else:
             return self.time[z[0]]
 
-    def maintenance_point(self, m: float = 0):
-        """Compute the maintenance point
+    def maintenance_point(self, m: float = 0) -> float:
+        """
+        Compute the maintenance point
 
         The maintenance point is computed as the predicted end of life - m
 
-        Parameters
-        -----------
-            m: float, optional
-                Fault horizon  Defaults to 0.
+        Parameters:
+            m: Fault horizon  Defaults to 0.
 
-        Returns
-        --------
-            float
-                Time of maintenance
+        Returns:
+            Time of maintenance
         """
         return self.predicted_end_of_life() - m
 
-    def unexploited_lifetime(self, m: float = 0):
-        """Compute the unexploited lifetime given a fault horizon window
+    def unexploited_lifetime(self, m: float = 0) -> float:
+        """
+        Compute the unexploited lifetime given a fault horizon window
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
         Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
-        Parameters
-        ----------
-            m: float, optional
-                Fault horizon windpw. Defaults to 0.
+        Parameters:
+            m: Fault horizon window. Defaults to 0.
 
         Returns:
-            float: unexploited lifetime
+            Unexploited lifetime
         """
 
         if self.maintenance_point(m) < self.end_of_life():
@@ -416,19 +406,18 @@ class FittedLife:
         else:
             return 0
 
-    def unexpected_break(self, m: float = 0, tolerance: float = 0):
-        """Compute wether an unexpected break will produce using a fault horizon window of size m
+    def unexpected_break(self, m: float = 0, tolerance: float = 0) -> bool:
+        """
+        Compute weather an unexpected break will produce using a fault horizon window of size m
 
         Machine Learning for Predictive Maintenance: A Multiple Classifiers Approach
         Susto, G. A., Schirru, A., Pampuri, S., McLoone, S., & Beghi, A. (2015).
 
         Parameters:
-
-            m: Fault horizon windpw.
+            m: Fault horizon window.
 
         Returns:
-
-            Unexploited lifetime
+            A boolean indicating if an unexpected break will occur
         """
         if self.maintenance_point(m) - tolerance < self.end_of_life():
             return False
@@ -437,13 +426,14 @@ class FittedLife:
 
 
 def split_lives_indices(y_true: np.array) -> List[List[int]]:
-    """Obtain a list of indices for each life
+    """
+    Obtain a list of indices for each life
 
     Parameters:
         y_true: True vector with the RUL
 
     Returns:
-         l: A list with the indices belonging to each life
+        A list with the indices belonging to each life
     """
     assert len(y_true) >= 2
     lives_indices = (
@@ -466,17 +456,17 @@ def split_lives(
     fit_line_not_increasing: Optional[bool] = False,
     time: Optional[int] = None,
 ) -> List[FittedLife]:
-    """Divide an array of predictions into a list of FittedLife Object
+    """
+    Divide an array of predictions into a list of FittedLife Object
 
     Parameters:
         y_true: The true RUL target
         y_pred: The predicted RUL
-        fit_line_not_increasing : Optional[bool], optional
-            Wether the fit line can increase, by default False
-        time:  A vector with timestamps. If omitted wil be computed from y_true
+        fit_line_not_increasing: Weather the fit line can increase, by default False
+        time:  A vector with timestamps. If omitted will be computed from y_true
 
     Returns:
-        lives: FittedLife list
+       FittedLife list
     """
     lives = []
     for r in split_lives_indices(results.true_RUL):
@@ -520,19 +510,19 @@ def unexploited_lifetime_from_cv(
 def unexpected_breaks(
     d: List[PredictionResult], window_size: int, step: int
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute the risk of unexpected breaks with respect to the maintenance window size
+    """
+    Compute the risk of unexpected breaks with respect to the maintenance window size
 
     Parameters:
-    ----------
-    d: Dictionary with the results
-    window_size: Maximum size of the maintenance windows
-    step: Number of points in which compute the risks.
-        step different maintenance windows will be used.
+        d: Dictionary with the results
+        window_size: Maximum size of the maintenance windows
+        step: Number of points in which compute the risks.
+            step different maintenance windows will be used.
 
     Returns:
-    Tuple[np.ndarray, np.ndarray]
-        * Maintenance window size evaluated
-        * Risk computed for every window size used
+        A tuple of np.arrays with:
+            - Maintenance window size evaluated
+            - Risk computed for every window size used
     """
 
     bb = [split_lives(fold) for fold in d]
@@ -542,22 +532,19 @@ def unexpected_breaks(
 def unexpected_breaks_from_cv(
     lives: List[List[FittedLife]], window_size: int, n: int
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute the risk of unexpected breaks given a Cross-Validation results
+    """
+    Compute the risk of unexpected breaks given a Cross-Validation results
 
-    Parameters
-    ----------
-    lives : List[List[FittedLife]]
-        Cross validation results.
-    window_size : int
-        Maximum size of the maintenance window
-    n : int
-        Number of points to evaluate the risk of unexpected breaks
+    Parameters:
+        lives: Cross validation results.
+        window_size: Maximum size of the maintenance window
+        n: Number of points to evaluate the risk of unexpected breaks
 
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray]
-        * Maintenance window size evaluated
-        * Risk computed for every window size used
+
+    Returns:
+        A tuple of np.arrays with:
+            - Maintenance window size evaluated
+            - Risk computed for every window size used
     """
     std_per_window = []
     mean_per_window = []
@@ -665,16 +652,39 @@ def cv_regression_metrics_single_model(
 def cv_regression_metrics(
     results_dict: Dict[str, List[PredictionResult]], threshold: float = np.inf
 ) -> dict:
-    """Compute regression metrics for each model
+    """
+    Compute regression metrics for each model
 
     Parameters:
+<<<<<<< HEAD
 
         data: Dictionary with the model predictions.
 
+=======
+        data: Dictionary with the model predictions.
+>>>>>>> 7862b3c56dbc36f72b3c7f87d9b39e1ae78b4ddc
         threshold: Compute metrics errors only in RUL values less than the threshold
 
     Returns:
+        A dictionary with the following structure:
+            d: { ['Model]:
+                    {
+                        'MAE': {
+                            'mean':
+                            'std':
+                        },
+                        'MAE SW': {
+                            'mean':
+                            'std':
+                        },
+                        'MSE': {
+                            'mean':
+                            'std':
+                        },
+                    }
+                ]
 
+<<<<<<< HEAD
 
         d: { ['Model]:
                 {
@@ -693,6 +703,8 @@ def cv_regression_metrics(
                 }
             ]
 
+=======
+>>>>>>> 7862b3c56dbc36f72b3c7f87d9b39e1ae78b4ddc
     """
     out = {}
     for model_name in results_dict.keys():

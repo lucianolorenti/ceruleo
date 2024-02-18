@@ -23,14 +23,14 @@ def RemoveDimension(axis=0):
 
 
 class ConcreteDropout(tf.keras.layers.Layer):
-    """Concrete Dropout layer class from https://arxiv.org/abs/1705.07832.
+    """
+    Concrete Dropout layer class from https://arxiv.org/abs/1705.07832.
     Dropout Feature Ranking for Deep Learning Models
     Chun-Hao Chang
     Ladislav Rampasek
     Anna Goldenberg
 
     Parameters:
-
         dropout_regularizer: Positive float, satisfying $dropout_regularizer = 2 / (\tau * N)$
             with model precision $\tau$ (inverse observation noise) and
             N the number of instances in the dataset.
@@ -111,7 +111,8 @@ class ConcreteDropout(tf.keras.layers.Layer):
 
 
 class ResidualShrinkageBlock(tf.keras.layers.Layer):
-    """ResidualShrinkageBlock
+    """
+    ResidualShrinkageBlock
 
     """
     def build(self, input_shape):
@@ -194,6 +195,12 @@ class ZeroWeights(tf.keras.constraints.Constraint):
 
 
 class LASSOLayer(Layer):
+    """ 
+    LASSO Layer
+
+    Parameters:
+        l1: L1 regularization parameter
+    """
     def __init__(self, l1:float):
         super(LASSOLayer, self).__init__()
         self.l1 = l1

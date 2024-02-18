@@ -22,7 +22,6 @@ from ceruleo.dataset.ts_dataset import AbstractPDMDataset, PDMDataset
 
 logger = logging.getLogger(__name__)
 
-
 COMPRESSED_FILE = "phm_data_challenge_2018.tar.gz"
 FOLDER = "phm_data_challenge_2018"
 
@@ -39,14 +38,12 @@ def download(url: str, path: Path):
 class FailureType(Enum):
     """Failure types availables for the dataset.
 
-    Possible values are
-
-    ```py
+    Possible values are:
+    ```
     FailureType.FlowCoolPressureDroppedBelowLimit
     FailureType.FlowcoolPressureTooHighCheckFlowcoolPump
     FailureType.FlowcoolLeak
     ```
-
     """
 
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
@@ -82,8 +79,7 @@ class PHMDataset2018(PDMDataset):
 
     ```py
     dataset = PHMDataset2018(
-       failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
-        tools=['01_M02']
+    failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,tools=['01_M02']
     )
     ```
 

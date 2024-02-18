@@ -12,6 +12,7 @@ from ceruleo.models.keras.callbacks import PredictionCallback
 from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
+from ceruleo.models.keras.catalog.MVCNN import MVCNN
 from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
     MultiScaleConvolutionalModel,
 )
@@ -283,6 +284,13 @@ class TestModels:
         print(type(mmap))
         assert isinstance(mmap, np.ndarray)
 
+        #model, model_extras = MVCNN(ds_iterator.shape)
+        #_test_model_basic(model, ds_iterator)
+        #X, y, sw = next(iter(ds_iterator))
+        #(mmap, v) = explain(model_extras, X)
+        #print(type(mmap))
+        #assert isinstance(mmap, np.ndarray)
+
     def test_baseline(self):
         ds = MockDataset(5)
         features = ["feature1", "feature2"]
@@ -388,7 +396,6 @@ class TestModels:
 
         _test_model_basic(model, ds_iterator, loss=relative_mse(C=0.5))
 
-        print(type(root_mean_squared_error(tf.random.uniform((50,)), tf.random.uniform((50,))).numpy()))
         assert isinstance(
             root_mean_squared_error(tf.random.uniform((50,)), tf.random.uniform((50,))).numpy(), np.float32
         )
@@ -405,3 +412,6 @@ class TestModels:
             ).numpy(),
             np.float32,
         )
+
+
+  

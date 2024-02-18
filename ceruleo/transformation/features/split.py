@@ -11,7 +11,19 @@ from ceruleo.transformation.functional.transformerstep import TransformerStep
 
 
 class Joiner(TransformerStep):
-    def transform(self, X: List[pd.DataFrame]):
+    """
+    Join multiple run-to-failure cycles into a single DataFrame
+    """
+    def transform(self, X: List[pd.DataFrame]) -> pd.DataFrame:
+        """
+        Join the input lifes
+
+        Parameters:
+            X: List of run-to-failure cycles to join
+
+        Returns:
+            A dataframe with the joined run-to-failure cycles
+        """
         if isinstance(X, list):
             X_default = X[0]
             X_q = pd.concat(X[1:])
@@ -21,8 +33,14 @@ class Joiner(TransformerStep):
         else:
             return X
 
-
 class Filter(TransformerStep):
+    """
+    Filter rows of a dataframe based on a query
+
+    Parameters:
+        values: Values to filter by
+        columns: Columns to filter by
+    """
     def __init__(
         self,
         *,
@@ -43,7 +61,16 @@ class Filter(TransformerStep):
             [f"({c} == {prepare_value(v)})" for c, v in zip(self.columns, self.values)]
         )
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Filter the dataframe
+
+        Parameters:
+            X: Input dataframe
+        
+        Returns:
+            A dataframe with the filtered rows
+        """
         if self.values == ["__category_all__"]:
             return X.drop(columns=self.columns)
         else:

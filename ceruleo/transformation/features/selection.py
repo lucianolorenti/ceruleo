@@ -15,8 +15,7 @@ class ByNameFeatureSelector(TransformerStep):
     """Select a subset of feature by name
 
     Parameters:
-            
-        features: Feature name or List of features name to select
+            features: Feature name or List of features name to select
     """
     def __init__(self, *, features:Union[str, List[str]]= [], name: Optional[str] = None):
         super().__init__(name=name)
@@ -40,7 +39,13 @@ class ByNameFeatureSelector(TransformerStep):
             ]
         return self
 
-    def fit(self, df, y=None):
+    def fit(self, df:pd.DataFrame, y=None):
+        """ 
+        Find the indices of the features to select
+
+        Parameters:
+            df: DataFrame containing the input life
+        """
         if len(self.features) > 0:
             features = [f for f in self.features if f in set(df.columns)]
         else:
@@ -48,7 +53,16 @@ class ByNameFeatureSelector(TransformerStep):
         self.features_computed_ = sorted(features)
         return self
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new DataFrame containing only the selected features
+        """
         return X.loc[:, self.features_computed_].copy()
 
     @property
@@ -67,11 +81,27 @@ class ByNameFeatureSelector(TransformerStep):
 
 
 class PositionFeatures(TransformerStep):
-    def __init__(self, *, features, name: Optional[str] = None):
+    """
+    Reorder the features of the input life
+
+    Parameters:
+        features: Dictionary containing the features to reorder and their new position
+        name: Name of the step, by default None
+    """
+    def __init__(self, *, features: dict, name: Optional[str] = None):
         super().__init__(name=name)
         self.features = features
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transform the input life by reordering the features
+
+        Parameters:
+            X: The input life to be transformed
+        
+        Returns:
+            A new DataFrame containing the features in the order specified in the constructor
+        """
         cols = list(X.columns)
         for name, pos in self.features.items():
             a, b = cols.index(name), pos
@@ -81,16 +111,38 @@ class PositionFeatures(TransformerStep):
 
 
 class DiscardByNameFeatureSelector(TransformerStep):
-    def __init__(self, *, features=[], name: Optional[str] = None):
+    """
+    Remove a list of features from the input life
+
+    Parameters:
+        features: List of features to discard
+        name: Name of the step, by default None
+    """
+    def __init__(self, *, features: List=[], name: Optional[str] = None):
         super().__init__(name=name)
         self.features = features
         self.features_indices = None
 
-    def fit(self, df, y=None):
+    def fit(self, df:pd.DataFrame, y=None):
+        """
+        Find the indices of the features to discard
+
+        Parameters:
+            df: DataFrame containing the set of features to discard
+        """
         self.feature_columns = [f for f in df.columns if f not in self.features]
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """ 
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+        
+        Returns:
+            A new DataFrame containing only the features not in the list of features to discard
+        """
         return X.loc[:, self.feature_columns]
 
     @property
@@ -99,12 +151,25 @@ class DiscardByNameFeatureSelector(TransformerStep):
 
 
 class PandasVarianceThreshold(TransformerStep):
+    """ 
+    Remove features with variance lower than a variance threshold inserted in input
+
+    Parameters:
+        min_variance: Minimum variance threshold
+        name: Name of the step, by default None
+    """
     def __init__(self, *, min_variance: float, name: Optional[str] = None):
         super().__init__(name=name)
         self.min_variance = min_variance
         self.selected_columns_ = None
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X:pd.DataFrame, y=None):
+        """ 
+        Find the indexes of the features with variance higher than the threshold
+
+        Parameters:
+            X: DataFrame containing the input life
+        """
         variances_ = X.var(skipna=True)
         partial_selected_columns_ = X.columns[variances_ > self.min_variance]
         if (
@@ -129,8 +194,13 @@ class PandasVarianceThreshold(TransformerStep):
             logger.warning("All features were removed")
         return self
 
-    def fit(self, X, y=None):
+    def fit(self, X:pd.DataFrame, y=None):
+        """ 
+        Find the indexes of the features with variance higher than the threshold
 
+        Parameters:
+            X: DataFrame containing the input life
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         self.variances_ = X.var(skipna=True)
@@ -140,19 +210,41 @@ class PandasVarianceThreshold(TransformerStep):
         )
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X:pd.DataFrame, y=None) -> pd.DataFrame:
+        """ 
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new life containing only the features with variance higher than the threshold
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X[self.selected_columns_].copy()
 
 
 class NullProportionSelector(TransformerStep):
+    """ 
+    Remove features with null proportion higher than a threshold inserted in input
+
+    Parameters:
+        max_null_proportion: Maximum null proportion threshold
+        name: Name of the step, by default None
+    """
     def __init__(self, *, max_null_proportion: float, name: Optional[str] = None):
         super().__init__(name=name)
         self.max_null_proportion = max_null_proportion
         self.selected_columns_ = None
 
-    def partial_fit(self, X, y=None):
+    def partial_fit(self, X:pd.DataFrame, y=None):
+        """ 
+        Find the indexes of the features with null proportion lower than the threshold
+
+        Parameters:
+            X: DataFrame containing the input life
+        """
         null_proportion = X.isnull().mean()
 
         partial_selected_columns_ = X.columns[
@@ -175,7 +267,13 @@ class NullProportionSelector(TransformerStep):
             logger.warning("All features were removed")
         return self
 
-    def fit(self, X, y=None):
+    def fit(self, X:pd.DataFrame, y=None):
+        """
+        Find the indexes of the features with null proportion lower than the threshold
+
+        Parameters:
+            X: DataFrame containing the input life
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         self.null_proportion = X.isnull().mean()
@@ -184,7 +282,16 @@ class NullProportionSelector(TransformerStep):
         ]
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+        
+        Returns:
+            A new life containing only the features with null proportion lower than the threshold
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X[self.selected_columns_].copy()
@@ -202,27 +309,40 @@ class  MatchFeatureSelector(TransformerStep):
         self.selected_columns_ = None
 
 
-    def partial_fit(self, df, y=None):
+    def partial_fit(self, df: pd.DataFrame, y=None):
+
+        """ 
+        Find the features matching the pattern
+
+        Parameters:
+            df: DataFrame containing the entire set of features 
+        """
 
         if self.selected_columns_ is None:
             self.selected_columns_ = [f for f in df.columns if self.pattern in f ]
 
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        """
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new life with the same index as the input with the missing values replaced by the value in the succesive timestamp 
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("Input array must be a data frame")
         return X[self.selected_columns_].copy()
-
-
 
 
 class ByTypeFeatureSelector(TransformerStep):
     """Select a subset of feature by type
 
     Parameters:
-            
-        features: Feature name or List of features name to select, by default []
+            type_: Data type to be selected, by default []
     """
     def __init__(self, *, type_:Union[str, List]= [], name: Optional[str] = None):
         super().__init__(name=name)
@@ -241,7 +361,16 @@ class ByTypeFeatureSelector(TransformerStep):
 
         return self
 
-    def transform(self, X):
+    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+        """
+        Transform the input life
+
+        Parameters:
+            X: The input life to be transformed
+
+        Returns:
+            A new DataFrame containing only the features of the selected type
+        """
         return X.loc[:, self.features].copy()
 
     @property

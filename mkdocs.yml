@@ -60,9 +60,17 @@ nav:
         - Denoising: transformation/features/denoising.md
         - Entropy: transformation/features/entropy.md
         - Extraction: transformation/features/extraction.md
+        - Extraction Frequency: transformation/features/extraction_frequency.md
         - Imputers: transformation/features/imputers.md
         - Resamplers: transformation/features/resamplers.md
-        - Resamplers: transformation/features/selection.md
+        - Selectors: transformation/features/selection.md
+        - Scalers: transformation/features/scalers.md
+        - Slicing: transformation/features/slicing.md
+        - Split: transformation/features/split.md
+        - Rolling Windows: transformation/features/rolling_windows.md
+        - Operations: transformation/features/operations.md
+        - Global Transformations: transformation/features/transformation.md
+        - Hurst Exponent Estimator: transformation/features/hurst.md
         - Outliers: transformation/features/outliers.md
     - Results:
       - Results: results/results.md
@@ -97,11 +105,12 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.tasklist
   - pymdownx.superfences
   - toc:
       toc_depth: 5
   - footnotes
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      #emoji_index: !!python/name:materialx.emoji.twemoji
+      #emoji_generator: !!python/name:materialx.emoji.to_svg
   - meta

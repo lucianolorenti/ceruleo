@@ -8,7 +8,7 @@ from sklearn.preprocessing import RobustScaler
 
 class TestImputers():
 
-    def test_PandasRemoveInf(self):
+    def test_RobustMinMaxScaler(self):
 
         scaler = RobustMinMaxScaler(range=(-1, 1), clip=False, lower_quantile=0.1, upper_quantile=0.9)
         sk_scaler = RobustScaler(with_centering=False, with_scaling=True, quantile_range=(10, 90))
@@ -31,3 +31,4 @@ class TestImputers():
 
         sk_scaler.transform(df1)
       
+  

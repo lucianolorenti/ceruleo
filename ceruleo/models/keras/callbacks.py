@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class PredictionCallback(Callback):
-    """Generate a plot after each epoch with the predictions
+    """
+    Generate a plot after each epoch with the predictions
 
     Parameters:
-
         model: The model used predict
         output_path: Path of the output image
         dataset: The dataset that want to be plotted
@@ -25,10 +25,9 @@ class PredictionCallback(Callback):
         self,
         output_path: Path,
         dataset: tf.data.Dataset,
-        units: str='',
+        units: str = "",
         filename_suffix: str = "",
     ):
-
         super().__init__()
         self.output_path = output_path
         self.dataset = dataset
@@ -43,7 +42,7 @@ class PredictionCallback(Callback):
         y_pred = self.model.predict(self.dataset)
         y_true = true_values(self.dataset)
         ax = plot_predictions(
-            PredictionResult('Model', y_true, y_pred),
+            PredictionResult("Model", y_true, y_pred),
             figsize=(17, 5),
             units=self.units,
         )
@@ -52,4 +51,3 @@ class PredictionCallback(Callback):
         ax.figure.savefig(self.output_path, dpi=ax.figure.dpi)
 
         plt.close(ax.figure)
-
