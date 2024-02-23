@@ -228,3 +228,5 @@ def test_PHMDataset2018():
 
     )
     assert isinstance(data, PHMDataset2018)
+    assert len(data) > 1
+    assert isinstance(data[0], pd.DataFrame)

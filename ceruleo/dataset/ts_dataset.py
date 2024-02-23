@@ -363,21 +363,29 @@ class FoldedDataset(AbstractPDMDataset):
 
 
 class PDMDataset(AbstractPDMDataset):
+    dataset_path: Path 
+    procesed_path: Path 
+    cycles_table_filename: Path 
+    cycles_metadata: pd.DataFrame
+
     def __init__(self, path: Path):
         super().__init__()
-        self.dataset_path = path
-        self.procesed_path = self.dataset_path / "processed" / "lives"
-        self.lives_table_filename = self.procesed_path / "cycles.csv"
+        self.dataset_path = path        
+        self.procesed_path = self.dataset_path / "processed" / "cycles"
+        self.cycles_table_filename = self.procesed_path / "cycles.csv"
         self._prepare_dataset()
-
-        self.lives = pd.read_csv(self.lives_table_filename)
+        self.cycles_metadata = pd.read_csv(self.cycles_table_filename)
 
     def _prepare_dataset(self):
         pass
 
-    def get_time_series(self, i: int) -> pd.DataFrame:
-        df = self._load_life(self.lives.iloc[i]["Filename"])
-        return df
+    @property
+    def n_time_series(self) -> int:
+        return len(self.cycles)
+
+    @property
+    def rul_column(self) -> int:
+        return self._rul_column
 
 
 class PDMInMemoryDataset(AbstractPDMDataset):
@@ -395,6 +403,7 @@ class PDMInMemoryDataset(AbstractPDMDataset):
         self.cycles = cycles
         self._rul_column = rul_column
         self.cycles_metadata = cycles_metadata
+        
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         return self.cycles[i]

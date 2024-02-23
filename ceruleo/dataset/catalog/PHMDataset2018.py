@@ -96,7 +96,7 @@ class PHMDataset2018(PDMDataset):
         self._prepare_dataset()
 
     def _prepare_dataset(self):
-        if self.lives_table_filename.is_file():
+        if self.cycles_table_filename.is_file():
             return
         if not (self.dataset_path / "raw" / "train").is_dir():
             self.prepare_raw_dataset()
@@ -125,25 +125,27 @@ class PHMDataset2018(PDMDataset):
             .set_rul_column_method(NumberOfRowsRULColumn())
             .set_output_mode(
                 LocalStorageOutputMode(
-                    self.dataset_path / "processed", output_format=DatasetFormat.PARQUET
-                ).set_metadata_columns({"Tool": "tool", "Fault name": "fault_name"})
+                    self.dataset_path, output_format=DatasetFormat.PARQUET
+                ).set_metadata_columns({"Tool": "Tool_data", "Fault name": "fault_name"})
             )
             .build_from_data_fault_pairs_files(
                 data_fault_pairs,
             )
         )
 
+       
+
     @property
     def n_time_series(self) -> int:
-        return self.lives.shape[0]
+        return self.cycles_metadata.shape[0]
 
     def _load_life(self, filename: str) -> pd.DataFrame:
-        with gzip.open(self.procesed_path / filename, "rb") as file:
-            df = pickle.load(file)
-        return df
+        return pd.read_parquet(filename)
+        
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        df = self._load_life(self.lives.iloc[i]["Filename"])
+ 
+        df = self._load_life(self.cycles_metadata.iloc[i]["Filename"])
         return df
 
     @property

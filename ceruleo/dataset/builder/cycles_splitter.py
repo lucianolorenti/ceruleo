@@ -165,5 +165,7 @@ class FailureDataCycleSplitter(CyclesSplitter):
             fault,
             left_on=self.data_time_column,
             right_on=self.fault_time_column,
+
+            suffixes=["_data", "_fault"],
             direction="forward",
         )

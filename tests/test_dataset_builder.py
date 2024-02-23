@@ -135,7 +135,7 @@ def test_dataset_builder_two_file_life_end_datetime_RUL():
         .set_splitting_method(FailureDataCycleSplitter("datetime", "datetime_failure"))
         .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
         .set_output_mode(InMemoryOutputMode())
-        .build_from_df(df, failures)
+        .build_from_data_fault_pair((df, failures))
     )
     assert isinstance(dataset, AbstractPDMDataset) 
     assert len(dataset) == 2

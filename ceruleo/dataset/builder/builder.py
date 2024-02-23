@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 
 import pandas as pd
@@ -18,17 +18,34 @@ from ceruleo.dataset.ts_dataset import PDMDataset
 logger = logging.getLogger(__name__)
 
 
+def load_dataframe(path: Union[str, Path]) -> pd.DataFrame:
+    if isinstance(path, str):
+        path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File {path} does not exist")
+    if path.suffix == ".csv":
+        return pd.read_csv(path)
+    if path.suffix == ".parquet":
+        return pd.read_parquet(path)
+    if path.suffix == ".xlsx":
+        return pd.read_excel(path)
+    raise ValueError(f"Unsupported file format {path.suffix}")
+
+
 class DatasetBuilder:
     splitter: CyclesSplitter
     output_mode: OutputMode
     rul_column: RULColumn
-    
+    dataframe_loader: Callable[[Union[str, Path]], pd.DataFrame]
 
-    def __init__(self):
-        """Initializes the builder.
-        """
+    def __init__(
+        self,
+        dataframe_loader: Callable[[Union[str, Path]], pd.DataFrame] = load_dataframe,
+    ):
+        """Initializes the builder."""
         self.output_mode = None
         self.splitter = None
+        self.dataframe_loader = dataframe_loader
 
     @staticmethod
     def one_file_format():
@@ -60,23 +77,9 @@ class DatasetBuilder:
         self._validate()
         self.splitter.split(input_path, self.output_mode)
 
-
-    def load_dataframe(self, path: Union[str, Path]) -> pd.DataFrame:
-        if isinstance(path, str):
-            path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"File {path} does not exist")
-        if path.suffix == ".csv":
-            return pd.read_csv(path)
-        if path.suffix == ".parquet":
-            return pd.read_parquet(path)
-        if path.suffix == ".xlsx":
-            return pd.read_excel(path)
-        raise ValueError(f"Unsupported file format {path.suffix}")
-
     def build_from_data_fault_pairs_files(
         self, data_fault_pairs: Union[Tuple[str, str], List[Tuple[str, str]]]
-    )-> PDMDataset:
+    ) -> PDMDataset:
         if not isinstance(data_fault_pairs, list):
             data_fault_pairs = [data_fault_pairs]
 
@@ -84,31 +87,62 @@ class DatasetBuilder:
             raise ValueError(
                 "This method is only available for FailureDataCycleSplitter"
             )
-        
-            
-        common_path_prefix = os.path.commonprefix([data for data, fault in data_fault_pairs])
+
+        common_path_prefix = os.path.commonprefix(
+            [data for data, fault in data_fault_pairs]
+        )
 
         for i, (data, fault) in enumerate(tqdm(data_fault_pairs)):
-            df_data = self.load_dataframe(data)
-            df_faults = self.load_dataframe(fault)
+            df_data = self.dataframe_loader(data)
+            df_faults = self.dataframe_loader(fault)
             cycles_in_file = self.splitter.split(df_data, df_faults)
             for j, ds in enumerate(cycles_in_file):
                 cycle_id = f"{i+1}_{j+1}"
-                self._build_and_store_cycle(ds, cycle_id, metadata={
-                    "filename": str(data.relative_to(common_path_prefix)),
-                    "fault_filename": str(fault.relative_to(common_path_prefix))
-                })
+                self._build_and_store_cycle(
+                    ds,
+                    cycle_id,
+                    metadata={
+                        "Raw Data Filename": str(data.relative_to(common_path_prefix)),
+                        "Raw Fault Filename": str(fault.relative_to(common_path_prefix)),
+                    },
+                )
         self.output_mode.finish()
         return self.output_mode.build_dataset(self)
 
-    def build_from_df(self, data:pd.DataFrame) -> PDMDataset:
+    def build_from_df(self, data: Union[pd.DataFrame, List[pd.DataFrame]]) -> PDMDataset:
+        if not isinstance(data, list):
+            data = [data]
         self._validate()
-        for i, ds in enumerate(self.splitter.split(data)):
-            self._build_and_store_cycle(ds, i+1)
+        for i, data_element in enumerate(data):
+            for j, ds in enumerate(self.splitter.split(data_element)):
+                cycle_id = f"{i+1}_{j+1}"
+                self._build_and_store_cycle(ds, cycle_id)
+            self.output_mode.finish()
+            return self.output_mode.build_dataset(self)
+    
+    def build_from_data_fault_pair(
+        self, data_fault_pairs: Union[Tuple[pd.DataFrame, pd.DataFrame], List[Tuple[pd.DataFrame, pd.DataFrame]]]
+    ) -> PDMDataset:
+        if not isinstance(data_fault_pairs, list):
+            data_fault_pairs = [data_fault_pairs]
+
+        if not isinstance(self.splitter, FailureDataCycleSplitter):
+            raise ValueError(
+                "This method is only available for FailureDataCycleSplitter"
+            )
+        for i, (data, fault) in enumerate(tqdm(data_fault_pairs)):
+            cycles_in_file = self.splitter.split(data, fault)
+            for j, ds in enumerate(cycles_in_file):
+                cycle_id = f"{i+1}_{j+1}"
+                self._build_and_store_cycle(
+                    ds,
+                    cycle_id,
+                )
         self.output_mode.finish()
         return self.output_mode.build_dataset(self)
 
-    def _build_and_store_cycle(self, ds:pd.DataFrame, cycle_id: any, metadata: dict = {}):
+    def _build_and_store_cycle(
+        self, ds: pd.DataFrame, cycle_id: any, metadata: dict = {}
+    ):
         ds["RUL"] = self.rul_column.get(ds)
         self.output_mode.store(f"Cycle_{cycle_id}", ds, metadata)
-
