@@ -367,7 +367,7 @@ class PDMDataset(AbstractPDMDataset):
         super().__init__()
         self.dataset_path = path
         self.procesed_path = self.dataset_path / "processed" / "lives"
-        self.lives_table_filename = self.procesed_path / "lives_db.csv"
+        self.lives_table_filename = self.procesed_path / "cycles.csv"
         self._prepare_dataset()
 
         self.lives = pd.read_csv(self.lives_table_filename)

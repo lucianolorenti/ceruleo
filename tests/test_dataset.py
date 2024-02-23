@@ -1,16 +1,21 @@
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
+from sklearn.model_selection import train_test_split
+
 from ceruleo.dataset.catalog.CMAPSS import CMAPSSDataset, sensor_indices
 from ceruleo.dataset.catalog.PHMDataset2018 import PHMDataset2018
 from ceruleo.dataset.transformed import TransformedSerializedDataset
-from ceruleo.dataset.ts_dataset import (AbstractPDMDataset,
-                                         FoldedDataset)
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset, FoldedDataset
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
-from sklearn.model_selection import train_test_split
+
+IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
+
 
 class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
@@ -215,7 +220,11 @@ class TestCMAPSS:
 
 
 
+
+
+@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test should not work in Github Actions.")
 def test_PHMDataset2018():
     data = PHMDataset2018(
 
     )
+    assert isinstance(data, PHMDataset2018)

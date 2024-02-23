@@ -101,7 +101,9 @@ class LocalStorageOutputMode(OutputMode):
 
     def finish(self):
         output_cycles_path = self.output_path / "processed" / "cycles"
-        pd.DataFrame(self.cycles_metadata).to_csv(output_cycles_path / "cycles.csv")
+        pd.DataFrame(self.cycles_metadata).T.to_csv(output_cycles_path / "cycles.csv")
 
     def build_dataset(self, builder: "DatasetBuilder") -> PDMDataset:
-        return PDMInMemoryDataset(list(self.out.values()), "RUL")
+        return PDMDataset(
+            self.output_path
+        )

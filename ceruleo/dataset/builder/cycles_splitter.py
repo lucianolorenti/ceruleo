@@ -158,7 +158,7 @@ class FailureDataCycleSplitter(CyclesSplitter):
                 The dataframe contains also a fault_number column
         """
 
-        fault = fault.drop_duplicates(subset=[self.fault_time_column])
+        fault = fault.drop_duplicates(subset=[self.fault_time_column]).copy()
         fault["fault_number"] = range(fault.shape[0])
         return pd.merge_asof(
             data,
