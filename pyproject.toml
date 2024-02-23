@@ -46,7 +46,8 @@ tensorflow = ["tensorflow >= 2.5"]
 test = [
     "pytest",
     "coverage",
-    "xgboost >= 1.5"
+    "xgboost >= 1.5",
+    "nbmake>=1.5.0"
 ]
 doc = [
     "mkdocs", 
@@ -57,5 +58,7 @@ doc = [
     "jupyter_contrib_nbextensions",
     "mkdocstrings",
     "mkdocs-bibtex",
-    "sphinxcontrib.bibtex"
+    "sphinxcontrib.bibtex",
+    "mkdocs-matplotlib",
+    
 ]

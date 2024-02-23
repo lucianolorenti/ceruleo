@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from pathlib import Path
 from re import S
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -54,7 +54,7 @@ class AbstractPDMDataset(ABC):
 
     def number_of_samples_of_time_series(self, i: int) -> int:
         return self[i].shape[0]
-    
+
     @abstractproperty
     def rul_column(self) -> str:
         raise NotImplementedError
@@ -283,6 +283,7 @@ class FoldedDataset(AbstractPDMDataset):
     """
     Dataset containing a subset of the time-series. An instanc of this class can be obtained by slicing an AbstractTimeSeriesDataset with a list of indexes
     """
+
     def __init__(self, dataset: AbstractPDMDataset, indices: list):
         super().__init__()
         self.dataset = dataset
@@ -361,10 +362,8 @@ class FoldedDataset(AbstractPDMDataset):
         return self.dataset.rul_column
 
 
-
-
 class PDMDataset(AbstractPDMDataset):
-    def __init__(self, path:Path):
+    def __init__(self, path: Path):
         super().__init__()
         self.dataset_path = path
         self.procesed_path = self.dataset_path / "processed" / "lives"
@@ -376,27 +375,34 @@ class PDMDataset(AbstractPDMDataset):
     def _prepare_dataset(self):
         pass
 
-
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
         return df
-    
-class PDMInMemoryDataset(AbstractPDMDataset):
-    data: List[pd.DataFrame]
-    _rul_column: str
 
-    def __init__(self, data: List[pd.DataFrame], rul_column: str):
+
+class PDMInMemoryDataset(AbstractPDMDataset):
+    cycles: List[pd.DataFrame]
+    _rul_column: str
+    cycles_metadata: Optional[pd.DataFrame]
+
+    def __init__(
+        self,
+        cycles: List[pd.DataFrame],
+        rul_column: str,
+        cycles_metadata: Optional[pd.DataFrame] = None,
+    ):
         super().__init__()
-        self.data = data
+        self.cycles = cycles
         self._rul_column = rul_column
+        self.cycles_metadata = cycles_metadata
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        return self.data[i]
-    
+        return self.cycles[i]
+
     @property
     def n_time_series(self) -> int:
-        return len(self.data)
-    
+        return len(self.cycles)
+
     @property
     def rul_column(self) -> int:
         return self._rul_column

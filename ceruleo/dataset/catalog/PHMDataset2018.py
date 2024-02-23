@@ -17,7 +17,7 @@ from tqdm.auto import tqdm
 from ceruleo import CACHE_PATH, DATA_PATH
 from ceruleo.dataset.builder.builder import DatasetBuilder
 from ceruleo.dataset.builder.cycles_splitter import FailureDataCycleSplitter
-from ceruleo.dataset.builder.output import LocalStorageOutputMode
+from ceruleo.dataset.builder.output import DatasetFormat, LocalStorageOutputMode
 from ceruleo.dataset.builder.rul_column import NumberOfRowsRULColumn
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset, PDMDataset
 
@@ -90,41 +90,47 @@ class PHMDataset2018(PDMDataset):
         path: Path where the dataset is located
     """
 
-    def __init__(
-        self,
-        path: Path = DATA_PATH,
-        url: str = URL
-    ):
+    def __init__(self, path: Path = DATA_PATH, url: str = URL):
         self.url = url
         super().__init__(path / "phm_data_challenge_2018")
         self._prepare_dataset()
-
 
     def _prepare_dataset(self):
         if self.lives_table_filename.is_file():
             return
         if not (self.dataset_path / "raw" / "train").is_dir():
             self.prepare_raw_dataset()
-        files = list(
-            Path(self.dataset_path / "raw" / "train").resolve().glob("*.csv")
-        )
+        files = list(Path(self.dataset_path / "raw" / "train").resolve().glob("*.csv"))
         faults_files = list(
             Path(self.dataset_path / "raw" / "train" / "train_faults")
             .resolve()
             .glob("*.csv")
         )
 
+        def get_key_from_filename(filename: str) -> str:
+            return "_".join(filename.split("_")[0:2])
+
+        fault_files_map = {get_key_from_filename(f.name): f for f in faults_files}
+        data_fault_pairs = [
+            (file, fault_files_map[get_key_from_filename(file.name)]) for file in files
+        ]
+
         (
             DatasetBuilder()
-            .set_splitting_method(FailureDataCycleSplitter())
-            .set_rul_column_method(NumberOfRowsRULColumn())
-            .set_output_mode(LocalStorageOutputMode(self.dataset_path / "processed"))
-            .build(
-                data_files=files,
-                fault_files=faults_files,
+            .set_splitting_method(
+                FailureDataCycleSplitter(
+                    data_time_column="time", fault_time_column="time"
+                )
             )
-           
-            
+            .set_rul_column_method(NumberOfRowsRULColumn())
+            .set_output_mode(
+                LocalStorageOutputMode(
+                    self.dataset_path / "processed", output_format=DatasetFormat.PARQUET
+                ).set_metadata_columns({"Tool": "tool", "Fault name": "fault_name"})
+            )
+            .build_from_data_fault_pairs_files(
+                data_fault_pairs,
+            )
         )
 
     @property
@@ -138,16 +144,11 @@ class PHMDataset2018(PDMDataset):
 
     def get_time_series(self, i: int) -> pd.DataFrame:
         df = self._load_life(self.lives.iloc[i]["Filename"])
-        #df.index = pd.to_timedelta(df.index, unit="s")
-        #df = df[df["FIXTURESHUTTERPOSITION"] == 1]
-        #df["RUL"] = np.arange(df.shape[0] - 1, -1, -1)
-
         return df
 
     @property
     def rul_column(self) -> str:
         return "RUL"
-
 
     def prepare_raw_dataset(self):
         """Download and unzip the raw files
@@ -183,7 +184,9 @@ class PHMDataset2018(PDMDataset):
                 tar.extractall(path, members, numeric_owner=numeric_owner)
 
             safe_extract(tarball, path=path, members=track_progress(tarball))
-        shutil.move(str(path / "phm_data_challenge_2018" / "train"), str(path / "train"))
+        shutil.move(
+            str(path / "phm_data_challenge_2018" / "train"), str(path / "train")
+        )
         shutil.move(str(path / "phm_data_challenge_2018" / "test"), str(path / "test"))
         shutil.rmtree(str(path / "phm_data_challenge_2018"))
         (path / OUTPUT).unlink()

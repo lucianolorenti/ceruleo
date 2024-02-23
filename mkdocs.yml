@@ -28,6 +28,7 @@ nav:
     - CeRULEo: ../
     - Dataset:
       - Dataset: dataset/dataset.md
+      - Builder: dataset/builder.md
       - Catalog: dataset/catalog.md
       - Visualization: dataset/visualization.md
       - Example: dataset/Example.ipynb
@@ -93,6 +94,7 @@ plugins:
 - mkdocs-jupyter
 - bibtex:
     bib_file: "docs/refs.bib"
+- mkdocs_matplotlib
 
 watch:
   - ceruleo
