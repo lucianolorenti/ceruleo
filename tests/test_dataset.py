@@ -7,7 +7,7 @@ import pytest
 from sklearn.model_selection import train_test_split
 
 from ceruleo.dataset.catalog.CMAPSS import CMAPSSDataset, sensor_indices
-from ceruleo.dataset.catalog.PHMDataset2018 import PHMDataset2018
+from ceruleo.dataset.catalog.PHMDataset2018 import FailureType, PHMDataset2018
 from ceruleo.dataset.transformed import TransformedSerializedDataset
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset, FoldedDataset
 from ceruleo.transformation import Transformer
@@ -54,9 +54,6 @@ class MockDataset(AbstractPDMDataset):
         return len(self.lives)
 
 
-
-
-
 class TestDataset:
     def test_dataset(self):
         ds = MockDataset(5)
@@ -80,7 +77,7 @@ class TestDataset:
         )
 
         two_folds = ds[[3, 2, 1]][[1, 0]]
-        assert two_folds.original_indices() == [2, 3 ]
+        assert two_folds.original_indices() == [2, 3]
 
     def test_CMAPSSDataset(self):
         ds = CMAPSSDataset()
@@ -106,11 +103,10 @@ class TestDataset:
         X = transformed_dataset.get_features_of_life(0, pandas=True)
         assert isinstance(X, pd.DataFrame)
 
-
         X = transformed_dataset.get_features_of_life(0, pandas=False)
         assert isinstance(X, np.ndarray)
 
-        path = Path('./saved_dataset').resolve()
+        path = Path("./saved_dataset").resolve()
         transformed_dataset.save(path)
 
         transformed_serialized_dataset = TransformedSerializedDataset(path)
@@ -118,7 +114,7 @@ class TestDataset:
 
         assert np.all(transformed_serialized_dataset[0][0] == transformed_dataset[0][0])
         assert np.all(transformed_serialized_dataset[1][0] == transformed_dataset[1][0])
-        
+
         dataset = MockDataset(nlives=30)
         train_ds, test_ds = train_test_split(dataset, train_size=0.8)
         train_ds, val_ds = train_test_split(train_ds, train_size=0.8)
@@ -136,9 +132,9 @@ class TestDataset:
 
         transformer.fit(train_ds)
 
-        train_path = Path('./saved_dataset/train/').resolve()
-        val_path = Path('./saved_dataset/val/').resolve()
-        test_path = Path('./saved_dataset/test/').resolve()
+        train_path = Path("./saved_dataset/train/").resolve()
+        val_path = Path("./saved_dataset/val/").resolve()
+        test_path = Path("./saved_dataset/test/").resolve()
         train_ds.map(transformer).save(train_path)
         val_ds.map(transformer).save(val_path)
         test_ds.map(transformer).save(test_path)
@@ -156,9 +152,6 @@ class TestDataset:
 
         transformed_serialized_dataset = TransformedSerializedDataset(test_path)
         assert len(transformed_serialized_dataset) == len_test_ds
-
-
-
 
 
 class TestAnalysis:
@@ -194,39 +187,41 @@ class TestAnalysis:
             def n_time_series(self):
                 return len(self.lives)
 
-        #ds = MockCorruptedDataset()
-        #df, null_per_life = null_proportion(ds)
-        #assert null_per_life['feature1'][0] == 0.5
-        #assert null_per_life['feature2'][1] == 0
+        # ds = MockCorruptedDataset()
+        # df, null_per_life = null_proportion(ds)
+        # assert null_per_life['feature1'][0] == 0.5
+        # assert null_per_life['feature2'][1] == 0
 
-
-        #df, var_per_life = variance_information(ds)
-        #assert var_per_life['feature2'][1] == 0
-
+        # df, var_per_life = variance_information(ds)
+        # assert var_per_life['feature2'][1] == 0
 
 
 class TestCMAPSS:
     def test_CMAPSS(self):
-        train_dataset = CMAPSSDataset(train=True, models=['FD001'])    
-        sensors_from_article = [2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17,20, 21]
+        train_dataset = CMAPSSDataset(train=True, models=["FD001"])
+        sensors_from_article = [2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]
 
         assert len(train_dataset) == 100
 
         features = np.array([train_dataset[0].columns[i] for i in sensor_indices])
 
-        labels_true = np.array([f'SensorMeasure{f}' for f in sensors_from_article])
+        labels_true = np.array([f"SensorMeasure{f}" for f in sensors_from_article])
 
         assert (features == labels_true).all()
 
 
-
-
-
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test should not work in Github Actions.")
+@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test should not run in Github Actions.")
 def test_PHMDataset2018():
-    data = PHMDataset2018(
-
-    )
+    data = PHMDataset2018()
     assert isinstance(data, PHMDataset2018)
     assert len(data) > 1
     assert isinstance(data[0], pd.DataFrame)
+
+    data1 = PHMDataset2018(tools=["01M01", "04M01"])
+    assert len(data1) < len(data)
+
+    data2 = PHMDataset2018(
+        failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
+        tools=["01M01", "04M01"],
+    )
+    assert len(data2) < len(data1)

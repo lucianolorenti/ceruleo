@@ -49,9 +49,11 @@ class FailureType(Enum):
 
     FlowCoolPressureDroppedBelowLimit = "FlowCool Pressure Dropped Below Limit"
     FlowcoolPressureTooHighCheckFlowcoolPump = (
-        "Flowcool Pressure Too High Check Flowcool Pump"
+        'Flowcool Pressure Too High Check Flowcool Pump'
     )
     FlowcoolLeak = "Flowcool leak"
+    FlowcoolPressureTooHighCheckFlowcoolPumpNoWaferID = 'Flowcool Pressure Too High Check Flowcool Pump [NoWaferID]'
+
 
     @staticmethod
     def that_starth_with(s: str):
@@ -80,7 +82,8 @@ class PHMDataset2018(PDMDataset):
 
     ```py
     dataset = PHMDataset2018(
-    failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,tools=['01_M02']
+        failure_types=FailureType.FlowCoolPressureDroppedBelowLimit,
+        tools=['01_M02']
     )
     ```
 
@@ -90,10 +93,38 @@ class PHMDataset2018(PDMDataset):
         path: Path where the dataset is located
     """
 
-    def __init__(self, path: Path = DATA_PATH, url: str = URL):
+    failure_types: Optional[List[FailureType]]
+    tools: Optional[List[str]]
+
+    def __init__(
+        self,
+        path: Path = DATA_PATH,
+        url: str = URL,
+        failure_types: Optional[Union[FailureType, List[FailureType]]] = None,
+        tools: Optional[Union[str, List[str]]] = None,
+    ):
         self.url = url
         super().__init__(path / "phm_data_challenge_2018")
         self._prepare_dataset()
+        self.failure_types = failure_types
+        self.tools = tools
+
+        if self.failure_types is not None:
+            if not isinstance(self.failure_types, list):
+                self.failure_types = [failure_types]
+            self.cycles_metadata = self.cycles_metadata[
+                self.cycles_metadata["Fault name"].isin(
+                    [f.value for f in self.failure_types]
+                )
+            ]
+ 
+        
+        if self.tools is not None:
+            if not isinstance(self.tools, list):
+                self.tools = [tools]
+            self.cycles_metadata = self.cycles_metadata[
+                self.cycles_metadata["Tool"].isin(self.tools)
+            ]
 
     def _prepare_dataset(self):
         if self.cycles_table_filename.is_file():
@@ -126,14 +157,15 @@ class PHMDataset2018(PDMDataset):
             .set_output_mode(
                 LocalStorageOutputMode(
                     self.dataset_path, output_format=DatasetFormat.PARQUET
-                ).set_metadata_columns({"Tool": "Tool_data", "Fault name": "fault_name"})
+                ).set_metadata_columns(
+                    {"Tool": "Tool_data", "Fault name": "fault_name"}
+                )
             )
-            .build_from_data_fault_pairs_files(
+            .set_index_column("time")
+            .prepare_from_data_fault_pairs_files(
                 data_fault_pairs,
             )
         )
-
-       
 
     @property
     def n_time_series(self) -> int:
@@ -141,10 +173,8 @@ class PHMDataset2018(PDMDataset):
 
     def _load_life(self, filename: str) -> pd.DataFrame:
         return pd.read_parquet(filename)
-        
 
     def get_time_series(self, i: int) -> pd.DataFrame:
- 
         df = self._load_life(self.cycles_metadata.iloc[i]["Filename"])
         return df
 

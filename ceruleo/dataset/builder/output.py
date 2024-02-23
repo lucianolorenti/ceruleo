@@ -115,7 +115,7 @@ class LocalStorageOutputMode(OutputMode):
             raise ValueError(f"Unsupported output format {self.output_format}")
 
         write_function[self.output_format](
-            self.get_output_path(cycle_id, df), index=False
+            self.get_output_path(cycle_id, df)
         )
 
     def finish(self):
