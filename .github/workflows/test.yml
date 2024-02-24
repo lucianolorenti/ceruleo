@@ -28,13 +28,14 @@ jobs:
         python -m pip install wheel setuptools cython
         python -m pip install tensorflow
         if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
-        python -m pip install -e $GITHUB_WORKSPACE
+        python -m pip install -e $GITHUB_WORKSPACE[test]
        
 
     - name: Test with pytest
       run: |
         coverage run --source=. -m pytest
         coverage report -m
+
 
     - name: Coveralls
       uses: AndreMiras/coveralls-python-action@develop

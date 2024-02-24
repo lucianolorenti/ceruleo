@@ -1,11 +1,7 @@
-import shelve
-import uuid
-from pathlib import Path
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Union
 
 import pandas as pd
-from ceruleo import CACHE_PATH
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.transformation.functional.graph_utils import (
     dfs_iterator,
     topological_sort_iterator,
@@ -14,7 +10,7 @@ from ceruleo.transformation.functional.pipeline.cache_store import CacheStoreTyp
 from ceruleo.transformation.functional.pipeline.runner import CachedPipelineRunner
 from ceruleo.transformation.functional.transformerstep import TransformerStep
 from sklearn.base import BaseEstimator, TransformerMixin
-
+from sklearn.base import clone as sklearn_clone
 
 class Pipeline(BaseEstimator, TransformerMixin):
     """Transformation pipeline
@@ -23,6 +19,11 @@ class Pipeline(BaseEstimator, TransformerMixin):
         final_step: The final step of the transformation
         cache_type: Cache storage mode
     """
+
+    final_step: TransformerStep
+    fitted_: bool
+    cache_type: CacheStoreType
+    runner: CachedPipelineRunner
 
     def __init__(self, final_step, cache_type: CacheStoreType = CacheStoreType.MEMORY):
         self.final_step = final_step
@@ -57,7 +58,7 @@ class Pipeline(BaseEstimator, TransformerMixin):
 
     def fit(
         self,
-        dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
+        dataset: Union[AbstractPDMDataset, pd.DataFrame],
         show_progress: bool = False,
     ):
         """Fit a pipeline using a dataset
@@ -82,7 +83,7 @@ class Pipeline(BaseEstimator, TransformerMixin):
 
     def partial_fit(
         self,
-        dataset: Union[AbstractTimeSeriesDataset, pd.DataFrame],
+        dataset: Union[AbstractPDMDataset, pd.DataFrame],
         show_progress: bool = False,
     ):
         self.fit(dataset, show_progress=show_progress)
@@ -115,6 +116,19 @@ class Pipeline(BaseEstimator, TransformerMixin):
                 for k in p.keys():
                     params[f"{node.name}__{k}"] = p[k]
         return params
+    
+    def __sklearn_clone__(self):
+        g = {node: sklearn_clone(node) for node  in dfs_iterator(self.final_step)}
+        for k in g.keys():
+            g[k].clear_connections()
+        for node in dfs_iterator(self.final_step):
+            for next_node in node.next:
+                g[node].add_next(g[next_node])
+
+        return Pipeline(
+            final_step=g[self.final_step],
+            cache_type=self.cache_type
+        )
 
 
 def make_pipeline(

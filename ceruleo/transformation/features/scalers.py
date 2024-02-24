@@ -183,8 +183,10 @@ class MinMaxScaler(TransformerStep):
         try:
             divisor = self.data_max - self.data_min
             
+            
+            
             mask = np.abs((divisor)) > 1e-25
-            X = X.copy()
+            X = X.astype(float)
             X.loc[:, mask] = (
                 (X.loc[:, mask] - self.data_min[mask])
                 / divisor[mask]

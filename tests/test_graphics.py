@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from ceruleo.graphics.duration import durations_boxplot, durations_histogram
 import pytest
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.graphics.analysis import plot_correlation_analysis
 from ceruleo.graphics.explanations import XCM_explanation
 from ceruleo.graphics.results import (
@@ -69,7 +69,7 @@ def create_predictions(name: str, number_of_lives: int) -> PredictionResult:
     return PredictionResult(name, y_true, y_pred)
 
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
         super().__init__()
         self.lives = [

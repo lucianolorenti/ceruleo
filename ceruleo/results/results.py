@@ -29,50 +29,45 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from ceruleo.results.picewise_regression import (
-    PiecewesieLinearFunction,
-    PiecewiseLinearRegression,
-)
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from sklearn.metrics import mean_squared_error as mse
 from uncertainties import ufloat
+
+from ceruleo.results.picewise_regression import (
+    PiecewesieLinearFunction,
+    PiecewiseLinearRegression,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class MetricsResult:
-    """
-    An object that store regression metrics and times
-    """
+    """An object that store regression metrics and times"""
 
     mae: float
     mse: float
-    fitting_time: float = 0
-    prediction_time: float = 0
+    fitting_time: float = field(default_factory=lambda: 0)
+    prediction_time: float = field(default_factory=lambda: 0)
 
 
 @dataclass
 class PredictionResult:
-    """
-    A prediction result is composed by a name
-    """
+    """A prediction result is composed by a name"""
 
     name: str
     true_RUL: np.ndarray
     predicted_RUL: np.ndarray
-    metrics: MetricsResult
+    metrics: MetricsResult = field(default_factory=lambda: MetricsResult(0, 0))
 
     def compute_metrics(self):
         self.metrics.mae = mae(self.true_RUL, self.predicted_RUL)
         self.metrics.mse = mse(self.true_RUL, self.predicted_RUL)
 
-    def __init__(self, name: str, true_RUL: np.ndarray, predicted_RUL: np.ndarray):
-        self.metrics = MetricsResult(0, 0)
-        self.name = name
-        self.true_RUL = np.squeeze(true_RUL)
-        self.predicted_RUL = np.squeeze(predicted_RUL)
+    def __post_init__(self):    
+        self.true_RUL = np.squeeze(self.true_RUL)
+        self.predicted_RUL = np.squeeze(self.predicted_RUL)
         self.compute_metrics()
 
 
@@ -661,7 +656,13 @@ def cv_regression_metrics(
     Compute regression metrics for each model
 
     Parameters:
+<<<<<<< HEAD
+
         data: Dictionary with the model predictions.
+
+=======
+        data: Dictionary with the model predictions.
+>>>>>>> 7862b3c56dbc36f72b3c7f87d9b39e1ae78b4ddc
         threshold: Compute metrics errors only in RUL values less than the threshold
 
     Returns:
@@ -683,6 +684,27 @@ def cv_regression_metrics(
                     }
                 ]
 
+<<<<<<< HEAD
+
+        d: { ['Model]:
+                {
+                    'MAE': {
+                        'mean':
+                        'std':
+                    },
+                    'MAE SW': {
+                        'mean':
+                        'std':
+                    },
+                    'MSE': {
+                        'mean':
+                        'std':
+                    },
+                }
+            ]
+
+=======
+>>>>>>> 7862b3c56dbc36f72b3c7f87d9b39e1ae78b4ddc
     """
     out = {}
     for model_name in results_dict.keys():

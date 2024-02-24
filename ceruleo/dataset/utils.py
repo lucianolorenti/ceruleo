@@ -1,10 +1,10 @@
 from typing import Union
 
 from ceruleo.dataset.transformed import TransformedDataset
-from ceruleo.dataset.ts_dataset import AbstractLivesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 
 
-def iterate_over_features(ds: Union[TransformedDataset, AbstractLivesDataset]):
+def iterate_over_features(ds: Union[TransformedDataset, AbstractPDMDataset]):
     """Helper function to iterate over the features in a dataset
     Example:
         for X, y, metadata in df:
@@ -23,7 +23,7 @@ def iterate_over_features(ds: Union[TransformedDataset, AbstractLivesDataset]):
         return ds
 
 
-def iterate_over_target(ds: Union[TransformedDataset, AbstractLivesDataset]):
+def iterate_over_target(ds: Union[TransformedDataset, AbstractPDMDataset]):
     """Helper function to iterate over the RUL target in a dataset
     Example:
 
@@ -48,9 +48,7 @@ def iterate_over_target(ds: Union[TransformedDataset, AbstractLivesDataset]):
         raise ValueError("Invalid dataset type used")
 
 
-def iterate_over_features_and_target(
-    ds: Union[TransformedDataset, AbstractLivesDataset]
-):
+def iterate_over_features_and_target(ds: Union[TransformedDataset, AbstractPDMDataset]):
     """Helper function to iterate over the features and RUL target in a dataset
     Example:
 

@@ -1,31 +1,59 @@
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats
 
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.iterators import RelativeToEnd, RelativeToStart
 from ceruleo.transformation.features.entropy import LocalEntropyMeasures
 from ceruleo.transformation.features.extraction import (
-    EMD, ChangesDetector, Difference, ExpandingStatistics, OneHotCategorical,
-    RollingStatistics, SimpleEncodingCategorical, SlidingNonOverlappingEMD)
+    EMD,
+    ChangesDetector,
+    Difference,
+    ExpandingStatistics,
+    OneHotCategorical,
+    RollingStatistics,
+    SimpleEncodingCategorical,
+    SlidingNonOverlappingEMD,
+)
 from ceruleo.transformation.features.outliers import (
-    EWMAOutOfRange, IQROutlierRemover, IsolationForestOutlierRemover,
-    ZScoreOutlierRemover)
-from ceruleo.transformation.features.resamplers import \
-    IntegerIndexResamplerTransformer
-from ceruleo.transformation.features.selection import (ByNameFeatureSelector,
-                                                       NullProportionSelector)
+    EWMAOutOfRange,
+    IQROutlierRemover,
+    IsolationForestOutlierRemover,
+    ZScoreOutlierRemover,
+)
+from ceruleo.transformation.features.resamplers import IntegerIndexResamplerTransformer
+from ceruleo.transformation.features.selection import (
+    ByNameFeatureSelector,
+    NullProportionSelector,
+)
 from ceruleo.transformation.features.slicing import SliceRows
 from ceruleo.transformation.features.transformation import (
-    Accumulate, Apply, Clip, Diff, ExpandingCentering, ExpandingNormalization, MeanCentering,
-    MedianCentering, Peaks, RollingCentering, Scale, Sqrt, Square, StringConcatenate, SubstractLinebase)
+    Accumulate,
+    Apply,
+    Clip,
+    Diff,
+    ExpandingCentering,
+    ExpandingNormalization,
+    MeanCentering,
+    MedianCentering,
+    Peaks,
+    RollingCentering,
+    Scale,
+    Sqrt,
+    Square,
+    StringConcatenate,
+    SubstractLinebase,
+)
 from ceruleo.transformation.functional.pipeline.pipeline import Pipeline
-from ceruleo.transformation.utils import (IdentityTransformerStep,
-                                          PandasToNumpy, QuantileEstimator,
-                                          TransformerLambda)
+from ceruleo.transformation.utils import (
+    IdentityTransformerStep,
+    PandasToNumpy,
+    QuantileEstimator,
+    TransformerLambda,
+)
 
 
 def manual_expanding(df: pd.DataFrame, min_points: int = 1):
@@ -145,7 +173,7 @@ def manual_features(s: pd.Series, name: str):
     return feature_functions[name](s)
 
 
-class DatasetFromPandas(AbstractTimeSeriesDataset):
+class DatasetFromPandas(AbstractPDMDataset):
     def __init__(self, lives: List[pd.DataFrame]):
 
         self.lives = lives
@@ -162,7 +190,7 @@ class DatasetFromPandas(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self, nlives: int):
 
         self.lives = [
@@ -188,7 +216,7 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset2(AbstractTimeSeriesDataset):
+class MockDataset2(AbstractPDMDataset):
     def __init__(self, nlives: int):
         N = 500
         self.lives = [

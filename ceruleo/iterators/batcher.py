@@ -12,7 +12,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from numpy.lib.arraysetops import isin
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.iterators import (
     NotWeighted,
     SampleWeight,
@@ -43,7 +43,7 @@ class Batcher:
 
     @staticmethod
     def new(
-        dataset: AbstractTimeSeriesDataset,
+        dataset: AbstractPDMDataset,
         window: int,
         batch_size: int,
         step: int,

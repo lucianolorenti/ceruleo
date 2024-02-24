@@ -1,6 +1,11 @@
 from collections.abc import Iterable
-from re import S
-from typing import Any, List, Tuple, Union
+from pathlib import Path
+
+try: 
+    from types import EllipsisType
+except:
+    EllipsisType = type(Ellipsis)
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -11,9 +16,8 @@ try:
     TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
-from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
-from abc import abstractmethod, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 
 
 class DatasetIterator:
@@ -29,7 +33,7 @@ class DatasetIterator:
         return a
 
 
-class AbstractTimeSeriesDataset:
+class AbstractPDMDataset(ABC):
     def __init__(self):
         self._common_features = None
         self._durations = None
@@ -37,10 +41,12 @@ class AbstractTimeSeriesDataset:
     def __iter__(self):
         return DatasetIterator(self)
 
+    @abstractproperty
     @property
     def n_time_series(self) -> int:
         raise NotImplementedError
 
+    @abstractmethod
     def get_time_series(self, i: int) -> pd.DataFrame:
         """
 
@@ -51,6 +57,13 @@ class AbstractTimeSeriesDataset:
 
     def number_of_samples_of_time_series(self, i: int) -> int:
         return self[i].shape[0]
+
+    @abstractproperty
+    def rul_column(self) -> str:
+        raise NotImplementedError
+
+    def duration(self, life: pd.DataFrame) -> float:
+        return life[self.rul_column].max()
 
     def number_of_samples(self) -> List[int]:
         return [
@@ -91,6 +104,7 @@ class AbstractTimeSeriesDataset:
     def get_features_of_life(self, i: int) -> pd.DataFrame:
         return self[i]
 
+
     def __getitem__(
         self, i: Union[int, Iterable]
     ) -> Union[pd.DataFrame, "FoldedDataset"]:
@@ -116,9 +130,15 @@ class AbstractTimeSeriesDataset:
             )
         if TENSORFLOW_ENABLED and isinstance(i, tf.Tensor):
             return self.get_time_series(i.ref())
+        
+
+
         if isinstance(i, Iterable):
             if not all(isinstance(item, (int, np.integer)) for item in i):
-                raise ValueError("Invalid iterable index passed")
+                if len(i) == 2:       
+                    if not isinstance(i[1], EllipsisType):
+                        raise ValueError("Invalid iterable index passed")
+                    i = i[0]        
 
             return FoldedDataset(self, i)
         else:
@@ -126,8 +146,8 @@ class AbstractTimeSeriesDataset:
             return df
 
     @property
-    def shape(self) -> Tuple[int, int]:
-        return (self.n_time_series, 1)
+    def shape(self) -> Tuple[int]:
+        return (self.n_time_series,)
 
     def __len__(self) -> int:
         """
@@ -269,12 +289,12 @@ class AbstractTimeSeriesDataset:
         )
 
 
-class FoldedDataset(AbstractTimeSeriesDataset):
+class FoldedDataset(AbstractPDMDataset):
     """
     Dataset containing a subset of the time-series. An instanc of this class can be obtained by slicing an AbstractTimeSeriesDataset with a list of indexes
     """
 
-    def __init__(self, dataset: AbstractTimeSeriesDataset, indices: list):
+    def __init__(self, dataset: AbstractPDMDataset, indices: list):
         super().__init__()
         self.dataset = dataset
         self.indices = indices
@@ -347,22 +367,62 @@ class FoldedDataset(AbstractTimeSeriesDataset):
     def __reduce_ex__(self, __protocol) -> Union[str, Tuple[Any, ...]]:
         return (self.__class__, (self.dataset, self.indices))
 
+    @property
+    def rul_column(self):
+        return self.dataset.rul_column
 
-class AbstractLivesDataset(AbstractTimeSeriesDataset):
-    """
-    Base class for RUL estimation dataset
 
-    Three abstract methods must be implemented to start
-    using CERULEo with your data:
+class PDMDataset(AbstractPDMDataset):
+    dataset_path: Path 
+    procesed_path: Path 
+    cycles_table_filename: Path 
+    cycles_metadata: pd.DataFrame
 
-    * `__getitem__(self, i) -> pd.DataFrame`: This method should return the i-th life
-    * `n_time_series(self) -> int`: The property return the total number of lives present in the dataset
-    * `rul_column(self) -> str`: The property should return the name of the RUL column
-    """
 
-    @abstractproperty
-    def rul_column(self) -> str:
-        raise NotImplementedError
+    def __init__(self, path: Path):
+        super().__init__()
+        self.dataset_path = path        
+        self.procesed_path = self.dataset_path / "processed" / "cycles"
+        self.cycles_table_filename = self.procesed_path / "cycles.csv"
+        self._prepare_dataset()
+        self.cycles_metadata = pd.read_csv(self.cycles_table_filename)
 
-    def duration(self, life: pd.DataFrame) -> float:
-        return life[self.rul_column].max()
+    def _prepare_dataset(self):
+        pass
+
+    @property
+    def n_time_series(self) -> int:
+        return len(self.cycles)
+
+    @property
+    def rul_column(self) -> int:
+        return self._rul_column
+
+
+class PDMInMemoryDataset(AbstractPDMDataset):
+    cycles: List[pd.DataFrame]
+    _rul_column: str
+    cycles_metadata: Optional[pd.DataFrame]
+
+    def __init__(
+        self,
+        cycles: List[pd.DataFrame],
+        rul_column: str,
+        cycles_metadata: Optional[pd.DataFrame] = None,
+    ):
+        super().__init__()
+        self.cycles = cycles
+        self._rul_column = rul_column
+        self.cycles_metadata = cycles_metadata
+        
+
+    def get_time_series(self, i: int) -> pd.DataFrame:
+        return self.cycles[i]
+
+    @property
+    def n_time_series(self) -> int:
+        return len(self.cycles)
+
+    @property
+    def rul_column(self) -> int:
+        return self._rul_column

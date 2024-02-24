@@ -2,12 +2,12 @@ from itertools import combinations
 from typing import List, Optional, Tuple
 
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features
 
 
 def correlation_analysis(
-    dataset: AbstractTimeSeriesDataset,
+    dataset: AbstractPDMDataset,
     corr_threshold: float = 0.7,
     features: Optional[List[str]] = None,
 ) -> pd.DataFrame:

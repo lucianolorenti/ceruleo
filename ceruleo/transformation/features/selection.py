@@ -52,6 +52,7 @@ class ByNameFeatureSelector(TransformerStep):
             features = list(set(df.columns))
         self.features_computed_ = sorted(features)
         return self
+        return X.loc[:, self.features_computed_].copy()
 
     def transform(self, X:pd.DataFrame) -> pd.DataFrame:
         """ 

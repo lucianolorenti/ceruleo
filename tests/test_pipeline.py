@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pyexpat import features
 from scipy.stats import entropy
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.transformation import Concatenate as TransformationConcatenate
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.imputers import PerColumnImputer
@@ -20,7 +20,7 @@ def gaussian(N: int, mean: float = 50, std: float = 10):
     return np.random.randn(N) * std + mean
 
 
-class MockDatasetCategorical(AbstractTimeSeriesDataset):
+class MockDatasetCategorical(AbstractPDMDataset):
     def build_df(self):
         N = 50
         return pd.DataFrame(
@@ -64,7 +64,7 @@ class MockDatasetCategorical(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset(AbstractTimeSeriesDataset):
+class MockDataset(AbstractPDMDataset):
     def __init__(self):
         super().__init__()
         self.lives = [
@@ -86,7 +86,7 @@ class MockDataset(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset1(AbstractTimeSeriesDataset):
+class MockDataset1(AbstractPDMDataset):
     def __init__(self):
         super().__init__()
         self.lives = [
@@ -106,7 +106,7 @@ class MockDataset1(AbstractTimeSeriesDataset):
         return len(self.lives)
 
 
-class MockDataset2(AbstractTimeSeriesDataset):
+class MockDataset2(AbstractPDMDataset):
     def __init__(self, n: int = 5):
         super().__init__()
         self.lives = [

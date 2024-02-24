@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.ts_dataset import AbstractTimeSeriesDataset
+from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.transformation.functional.transformers import Transformer
 from ceruleo.utils.lrucache import LRUDataCache
 from sklearn.utils.validation import check_is_fitted
@@ -19,7 +19,7 @@ def _transform(transformer, dataset, i: int):
     return (i, transformer.transform(data))
 
 
-class TransformedDataset(AbstractTimeSeriesDataset):
+class TransformedDataset(AbstractPDMDataset):
     def __init__(
         self, dataset, transformer: Transformer, cache_size: Optional[int] = None
     ):
@@ -37,6 +37,10 @@ class TransformedDataset(AbstractTimeSeriesDataset):
 
     def __call__(self, i: int):
         return self[i]
+    
+    @property
+    def rul_column(self):
+        return self.dataset.rul_column
 
     def number_of_samples_of_time_series(self, i: int) -> int:
         _, y, _ = self[i]
@@ -117,3 +121,4 @@ class TransformedSerializedDataset(TransformedDataset):
 
     def __len__(self):
         return self.n_time_series
+
