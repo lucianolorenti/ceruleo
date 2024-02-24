@@ -1,12 +1,17 @@
-import hashlib
 import uuid
+from copy import deepcopy
 from typing import List, Optional, Union
 
-from numpy.lib.arraysetops import isin
 from sklearn.base import BaseEstimator
 
 
 class TransformerStepMixin(BaseEstimator):
+    name: Optional[str]
+    previous: List["TransformerStepMixin"]
+    next: List["TransformerStepMixin"]
+    uuid: str
+    prefer_partial_fit: bool
+
     def __init__(self, *, name: Optional[str] = None, prefer_partial_fit:bool =True):
         self.name_ = name
         self.previous = []
@@ -65,3 +70,8 @@ class TransformerStepMixin(BaseEstimator):
 
     def __str__(self):
         return self.name
+
+    
+    def clear_connections(self):
+        self.previous = []
+        self.next = []

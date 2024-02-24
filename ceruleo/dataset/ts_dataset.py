@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from pathlib import Path
 from re import S
+from types import EllipsisType
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -101,6 +102,7 @@ class AbstractPDMDataset(ABC):
     def get_features_of_life(self, i: int) -> pd.DataFrame:
         return self[i]
 
+
     def __getitem__(
         self, i: Union[int, Iterable]
     ) -> Union[pd.DataFrame, "FoldedDataset"]:
@@ -126,9 +128,15 @@ class AbstractPDMDataset(ABC):
             )
         if TENSORFLOW_ENABLED and isinstance(i, tf.Tensor):
             return self.get_time_series(i.ref())
+        
+
+
         if isinstance(i, Iterable):
             if not all(isinstance(item, (int, np.integer)) for item in i):
-                raise ValueError("Invalid iterable index passed")
+                if len(i) == 2:       
+                    if not isinstance(i[1], EllipsisType):
+                        raise ValueError("Invalid iterable index passed")
+                    i = i[0]        
 
             return FoldedDataset(self, i)
         else:
@@ -136,8 +144,8 @@ class AbstractPDMDataset(ABC):
             return df
 
     @property
-    def shape(self) -> Tuple[int, int]:
-        return (self.n_time_series, 1)
+    def shape(self) -> Tuple[int]:
+        return (self.n_time_series,)
 
     def __len__(self) -> int:
         """

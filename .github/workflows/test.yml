@@ -33,12 +33,9 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run --source=. -m pytest
+        coverage run --source=. -m pytest --nbmake
         coverage report -m
 
-    - name: Test of jupyter notebook
-      run: |
-        pytest --nbmake
 
     - name: Coveralls
       uses: AndreMiras/coveralls-python-action@develop
