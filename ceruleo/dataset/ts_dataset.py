@@ -1,7 +1,10 @@
 from collections.abc import Iterable
 from pathlib import Path
-from re import S
-from types import EllipsisType
+
+try: 
+    from types import EllipsisType
+except:
+    EllipsisType = type(Ellipsis)
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -13,7 +16,6 @@ try:
     TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
-from numpy.lib.arraysetops import isin
 from tqdm.auto import tqdm
 from abc import ABC, abstractmethod, abstractproperty
 
