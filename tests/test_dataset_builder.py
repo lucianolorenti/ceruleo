@@ -8,9 +8,13 @@ from ceruleo.dataset.builder.cycles_splitter import (
 )
 import pandas as pd
 
-from ceruleo.dataset.builder.output import InMemoryOutputMode
+from ceruleo.dataset.builder.output import InMemoryOutputMode, LocalStorageOutputMode
 from ceruleo.dataset.builder.rul_column import CycleRULColumn, DatetimeRULColumn
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset, PDMDataset
+from pathlib import Path 
+
+TEMP_OUTPUT_PATH = Path(__file__).resolve().parent / "temp_output"
+TEMP_OUTPUT_DIR_PATH = Path(__file__).resolve().parent / "temp_output_dir"
 
 def is_decreasing(s:pd.Series):
     return all(s[i] >= s[i+1] for i in range(len(s)-1))
@@ -24,7 +28,7 @@ def test_dataset_builder_one_file_increasing_feature_cycle_RUL():
         }
     )
     dataset = (
-        DatasetBuilder.one_file_format()
+        DatasetBuilder()
         .set_splitting_method(IncreasingFeatureCycleSplitter("Cycle"))
         .set_rul_column_method(CycleRULColumn("Cycle"))
         .set_output_mode(InMemoryOutputMode())
@@ -47,7 +51,7 @@ def test_dataset_builder_one_file_increasing_feature_datetime_RUL():
         }
     )
     dataset = (
-        DatasetBuilder.one_file_format()
+        DatasetBuilder()
         .set_splitting_method(IncreasingFeatureCycleSplitter("Cycle"))
         .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
         .set_output_mode(InMemoryOutputMode())
@@ -72,7 +76,7 @@ def test_dataset_builder_one_file_life_id_cycle_datetime_RUL():
         }
     )
     dataset = (
-        DatasetBuilder.one_file_format()
+        DatasetBuilder()
         .set_splitting_method(LifeIdCycleSplitter("life_id"))
         .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
         .set_output_mode(InMemoryOutputMode())
@@ -97,7 +101,7 @@ def test_dataset_builder_one_file_life_end_datetime_RUL():
         }
     )
     dataset = (
-        DatasetBuilder.one_file_format()
+        DatasetBuilder()
         .set_splitting_method(LifeEndIndicatorCycleSplitter("life_end"))
         .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
         .set_output_mode(InMemoryOutputMode())
@@ -131,7 +135,7 @@ def test_dataset_builder_two_file_life_end_datetime_RUL():
         "failure_type": ["A", "B"]
     })
     dataset = (
-        DatasetBuilder.one_file_format()
+        DatasetBuilder()
         .set_splitting_method(FailureDataCycleSplitter("datetime", "datetime_failure"))
         .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
         .set_output_mode(InMemoryOutputMode())
@@ -145,5 +149,38 @@ def test_dataset_builder_two_file_life_end_datetime_RUL():
     assert dataset[0].RUL.min() == 0
     assert dataset[0].RUL.max() == 11*60
 
+
+def test_dataset_builder_single_file_from_files():
+    TEMP_OUTPUT_PATH.mkdir(exist_ok=True, parents=True)
+    df1 = pd.DataFrame(
+        {
+            "Cycle": list(range(0, 12, ))*2,
+            "feature_a": list(range(12))*2,
+            "feature_b": list(range(12, 24))*2,
+        }
+    )
+    df2 = pd.DataFrame(
+        {
+            "Cycle": list(range(0, 12, ))*2,
+            "feature_a": list(range(12))*2,
+            "feature_b": list(range(12, 24))*2,
+        }
+    )
+    df1.to_csv(TEMP_OUTPUT_PATH / "df1.csv", index=False)
+    df2.to_csv(TEMP_OUTPUT_PATH / "df2.csv", index=False)
+    dataset = (
+        DatasetBuilder()
+        .set_splitting_method(IncreasingFeatureCycleSplitter("Cycle"))
+        .set_rul_column_method(CycleRULColumn("Cycle"))
+        .set_output_mode(LocalStorageOutputMode(TEMP_OUTPUT_DIR_PATH))
+        .build_from_single_files([TEMP_OUTPUT_PATH / "df1.csv", TEMP_OUTPUT_PATH / "df1.csv"])
+    )
+    assert isinstance(dataset, AbstractPDMDataset) 
+    assert len(dataset) == 4
+    assert isinstance(dataset[0], pd.DataFrame)
+    assert "RUL" in dataset[0].columns.values.tolist()
+    assert is_decreasing(dataset[0].RUL)
+
+    
 
 

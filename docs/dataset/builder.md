@@ -158,7 +158,7 @@ df = pd.DataFrame(
     }
 )
 dataset = (
-    DatasetBuilder.one_file_format()
+    DatasetBuilder()
     .set_splitting_method(IncreasingFeatureCycleSplitter("Cycle"))
     .set_rul_column_method(CycleRULColumn("Cycle"))
     .set_output_mode(InMemoryOutputMode())
@@ -179,7 +179,7 @@ df = pd.DataFrame(
     }
 )
 dataset = (
-    DatasetBuilder.one_file_format()
+    DatasetBuilder()
     .set_splitting_method(IncreasingFeatureCycleSplitter("Cycle"))
     .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
     .set_output_mode(InMemoryOutputMode())
@@ -198,7 +198,7 @@ df = pd.DataFrame(
     }
 )
 dataset = (
-    DatasetBuilder.one_file_format()
+    DatasetBuilder()
     .set_splitting_method(LifeIdCycleSplitter("life_id"))
     .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
     .set_output_mode(InMemoryOutputMode())
@@ -217,7 +217,7 @@ df = pd.DataFrame(
     }
 )
 dataset = (
-    DatasetBuilder.one_file_format()
+    DatasetBuilder()
     .set_splitting_method(LifeEndIndicatorCycleSplitter("life_end"))
     .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
     .set_output_mode(InMemoryOutputMode())
@@ -241,7 +241,7 @@ failures = pd.DataFrame({
     "failure_type": ["A", "B"]
 })
 dataset = (
-    DatasetBuilder.one_file_format()
+    DatasetBuilder()
     .set_splitting_method(FailureDataCycleSplitter("datetime", "datetime_failure"))
     .set_rul_column_method(DatetimeRULColumn("datetime", "s"))
     .set_output_mode(InMemoryOutputMode())

@@ -50,9 +50,10 @@ class DatasetBuilder:
         self.index_column = None
         self.rul_column = None
 
+
     @staticmethod
-    def one_file_format():
-        return DatasetBuilder()
+    def two_files_format():
+        return DatasetBuilder().set_splitting_method(FailureDataCycleSplitter())
 
     def set_splitting_method(self, splitter: CyclesSplitter):
         self.splitter = splitter
@@ -117,6 +118,31 @@ class DatasetBuilder:
                 )
         self.output_mode.finish()
 
+    def prepare_from_single_files(self, file_list: Union[Path, List[Path]]):
+        if not isinstance(file_list, list):
+            file_list = [file_list]
+
+        common_path_prefix = os.path.commonprefix(
+            [data for data in file_list]
+        )
+        for i, data in enumerate(tqdm(file_list)):
+            df_data = self.dataframe_loader(data)
+            cycles_in_file = self.splitter.split(df_data,)
+            for j, ds in enumerate(cycles_in_file):
+                cycle_id = f"{i+1}_{j+1}"
+                self._build_and_store_cycle(
+                    ds,
+                    cycle_id,
+                    metadata={
+                        "Raw Data Filename": str(data.relative_to(common_path_prefix)),
+                    },
+                )
+        self.output_mode.finish()
+
+    def build_from_single_files(self, file_list: Union[Path, List[Path]]):
+        self.prepare_from_single_files(file_list)
+        return self.output_mode.build_dataset(self)
+
     def build_from_data_fault_pairs_files(
         self, data_fault_pairs: Union[Tuple[str, str], List[Tuple[str, str]]]
     ) -> PDMDataset:
@@ -134,7 +160,7 @@ class DatasetBuilder:
                 cycle_id = f"{i+1}_{j+1}"
                 self._build_and_store_cycle(ds, cycle_id)
             self.output_mode.finish()
-        
+
     def build_from_df(self, data: Union[pd.DataFrame, List[pd.DataFrame]]):
         self.prepare_from_df(data)
         return self.output_mode.build_dataset(self)

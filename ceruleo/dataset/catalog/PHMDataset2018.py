@@ -104,7 +104,7 @@ class PHMDataset2018(PDMDataset):
         tools: Optional[Union[str, List[str]]] = None,
     ):
         self.url = url
-        super().__init__(path / "phm_data_challenge_2018")
+        super().__init__(path / "phm_data_challenge_2018", "RUL")
         self._prepare_dataset()
         self.failure_types = failure_types
         self.tools = tools
@@ -167,9 +167,6 @@ class PHMDataset2018(PDMDataset):
             )
         )
 
-    @property
-    def n_time_series(self) -> int:
-        return self.cycles_metadata.shape[0]
 
     def _load_life(self, filename: str) -> pd.DataFrame:
         return pd.read_parquet(filename)
@@ -178,9 +175,6 @@ class PHMDataset2018(PDMDataset):
         df = self._load_life(self.cycles_metadata.iloc[i]["Filename"])
         return df
 
-    @property
-    def rul_column(self) -> str:
-        return "RUL"
 
     def prepare_raw_dataset(self):
         """Download and unzip the raw files
