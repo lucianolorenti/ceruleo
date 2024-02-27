@@ -1,17 +1,44 @@
-from collections import defaultdict
+
+from enum import Enum
 from typing import Dict, List, Optional, Union
 
 import antropy as ant
 import numpy as np
-import pandas as pd
+from pydantic import BaseModel
 from scipy.stats import spearmanr
 from sklearn.feature_selection import mutual_info_regression
 from tqdm.auto import tqdm
-from uncertainties import ufloat
 
 from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
+
+
+class MetricType(str, Enum):
+    std = "std"
+    correlation = "correlation"
+    autocorrelation = "autocorrelation"
+    monotonicity = "monotonicity"
+    number_of_unique_elements = "number_of_unique_elements"
+    mutual_information = "mutual_information"
+    null = "null"
+    entropy = "entropy"
+
+    @staticmethod
+    def from_str(s: str) -> "MetricType":
+        return MetricType(s)
+
+
+class MetricValues(BaseModel):
+    mean: float
+    std: float
+    max: float
+    min: float
+
+
+class NumericalFeaturesAnalysis(BaseModel):
+    feature: str
+    metric: Dict[MetricType, MetricValues]
 
 
 def entropy(s: np.ndarray) -> float:
@@ -134,15 +161,17 @@ metrics = {
 }
 
 
-def analysis_single_time_series(
+def analysis_single_cycle(
     X: np.ndarray,
     y: np.ndarray,
+    out: Dict[str, Dict[MetricType, List[float]]],
     column_names: List[str],
-    data: Optional[Dict] = None,
     what_to_compute: List[str] = [],
-) -> dict:
+):
     """
     Compute the analysis for a single run-to-failure cycle
+
+
 
     Parameters:
         X: Input Features
@@ -152,11 +181,10 @@ def analysis_single_time_series(
         what_to_compute: Features to compute
 
     Returns:
-        Dictionary containing the computed info
+        A dictionary with the analysis of the features
+
     """
 
-    if data is None:
-        data = defaultdict(lambda: defaultdict(list))
     if len(what_to_compute) == 0:
         what_to_compute = list(sorted(metrics.keys()))
     for column_index in range(len(column_names)):
@@ -165,22 +193,26 @@ def analysis_single_time_series(
             x_ts = np.squeeze(X.loc[:, column_name].values)
 
             m = metrics[what](x_ts, y)
+            metric_type = MetricType.from_str(what)
+            out[column_name][metric_type].append(m)
 
-            data[column_name][what].append(m)
-    return data
+    return out
 
 
-def merge_analysis(data: dict) -> pd.DataFrame:
-    data_df = defaultdict(lambda: defaultdict(list))
+def merge_cycle_analysis(
+    data: Dict[str, Dict[MetricType, List[float]]],
+) -> Dict[str, NumericalFeaturesAnalysis]:
+    out = {k: NumericalFeaturesAnalysis(feature=k, metric={}) for k in data.keys()}
     for column_name in data.keys():
         for what in data[column_name]:
-            data_df[column_name][f"{what} Mean"] = ufloat(
-                np.nanmean(data[column_name][what]),
-                np.nanstd(data[column_name][what]),
+            metric_type = MetricType.from_str(what)
+            out[column_name].metric[metric_type] = MetricValues(
+                mean=np.nanmean(data[column_name][what]),
+                std=np.nanstd(data[column_name][what]),
+                max=np.nanmax(data[column_name][what]),
+                min=np.nanmin(data[column_name][what]),
             )
-            data_df[column_name][f"{what} Max"] = np.nanmax(data[column_name][what])
-            data_df[column_name][f"{what} Min"] = np.nanmin(data[column_name][what])
-    return pd.DataFrame(data_df).T
+    return out
 
 
 def analysis(
@@ -188,7 +220,7 @@ def analysis(
     *,
     show_progress: bool = False,
     what_to_compute: List[str] = [],
-) -> pd.DataFrame:
+) -> NumericalFeaturesAnalysis:
     """
     Compute analysis of numerical features
 
@@ -208,12 +240,11 @@ def analysis(
 
 
     Returns:
-        Dataframe with the columns specified by what_to_compute
+        NumericalFeaturesAnalysis
     """
 
     if len(what_to_compute) == 0:
         what_to_compute = list(sorted(metrics.keys()))
-    data = defaultdict(lambda: defaultdict(list))
     iterator = dataset
     if show_progress:
         iterator = tqdm(iterator)
@@ -222,7 +253,13 @@ def analysis(
         column_names = dataset.transformer.column_names
     else:
         column_names = dataset.numeric_features()
+
+    data_per_cycle = {
+        k: {MetricType.from_str(what): [] for what in what_to_compute}
+        for k in column_names
+    }
     for X, y in iterate_over_features_and_target(dataset):
         y = np.squeeze(y)
-        data = analysis_single_time_series(X, y, column_names, data, what_to_compute)
-    return merge_analysis(data)
+        analysis_single_cycle(X, y, data_per_cycle, column_names, what_to_compute)
+
+    return merge_cycle_analysis(data_per_cycle)

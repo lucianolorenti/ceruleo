@@ -28,23 +28,23 @@ def plot_correlation_analysis(
     if features is not None:
         features = list(set(features) - set(["relative_time"]))
 
-    df = correlation_analysis(dataset, corr_threshold, features=features)
-    df1 = df[(df["Abs mean correlation"] > corr_threshold)]
+    df = correlation_analysis(dataset, features=features).to_pandas()
+    df1 = df[(df.abs_mean_correlation > corr_threshold)]
 
     df1.reset_index(inplace=True)
-    df1.sort_values(by="Mean Correlation", ascending=True, inplace=True)
+    df1.sort_values(by="mean_correlation", ascending=True, inplace=True)
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
     labels = []
     for i, (_, r) in enumerate(df1.iterrows()):
-        f1 = r["Feature 1"]
-        f2 = r["Feature 2"]
+        f1 = r["feature_1"]
+        f2 = r["feature_2"]
         label = f"{f1}\n{f2}"
         ax.barh(
             y=i,
-            width=r["Mean Correlation"],
+            width=r["mean_correlation"],
             label=label,
-            xerr=r["Std Correlation"],
+            xerr=r["std_correlation"],
             color="#7878FF",
         )
         labels.append(label)
@@ -59,3 +59,4 @@ def plot_correlation_analysis(
     ax.set_xticks([-1, -0.90, -0.5, 0, 0.5, 0.90, 1])
     ax.set_xlabel("Correlation")
     return ax
+

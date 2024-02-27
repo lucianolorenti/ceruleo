@@ -1,15 +1,16 @@
 
 
 from random import sample
+from typing import Dict
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.analysis.numerical_features import analysis
+from ceruleo.dataset.analysis.numerical_features import NumericalFeaturesAnalysis, analysis
 
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
-from ceruleo.dataset.analysis.correlation import correlation_analysis
-from ceruleo.transformation.features.selection import ByNameFeatureSelector, ByTypeFeatureSelector
+from ceruleo.dataset.analysis.correlation import CorrelationAnalysis, correlation_analysis
+from ceruleo.transformation.features.selection import ByNameFeatureSelector
 from ceruleo.transformation.functional.transformers import Transformer
-from ceruleo.dataset.analysis.sample_rate import sample_rate, sample_rate_summary
+from ceruleo.dataset.analysis.sample_rate import SampleRateAnalysis, sample_rate, sample_rate_summary
 from ceruleo.dataset.analysis.distribution import features_divergeces
 
 class MockDataset(AbstractPDMDataset):
@@ -69,7 +70,7 @@ class MockDatasetTimeDeltaIndex(AbstractPDMDataset):
 class TestAnalysis:
     def test_correlation(self):
         ds = MockDataset(5)
-        assert isinstance(correlation_analysis(ds), pd.DataFrame)
+        assert isinstance(correlation_analysis(ds), CorrelationAnalysis)
 
         transformer = Transformer(
             pipelineX=ByNameFeatureSelector(features=['feature1', 'feature2']), 
@@ -77,21 +78,24 @@ class TestAnalysis:
         )
 
         transformed_dataset = transformer.fit_map(ds)
-        assert isinstance(correlation_analysis(transformed_dataset), pd.DataFrame)
+        assert isinstance(correlation_analysis(transformed_dataset), CorrelationAnalysis)
+
+        q = correlation_analysis(transformed_dataset).to_pandas()
+        assert isinstance(q, pd.DataFrame)
 
     def test_samplerate(self):
         dataset = MockDataset(5)
         sample_rates = sample_rate(dataset)
         assert isinstance(sample_rates, np.ndarray)
 
-        assert isinstance(sample_rate_summary(dataset), pd.DataFrame)
+        assert isinstance(sample_rate_summary(dataset), SampleRateAnalysis)
 
         dataset = MockDatasetTimeDeltaIndex(5)
 
         sample_rates = sample_rate(dataset)
         assert isinstance(sample_rates, np.ndarray)
 
-        assert isinstance(sample_rate_summary(dataset), pd.DataFrame)
+        assert isinstance(sample_rate_summary(dataset), SampleRateAnalysis)
 
 
     def test_distribution(self):
@@ -101,4 +105,5 @@ class TestAnalysis:
     def test_analysis(self):
         dataset = MockDataset(5)
         df = analysis(dataset)
-        assert isinstance(df, pd.DataFrame)
+        keys = list(df.keys())
+        assert isinstance(df[keys[0]], NumericalFeaturesAnalysis)
