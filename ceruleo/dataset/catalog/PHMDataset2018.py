@@ -167,15 +167,6 @@ class PHMDataset2018(PDMDataset):
             )
         )
 
-
-    def _load_life(self, filename: str) -> pd.DataFrame:
-        return pd.read_parquet(filename)
-
-    def get_time_series(self, i: int) -> pd.DataFrame:
-        df = self._load_life(self.cycles_metadata.iloc[i]["Filename"])
-        return df
-
-
     def prepare_raw_dataset(self):
         """Download and unzip the raw files
 

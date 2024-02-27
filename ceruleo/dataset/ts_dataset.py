@@ -1,6 +1,8 @@
 from collections.abc import Iterable
 from pathlib import Path
 
+
+
 try: 
     from types import EllipsisType
 except:
@@ -16,8 +18,9 @@ try:
     TENSORFLOW_ENABLED = True
 except:
     TENSORFLOW_ENABLED = False
-from tqdm.auto import tqdm
 from abc import ABC, abstractmethod, abstractproperty
+
+from tqdm.auto import tqdm
 
 
 class DatasetIterator:
@@ -393,8 +396,24 @@ class PDMDataset(AbstractPDMDataset):
         pass
 
     def get_time_series(self, i: int) -> pd.DataFrame:
-        df = pd.read_csv(self.cycles_metadata.iloc[i]["Filename"])
-        return df
+        file_path = Path(self.cycles_metadata.iloc[i]["Filename"]).resolve()
+        file_extension = file_path.suffix.lower()
+        if file_extension == '.csv':
+            return pd.read_csv(file_path)
+        elif file_extension in ('.xls', '.xlsx'):
+            return pd.read_excel(file_path)
+        elif file_extension == '.parquet':
+            return pd.read_parquet(file_path)
+        elif file_extension == '.feather':
+            return pd.read_feather(file_path)
+        elif file_extension in ('.h5', '.hdf5'):
+            return pd.read_hdf(file_path)
+        elif file_extension in ('.pkl', '.pickle'):
+            return pd.read_pickle(file_path)
+        else:
+            raise ValueError(f"Unsupported file extension: {file_extension}")
+
+
     
     @property
     def n_time_series(self) -> int:
