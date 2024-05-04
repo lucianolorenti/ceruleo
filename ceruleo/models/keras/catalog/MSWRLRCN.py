@@ -1,9 +1,8 @@
 from typing import Tuple
 import tensorflow as tf
-from tensorflow.python.keras.layers.pooling import GlobalAveragePooling1D, MaxPool1D
 from ceruleo.models.keras.layers import ExpandDimension, ResidualShrinkageBlock
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras.layers import (
+from keras import Input, Model, Sequential
+from keras.layers import (
 
     BatchNormalization,
 
@@ -14,6 +13,8 @@ from tensorflow.keras.layers import (
     LSTM,
     Bidirectional,
     Concatenate,
+    GlobalAveragePooling1D, 
+    MaxPooling1D
 
 )
 from typing import Tuple
@@ -32,7 +33,7 @@ def MSWRLRCN(input_shape: Tuple[int, int]):
                 Conv1D(n_filters, kernel_size, padding='same'),
                 BatchNormalization(),
                 ReLU(),
-                MaxPool1D(2),
+                MaxPooling1D(2),
             ]
         )
 

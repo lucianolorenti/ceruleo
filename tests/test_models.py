@@ -3,6 +3,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from numpy.random import seed
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Dense, Flatten
+from xgboost import XGBRegressor
+
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
 from ceruleo.iterators.shufflers import AllShuffled
@@ -12,7 +19,6 @@ from ceruleo.models.keras.callbacks import PredictionCallback
 from ceruleo.models.keras.catalog.CNLSTM import CNLSTM
 from ceruleo.models.keras.catalog.InceptionTime import InceptionTime
 from ceruleo.models.keras.catalog.MSWRLRCN import MSWRLRCN
-from ceruleo.models.keras.catalog.MVCNN import MVCNN
 from ceruleo.models.keras.catalog.MultiScaleConvolutional import (
     MultiScaleConvolutionalModel,
 )
@@ -36,12 +42,6 @@ from ceruleo.models.sklearn import (
 from ceruleo.transformation import Transformer
 from ceruleo.transformation.features.scalers import MinMaxScaler
 from ceruleo.transformation.features.selection import ByNameFeatureSelector
-from numpy.random import seed
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import make_pipeline
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense, Flatten
-from xgboost import XGBRegressor
 
 seed(1)
 
