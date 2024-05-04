@@ -42,7 +42,7 @@ Homepage = "https://github.com/lucianolorenti/ceruleo"
 Documentation = "https://lucianolorenti.github.io/ceruleo/"
 
 [project.optional-dependencies]
-tensorflow = ["tensorflow >= 2.5"]
+tensorflow = ["tensorflow >= 2.5", "keras < 3"]
 
 test = [
     "pytest",
