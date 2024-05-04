@@ -3,8 +3,8 @@ import numpy as np
 import tensorflow as tf
 
 from ceruleo.models.keras.layers import ExpandDimension, RemoveDimension
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import (
+from keras import Input, Model
+from keras.layers import (
     Activation,
     BatchNormalization,
     Concatenate,
@@ -96,7 +96,7 @@ def XCM(input_shape: Tuple[int, int], *, n_filters: int = 128, filter_window: in
 
     model = Model(
         inputs=[model_input],
-        outputs=[output],
+        outputs=output,
     )
     return model,  (model_fisrt_conv1d, model_fisrt_conv2d, model_regression)
 
