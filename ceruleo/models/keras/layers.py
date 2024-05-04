@@ -20,14 +20,20 @@ from keras.layers import (
     Reshape,
 )
 from tensorflow.python.framework import tensor_shape
+import keras
+if keras.__version__.startswith("3"):
+    import keras.ops as ops 
+else:
+    import tensorflow.keras.backend as ops
+
 
 
 def ExpandDimension(dim: int = -1):
-    return Lambda(lambda x: keras.ops.expand_dims(x, dim))
+    return Lambda(lambda x: ops.expand_dims(x, dim))
 
 
 def RemoveDimension(axis=0):
-    return Lambda(lambda x: keras.ops.squeeze(x, axis=axis))
+    return Lambda(lambda x: ops.squeeze(x, axis=axis))
 
 
 class ConcreteDropout(Layer):
@@ -180,7 +186,7 @@ class ResidualShrinkageBlock(Layer):
 
         n_sub = maximum([sub, zeros])
 
-        residual = keras.ops.sign(residual) * n_sub
+        residual = ops.sign(residual) * n_sub
         residual = RemoveDimension(3)(residual)
         return residual + inputs
 
