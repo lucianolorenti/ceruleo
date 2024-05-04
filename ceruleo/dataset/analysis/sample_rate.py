@@ -1,11 +1,22 @@
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
+
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 
 logger = logging.getLogger(__name__)
+
+
+class SampleRateAnalysis(BaseModel):
+    mode: float
+    mean: float
+    std: float
+
+    def to_pandas(self) -> pd.Series:
+        return pd.Series(self.model_dump()).to_frame().T
 
 
 def sample_rate(ds: AbstractPDMDataset, unit: str = "s") -> np.ndarray:
@@ -30,9 +41,10 @@ def sample_rate(ds: AbstractPDMDataset, unit: str = "s") -> np.ndarray:
     return np.array(time_diff)
 
 
+
 def sample_rate_summary(
     ds: AbstractPDMDataset, unit: Optional[str] = "s"
-) -> pd.DataFrame:
+) -> SampleRateAnalysis:
     """
     Obtain the mean, mode and standard deviation of the sample rate of the dataset
 
@@ -41,14 +53,11 @@ def sample_rate_summary(
         unit: Unit to convert the time differences
 
     Returns:
-        A Dataframe with the following columns: Mean sample rate, Std sample rate, Mode sample rate
+        A SampleRateAnalysis with the following information: Mean sample rate, Std sample rate, Mode sample rate
     """
     sr = sample_rate(ds, unit)
-    return pd.DataFrame(
-        {
-            "Mean sample rate": np.mean(sr),
-            "Std sample rate": np.std(sr),
-            "Mode sample rate": pd.Series(sr).mode().values[0],
-        },
-        index=["Dataset"],
+    return SampleRateAnalysis(
+        mean=np.mean(sr),
+        std=np.std(sr),
+        mode=pd.Series(sr).mode().values[0],
     )

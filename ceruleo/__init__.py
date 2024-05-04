@@ -9,4 +9,4 @@ CACHE_PATH = Path(os.environ.get('CERULEO_CACHE_PATH', Path.home() / '.ceruleo' 
 CACHE_PATH.mkdir(parents=True, exist_ok=True)
 
 
-__version__ = "3.0.2"
+__version__ = "3.0.3"

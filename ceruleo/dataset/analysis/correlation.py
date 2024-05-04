@@ -1,27 +1,58 @@
 from itertools import combinations
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features
+from pydantic import BaseModel
+
+
+class CorrelationAnalysisElement(BaseModel):
+    mean_correlation: float
+    std_correlation: float
+    max_correlation: float
+    min_correlation: float
+    abs_mean_correlation: float
+    std_abs_mean_correlation: float
+
+
+class CorrelationAnalysis(BaseModel):
+    data: Dict[Tuple[str, str], CorrelationAnalysisElement]
+
+    def get(self, feature_1: str, feature_2: str) -> CorrelationAnalysisElement:
+        needle = (feature_1, feature_2)
+        if needle not in self.data:
+            needle = (feature_2, feature_1)
+
+        if needle not in self.data:
+            raise KeyError(f"Correlation between {feature_1} and {feature_2} not found")
+        return self.data[needle]
+
+    def to_pandas(self) -> pd.DataFrame:
+        return (
+            pd.DataFrame.from_dict(
+                {(k[0], k[1]): v.model_dump() for k, v in self.data.items()},
+                orient="index",
+            )
+            .reset_index()
+            .rename(columns={"level_0": "feature_1", "level_1": "feature_2"})
+        )
 
 
 def correlation_analysis(
     dataset: AbstractPDMDataset,
-    corr_threshold: float = 0.7,
     features: Optional[List[str]] = None,
-) -> pd.DataFrame:
+) -> CorrelationAnalysis:
     """
     Correlation Analysis
     Compute the correlation between all the features given an Iterable of executions.
 
     Parameters:
         dataset: Dataset of time series
-        corr_threshold: Threshold to consider two features of a single execution highly correlated
         features: List of features to consider when computing the correlations
 
     Returns:
-        A DataFrame indexed with the column names with the following columns:
+        A CorrelationAnalysis object with map indexed by two colun names and the following information:s
 
             - Mean Correlation
             - Std Correlation
@@ -51,23 +82,45 @@ def correlation_analysis(
         correlated_features.extend(correlated_features_for_execution)
 
     df = pd.DataFrame(correlated_features, columns=["Feature 1", "Feature 2", "Corr"])
-    output = df.groupby(by=["Feature 1", "Feature 2"]).mean()
-    output.rename(columns={"Corr": "Mean Correlation"}, inplace=True)
-    output["Std Correlation"] = df.groupby(by=["Feature 1", "Feature 2"]).std()
-
-    def percentage_above_treshold(x):
-        return (x["Corr"].abs() > corr_threshold).mean() * 100
-
-    output["Percentage of lives with a high correlation"] = df.groupby(
-        by=["Feature 1", "Feature 2"]
-    ).apply(percentage_above_treshold)
-
-    output["Abs mean correlation"] = df.groupby(by=["Feature 1", "Feature 2"]).apply(
-        lambda x: x.abs().mean()
+    output = df.groupby(by=["Feature 1", "Feature 2"]).agg(
+        {
+            "Corr": [
+                "mean",
+                "std",
+                "max",
+                "min",
+            ]
+        }
     )
-    output["Std mean correlation"] = df.groupby(by=["Feature 1", "Feature 2"]).apply(
-        lambda x: x.abs().std()
+
+    # Calculate additional statistics
+    output["Abs mean correlation"] = df.groupby(by=["Feature 1", "Feature 2"])[
+        "Corr"
+    ].apply(lambda x: x.abs().mean())
+    output["Std abs mean correlation"] = df.groupby(by=["Feature 1", "Feature 2"])[
+        "Corr"
+    ].apply(lambda x: x.abs().std())
+
+    output.columns = [
+        "mean_correlation",
+        "std_correlation",
+        "max_correlation",
+        "min_correlation",
+        "abs_mean_correlation",
+        "std_abs_mean_correlation",
+    ]
+
+    output = output.fillna(0)
+    return CorrelationAnalysis(
+        data={
+            (k[0], k[1]): CorrelationAnalysisElement(
+                mean_correlation=v["mean_correlation"],
+                std_correlation=v["std_correlation"],
+                max_correlation=v["max_correlation"],
+                min_correlation=v["min_correlation"],
+                abs_mean_correlation=v["abs_mean_correlation"],
+                std_abs_mean_correlation=v["std_abs_mean_correlation"],
+            )
+            for k, v in output.iterrows()
+        }
     )
-    output["Max correlation"] = df.groupby(by=["Feature 1", "Feature 2"]).max()
-    output["Min correlation"] = df.groupby(by=["Feature 1", "Feature 2"]).min()
-    return output
