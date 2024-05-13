@@ -1,9 +1,8 @@
-from abc import abstractmethod
 
-from signal import signal
 from typing import Any, Callable, Union
 
 import numpy as np
+import pandas as pd
 
 
 class AbstractSampleWeights:
@@ -11,8 +10,24 @@ class AbstractSampleWeights:
     The base class for the sample weight provider
     """
 
-    def __call__(self, y, i: int, metadata):
+    def __call__(self, y: Union[np.ndarray, pd.DataFrame], i: int, metadata):
         raise NotImplementedError
+
+
+
+def get_value(y: Union[np.ndarray, pd.DataFrame], i:int) -> float:
+    if isinstance(y, np.ndarray):
+        if len(y.shape) > 1:
+            return y[i, 0]
+        else:
+            return  y[i]
+    elif isinstance(y, pd.DataFrame):
+        return y.iloc[i, 0] 
+    elif isinstance(y, pd.Series):
+        return y.iloc[i]
+    else:
+        raise ValueError(f"Unsupported type {type(y)}")
+   
 
 
 class NotWeighted(AbstractSampleWeights):
@@ -22,7 +37,7 @@ class NotWeighted(AbstractSampleWeights):
     Provide 1 as a sample weight for every sample
     """
 
-    def __call__(self, y, i: int, metadata):
+    def __call__(self, y: Union[np.ndarray, pd.DataFrame], i: int, metadata):
         return 1
 
 
@@ -41,8 +56,10 @@ class RULInverseWeighted(AbstractSampleWeights):
     Weight each sample by the inverse of the RUL
     """
 
-    def __call__(self, y, i: int, metadata):
-        return 1 / (y[i, 0] + 1)
+    def __call__(self, y : Union[np.ndarray, pd.DataFrame], i: int, metadata):
+        return 1 / (get_value(y, i) + 1)
+
+        
 
 
 class InverseToLengthWeighted(AbstractSampleWeights):
@@ -53,8 +70,8 @@ class InverseToLengthWeighted(AbstractSampleWeights):
 
     """
 
-    def __call__(self, y, i: int, metadata):
-        return 1 / y[0]
+    def __call__(self, y:Union[np.ndarray, pd.DataFrame], i: int, metadata):
+        return 1 / get_value(y, 0)
 
 
 class ExponentialDecay(AbstractSampleWeights):
@@ -64,8 +81,9 @@ class ExponentialDecay(AbstractSampleWeights):
     """
 
     def __init__(self, *, near_0_at: float):
+        
         super().__init__()
         self.alpha = -((near_0_at) ** 2) / np.log(0.000001)
 
-    def __call__(self, y, i: int, metadata):
-        return (1 + np.exp(-(y[i, 0] ** 2) / self.alpha)) ** 2
+    def __call__(self, y:Union[np.ndarray, pd.DataFrame], i: int, metadata):
+        return ( np.exp(-(get_value(y,i) ** 2) / self.alpha))
