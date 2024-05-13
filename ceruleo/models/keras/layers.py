@@ -1,28 +1,42 @@
-import typing
-import warnings
-from typing import Tuple
+
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras import backend as K
-from tensorflow.keras import regularizers
-from tensorflow.keras.layers import (Activation, BatchNormalization, Conv2D,
-                                     Dense, Flatten, Lambda, Layer, Permute,
-                                     Reshape)
+import keras
+from keras import Sequential
+from keras import backend as K
+from keras import regularizers
+from keras.layers import (
+    Activation,
+    BatchNormalization,
+    Conv2D,
+    GlobalAveragePooling1D,
+    Dense,
+    Flatten,
+    Lambda,
+    Layer,
+    Permute,
+    maximum,
+    Reshape,
+)
 from tensorflow.python.framework import tensor_shape
-from tensorflow.python.keras.layers.pooling import GlobalAveragePooling1D
+import keras
+if keras.__version__.startswith("3"):
+    import keras.ops as ops 
+else:
+    import tensorflow.keras.backend as ops
+
 
 
 def ExpandDimension(dim: int = -1):
-    return Lambda(lambda x: K.expand_dims(x, dim))
+    return Lambda(lambda x: ops.expand_dims(x, dim))
 
 
 def RemoveDimension(axis=0):
-    return Lambda(lambda x: K.squeeze(x, axis=axis))
+    return Lambda(lambda x: ops.squeeze(x, axis=axis))
 
 
-class ConcreteDropout(tf.keras.layers.Layer):
+class ConcreteDropout(Layer):
     """
     Concrete Dropout layer class from https://arxiv.org/abs/1705.07832.
     Dropout Feature Ranking for Deep Learning Models
@@ -50,9 +64,8 @@ class ConcreteDropout(tf.keras.layers.Layer):
         init_max=0.9,
         name=None,
         training=True,
-        **kwargs
+        **kwargs,
     ):
-
         super(ConcreteDropout, self).__init__(name=name, **kwargs)
         assert init_min <= init_max, "init_min must be lower or equal to init_max."
 
@@ -96,7 +109,6 @@ class ConcreteDropout(tf.keras.layers.Layer):
         return x
 
     def call(self, inputs, training=True):
-
         p = K.sigmoid(self.p_logit)
 
         dropout_regularizer = p * K.log(p)
@@ -110,11 +122,12 @@ class ConcreteDropout(tf.keras.layers.Layer):
         return x
 
 
-class ResidualShrinkageBlock(tf.keras.layers.Layer):
+class ResidualShrinkageBlock(Layer):
     """
     ResidualShrinkageBlock
 
     """
+
     def build(self, input_shape):
         self.blocks = []
         for i in range(2):
@@ -171,63 +184,57 @@ class ResidualShrinkageBlock(tf.keras.layers.Layer):
 
         zeros = sub - sub
 
-        n_sub = tf.keras.layers.maximum([sub, zeros])
+        n_sub = maximum([sub, zeros])
 
-        residual = tf.keras.backend.sign(residual) * n_sub
+        residual = ops.sign(residual) * n_sub
         residual = RemoveDimension(3)(residual)
         return residual + inputs
 
 
-
-
 class ZeroWeights(tf.keras.constraints.Constraint):
-  
+    def __init__(self, l1: float):
+        self.l1 = l1
 
-  def __init__(self, l1:float):
-    self.l1 = l1
+    def __call__(self, w):
+        return tf.math.multiply(w, tf.cast(tf.abs(w) > self.l1, tf.float32))
 
-  def __call__(self, w):
-    
-    return (tf.math.multiply(w, tf.cast(tf.abs(w) > self.l1, tf.float32)) )
-
-  def get_config(self):
-    return {'l1': self.l1}
+    def get_config(self):
+        return {"l1": self.l1}
 
 
 class LASSOLayer(Layer):
-    """ 
+    """
     LASSO Layer
 
     Parameters:
         l1: L1 regularization parameter
     """
-    def __init__(self, l1:float):
+
+    def __init__(self, l1: float):
         super(LASSOLayer, self).__init__()
         self.l1 = l1
         self.kernel_regularizer = regularizers.L1(l1)
 
-
     def build(self, input_shape):
         W_size = np.prod(input_shape[1:])
         self.w = self.add_weight(
-            shape=(W_size, ),
+            shape=(W_size,),
             initializer="random_normal",
             trainable=True,
             regularizer=self.kernel_regularizer,
-            constraint=ZeroWeights(self.l1)
+            constraint=ZeroWeights(self.l1),
         )
-        
-        
+
         self.input_reshape = Reshape((W_size,))
         self.output_reshape = Reshape(input_shape[1:])
-        
-
 
     def call(self, inputs):
         x = self.input_reshape(inputs)
-        
-        
-        x = tf.math.multiply(self.w, x) 
-        
-        self.add_metric(tf.math.reduce_sum(tf.cast(tf.abs(self.w) > 0, tf.float32)), name="Number of features")
+
+        x = tf.math.multiply(self.w, x)
+
+        self.add_metric(
+            tf.math.reduce_sum(tf.cast(tf.abs(self.w) > 0, tf.float32)),
+            name="Number of features",
+        )
         return self.output_reshape(x)
