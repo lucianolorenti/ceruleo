@@ -12,6 +12,7 @@ from xgboost import XGBRegressor
 
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.iterators.iterators import WindowedDatasetIterator
+from ceruleo.iterators.sample_weight import RULInverseWeighted
 from ceruleo.iterators.shufflers import AllShuffled
 from ceruleo.iterators.utils import true_values
 from ceruleo.models.baseline import BaselineModel, FixedValueBaselineModel
@@ -211,6 +212,32 @@ class TestModels:
 
         assert mae < mae_before_fit
 
+        train_iterator = WindowedDatasetIterator(
+            train_dataset.map(transformer),
+            window_size=window_size,
+            step=1,
+            shuffler=AllShuffled(),
+            sample_weight=RULInverseWeighted(),
+        )
+
+        val_iterator = WindowedDatasetIterator(
+            val_dataset.map(transformer), window_size=window_size, step=1
+        )
+        model.compile(loss="mae", optimizer=tf.keras.optimizers.SGD(0.01))
+        y_true = true_values(val_iterator)
+        y_pred_before_fit = model.predict(tf_regression_dataset(val_iterator).batch(64))
+        mae_before_fit = np.mean(np.abs(y_pred_before_fit.ravel() - y_true.ravel()))
+        model.fit(
+            tf_regression_dataset(train_iterator).batch(4),
+            validation_data=tf_regression_dataset(val_iterator).batch(64),
+            epochs=15,
+        )
+        y_pred = model.predict(tf_regression_dataset(val_iterator).batch(64))
+
+        mae = np.mean(np.abs(y_pred.ravel() - y_true.ravel()))
+
+        assert mae < mae_before_fit
+        
     def test_xgboost(self):
         features = ["feature1", "feature2"]
 
