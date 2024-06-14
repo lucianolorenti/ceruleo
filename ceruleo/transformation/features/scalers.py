@@ -119,7 +119,9 @@ class MinMaxScaler(TransformerStep):
     Parameters:
         range: Desired range of transformed data.
         clip: Set to True to clip transformed values of held-out data to provided, by default True
+        fillna: Wheter to fill NaN with a value
         name: Name of the step, by default None
+
     """
 
     def __init__(
@@ -127,6 +129,7 @@ class MinMaxScaler(TransformerStep):
         *,
         range: tuple,
         clip: bool = True,
+        fillna: Optional[float] = None,
         name: Optional[str] = None,
     ):
         super().__init__(name=name)
@@ -136,6 +139,7 @@ class MinMaxScaler(TransformerStep):
         self.data_min = None
         self.data_max = None
         self.clip = clip
+        self.fillna = fillna
 
     def partial_fit(self, df: pd.DataFrame, y=None):
         """
@@ -192,7 +196,8 @@ class MinMaxScaler(TransformerStep):
                 / divisor[mask]
                 * (self.max - self.min)
             ) + self.min
-            X.loc[:, ~mask] = 0
+            if self.fillna is not None:
+                X.loc[:, ~mask] = self.fillna
         except:
             raise
         if self.clip:
