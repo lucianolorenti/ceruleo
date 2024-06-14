@@ -6,6 +6,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
+from ceruleo.utils import pydantic_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class SampleRateAnalysis(BaseModel):
     std: float
 
     def to_pandas(self) -> pd.Series:
-        return pd.Series(self.model_dump()).to_frame().T
+        return pd.Series(pydantic_to_dict(self)).to_frame().T
 
 
 def sample_rate(ds: AbstractPDMDataset, unit: str = "s") -> np.ndarray:
