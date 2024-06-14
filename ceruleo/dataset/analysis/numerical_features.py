@@ -12,6 +12,8 @@ from tqdm.auto import tqdm
 from ceruleo.dataset.transformed import TransformedDataset
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
+import pandas as pd
+
 
 
 class MetricType(str, Enum):
@@ -263,3 +265,47 @@ def analysis(
         analysis_single_cycle(X, y, data_per_cycle, column_names, what_to_compute)
 
     return merge_cycle_analysis(data_per_cycle)
+
+
+def analysis_dataframe(
+    dataset: Union[TransformedDataset, AbstractPDMDataset],
+    *,
+    show_progress: bool = False,
+    what_to_compute: List[str] = [],
+) -> pd.DataFrame:
+    """
+    Compute analysis of numerical features
+
+    Parameters:
+        dataset: A transformed dataset with features and target
+        show_progress: Wether to show the progress when computing the features
+        what_to_compute: Elements available to compute:
+
+            - std
+            - Correlation
+            - Autocorrelation
+            - Monotonicity
+            - Number of unique elements
+            - Mutual information
+            - Null
+            - Entropy
+
+
+    Returns:
+        NumericalFeaturesAnalysis
+    """
+    rr = analysis(dataset, show_progress=show_progress, what_to_compute=what_to_compute)
+    out = {}
+    for k in rr.keys():
+        for metric in rr[k].metric.keys():
+            if (metric, "mean") not in out:
+                out[(metric.value, "mean")] = []
+                out[(metric.value, "std")] = []
+                out[(metric.value, "max")] = []
+                out[(metric.value, "min")] = []
+            out[(metric.value, "mean")].append(rr[k].metric[metric].mean)
+            out[(metric.value, "std")].append(rr[k].metric[metric].std)
+            out[(metric.value, "max")].append(rr[k].metric[metric].max)
+            out[(metric.value, "min")].append(rr[k].metric[metric].min)
+            
+    return pd.DataFrame(out, index=rr.keys()).sort_values(by=("null", "mean"), ascending=False)
