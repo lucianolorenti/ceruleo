@@ -21,7 +21,15 @@ class SampleRateAnalysis(BaseModel):
         return pd.Series(pydantic_to_dict(self)).to_frame().T
 
     def __repr__(self) -> str:
-        return f"Mode: {self.median} | {self.mean} +- {self.std} [{self.unit}]"
+        return f"Median: {self.median} | {self.mean} +- {self.std} [{self.unit}]"
+    
+
+    def _repr_html_(self) -> str:
+        return f"""<div> 
+        <p> <span style="font-weight:bold"> Median: </span> {self.median} [{self.unit}]  </p>  
+        <p> <span style="font-weight:bold">  Mean +- Std: </span> {self.mean:.3f} +- {self.std:.3f} [{self.unit}] </p>
+        </div>
+    """
 
 
 def sample_rate(ds: AbstractPDMDataset, unit: str = "s") -> np.ndarray:
