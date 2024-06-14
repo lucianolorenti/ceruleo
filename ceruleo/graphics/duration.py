@@ -27,8 +27,9 @@ def add_vertical_line(ax, v_x, label, color, line, n_lines):
 
 def durations_histogram(
     datasets: Union[AbstractPDMDataset, List[AbstractPDMDataset]],
-    xlabel: str = 'Cycle Duration',
-    label: Union[str, List[str]] = "1",
+    *,
+    label: Union[str, List[str]],
+    xlabel: str = 'Cycle Duration',    
     bins: int = 15,
     units: str = "m",
     vlines: List[Tuple[float, str]] = [],
@@ -142,12 +143,12 @@ def histogram_from_durations(
         durations_array = durations_array[durations_array<threshold]
         ax.hist(durations_array, bins, color=color, alpha=alpha, label=l)
 
-    ax.set_xlabel(xlabel)
+    ax.set_xlabel(xlabel + f" [{units}]" if units else "")
     ax.set_ylabel("Number of run-to-failure cycles")
 
     colors = sns.color_palette("hls", len(vlines))
     for i, (v_x, l) in enumerate(vlines):
-        vertical_label = f"{l}: {v_x:.2f} {units}"
+        vertical_label = f"{l}: {v_x:.2f} [{units}]"
         add_vertical_line(ax, v_x, vertical_label, colors[i], i, len(vlines))
     ax.legend()
 
