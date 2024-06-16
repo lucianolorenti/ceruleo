@@ -66,14 +66,6 @@ class AbstractPDMDataset(ABC):
         raise NotImplementedError
 
     def duration(self, life: pd.DataFrame) -> float:
-        return life[self.rul_column].max()
-
-    def number_of_samples(self) -> List[int]:
-        return [
-            self.number_of_samples_of_time_series(i) for i in tqdm(range(len(self)))
-        ]
-
-    def duration(self, life: pd.DataFrame) -> float:
         """Obtain the duration of the time-series
 
         Parameters:
@@ -82,8 +74,14 @@ class AbstractPDMDataset(ABC):
         Returns:
             Duration of the life
         """
-        v = life.index
-        return v.max() - v.min()
+        return life[self.rul_column].max()
+
+    def number_of_samples(self) -> List[int]:
+        return [
+            self.number_of_samples_of_time_series(i) for i in tqdm(range(len(self)))
+        ]
+
+
 
     def durations(self, show_progress: bool = False) -> List[float]:
         """

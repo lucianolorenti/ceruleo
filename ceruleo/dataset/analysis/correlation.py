@@ -6,6 +6,8 @@ from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features
 from pydantic import BaseModel
 
+from ceruleo.utils import pydantic_to_dict
+
 
 class CorrelationAnalysisElement(BaseModel):
     mean_correlation: float
@@ -31,7 +33,7 @@ class CorrelationAnalysis(BaseModel):
     def to_pandas(self) -> pd.DataFrame:
         return (
             pd.DataFrame.from_dict(
-                {(k[0], k[1]): v.model_dump() for k, v in self.data.items()},
+                {(k[0], k[1]): pydantic_to_dict(v) for k, v in self.data.items()},
                 orient="index",
             )
             .reset_index()

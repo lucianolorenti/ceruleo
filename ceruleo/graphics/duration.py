@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
-
+from datetime import timedelta
+from typing import Iterable 
+import pandas as pd
 
 def add_vertical_line(ax, v_x, label, color, line, n_lines):
 
@@ -25,12 +27,13 @@ def add_vertical_line(ax, v_x, label, color, line, n_lines):
 
 def durations_histogram(
     datasets: Union[AbstractPDMDataset, List[AbstractPDMDataset]],
-    xlabel: str = 'Cycle Duration',
-    label: Union[str, List[str]] = "1",
+    *,
+    label: Union[str, List[str]],
+    xlabel: str = 'Cycle Duration',    
     bins: int = 15,
     units: str = "m",
-    vlines: Tuple[float, str] = [],
-    ax:matplotlib.axes.Axes=None,
+    vlines: List[Tuple[float, str]] = [],
+    ax:Optional[matplotlib.axes.Axes]=None,
     add_mean: bool = True,
     add_median: bool = True,
     transform: Callable[[float], float] = lambda x: x,
@@ -68,10 +71,13 @@ def durations_histogram(
 
     """
     if isinstance(datasets, list):
+        assert isinstance(label,list)
         assert len(datasets) == len(label)
+        label_list = label
     else:
+        assert isinstance(label, str)
         datasets = [datasets]
-        label = [label]
+        label_list = [label]
 
     durations = []
     for ds in datasets:
@@ -80,7 +86,7 @@ def durations_histogram(
     return histogram_from_durations(
         durations,
         xlabel=xlabel,
-        label=label,
+        label=label_list,
         bins=bins,
         units=units,
         vlines=vlines,
@@ -93,50 +99,57 @@ def durations_histogram(
     )
 
 
+
 def histogram_from_durations(
-    durations: Union[List[float], List[List[float]]],
+    durations: List[List[float]],
     xlabel: str,
-    label: Union[str, List[str]] = "",
+    label:  List[str],
     bins: int = 15,
     units: str = "m",
     vlines: List[Tuple[float, str]] = [],
     ax=None,
     add_mean: bool = True,
     add_median: bool = True,
-    threshold: float = np.inf,
+    threshold:  float = np.inf,
     color=None,
     alpha=1.0,
-    **kwargs,
+    **kwargs
 ) ->  matplotlib.axes.Axes:
     
     if ax is None:
         _, ax = plt.subplots(1, 1, **kwargs)
 
-    if isinstance(durations[0], list):
-        assert isinstance(label, list)
-        assert len(durations) == len(label)
-    else:
-        durations = [durations]
-        label = [label]
+    
+    assert isinstance(label, list)
+    assert len(durations) == len(label)
+ 
+
+    elem_is_timedelta = isinstance(durations[0][0], timedelta)
+
+    
+
 
     for l, dur in zip(label, durations):
         if len(l) > 0:
             l += " "
         vlines = copy(vlines)
+        durations_array = np.array(dur)
+        if elem_is_timedelta:
+            durations_array = durations /  pd.Timedelta(1, units)
         if add_mean:
-            vlines.append((np.mean(dur), l + "Mean"))
+            vlines.append((float(np.mean(durations_array)), l + "Mean"))
         if add_median:
-            vlines.append((np.median(dur), l + "Median"))
-        dur = [d for d in dur if d < threshold]
-        ax.hist(dur, bins, color=color, alpha=alpha, label=l)
+            vlines.append((float(np.median(durations_array)), l + "Median"))
+        durations_array = durations_array[durations_array<threshold]
+        ax.hist(durations_array, bins, color=color, alpha=alpha, label=l)
 
-    ax.set_xlabel(xlabel)
+    ax.set_xlabel(xlabel + f" [{units}]" if units else "")
     ax.set_ylabel("Number of run-to-failure cycles")
 
     colors = sns.color_palette("hls", len(vlines))
     for i, (v_x, l) in enumerate(vlines):
-        label = f"{l}: {v_x:.2f} {units}"
-        add_vertical_line(ax, v_x, label, colors[i], i, len(vlines))
+        vertical_label = f"{l}: {v_x:.2f} [{units}]"
+        add_vertical_line(ax, v_x, vertical_label, colors[i], i, len(vlines))
     ax.legend()
 
     return ax
@@ -178,18 +191,22 @@ def durations_boxplot(
     """
     if isinstance(datasets, list):
         assert isinstance(xlabel, list)
+        assert isinstance(datasets, list)
         assert len(datasets) == len(xlabel)
+        xlabel_list = xlabel
+        datasets_list = datasets
     else:
-        datasets = [datasets]
-        xlabel = [xlabel]
+        assert isinstance(xlabel, str)
+        datasets_list = [datasets]
+        xlabel_list = [xlabel]
 
     durations = []
-    for ds in datasets:
+    for ds in datasets_list:
         durations.append([transform(duration) for duration in ds.durations()])
 
     return boxplot_from_durations(
         durations,
-        xlabel=xlabel,
+        xlabel=xlabel_list,
         ylabel=ylabel,
         ax=ax,
         hlines=hlines,
@@ -200,8 +217,8 @@ def durations_boxplot(
 
 
 def boxplot_from_durations(
-    durations: Union[List[float], List[List[float]]],
-    xlabel: Union[str, List[str]],
+    durations: List[List[float]],
+    xlabel:  List[str],
     ylabel: str,
     ax=None,
     hlines: List[Tuple[float, str]] = [],
@@ -210,12 +227,8 @@ def boxplot_from_durations(
     **kwargs,
 )->  matplotlib.axes.Axes:
     
-    if isinstance(durations[0], list):
-        assert isinstance(xlabel, list)
-        assert len(durations) == len(xlabel)
-    else:
-        durations = [durations]
-        xlabel = [xlabel]
+    assert isinstance(xlabel, list)
+    assert len(durations) == len(xlabel)
 
     if ax is None:
         fig, ax = plt.subplots(**kwargs)
