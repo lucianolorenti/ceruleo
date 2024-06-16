@@ -181,5 +181,5 @@ class TestGraphics:
     )
     def test_durations_histogram(self):
         dataset = MockDataset(7)
-        ax = durations_histogram(dataset)
+        ax = durations_histogram(dataset, label="Test Dataset")
         return ax.figure

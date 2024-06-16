@@ -1,10 +1,9 @@
 
 
-from random import sample
-from typing import Dict
+
 import numpy as np
 import pandas as pd
-from ceruleo.dataset.analysis.numerical_features import NumericalFeaturesAnalysis, analysis
+from ceruleo.dataset.analysis.numerical_features import NumericalFeaturesAnalysis, analyze
 
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.analysis.correlation import CorrelationAnalysis, correlation_analysis
@@ -104,6 +103,6 @@ class TestAnalysis:
 
     def test_analysis(self):
         dataset = MockDataset(5)
-        df = analysis(dataset)
+        df = analyze(dataset)
         keys = list(df.keys())
         assert isinstance(df[keys[0]], NumericalFeaturesAnalysis)
