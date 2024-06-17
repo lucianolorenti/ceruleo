@@ -47,7 +47,7 @@ def sample_rate(ds: AbstractPDMDataset, unit: str = "s") -> np.ndarray:
     """
     time_diff : List[float ]= []
     for life in ds:
-        diff = np.diff(life.index.values)
+        diff = np.diff(ds.get_timestamp_column(life))
         diff = diff[diff <= np.median(diff)]
         if pd.api.types.is_timedelta64_ns_dtype(diff.dtype):
             diff = diff / np.timedelta64(1, unit)

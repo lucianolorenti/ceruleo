@@ -5,6 +5,7 @@ import pandas as pd
 from ceruleo.transformation import TransformerStep
 from ceruleo.transformation.features.tdigest import TDigest
 from ceruleo.transformation.utils import  QuantileEstimator
+from ceruleo.utils.dataframe_utils import dataframe_max, dataframe_min, is_pandas
 
 
 class RobustMinMaxScaler(TransformerStep):
@@ -148,8 +149,9 @@ class MinMaxScaler(TransformerStep):
         Parameters:
             df: The input dataset
         """
-        partial_data_min = df.min(skipna=True)
-        partial_data_max = df.max(skipna=True)
+        partial_data_min = dataframe_min(df, skipna=True)
+                                        
+        partial_data_max = dataframe_max(df, skipna=True)
         if self.data_min is None:
             self.data_min = partial_data_min
             self.data_max = partial_data_max
@@ -190,14 +192,22 @@ class MinMaxScaler(TransformerStep):
             
             
             mask = np.abs((divisor)) > 1e-25
-            X = X.astype(float)
-            X.loc[:, mask] = (
-                (X.loc[:, mask] - self.data_min[mask])
-                / divisor[mask]
-                * (self.max - self.min)
-            ) + self.min
-            if self.fillna is not None:
-                X.loc[:, ~mask] = self.fillna
+            if is_pandas(X):
+                X.loc[:, mask] = (
+                    (X.loc[:, mask] - self.data_min[mask])
+                    / divisor[mask]
+                    * (self.max - self.min)
+                ) + self.min
+                if self.fillna is not None:
+                    X.loc[:, ~mask] = self.fillna
+            else:
+                X[:, mask] = (
+                    (X[:, mask] - self.data_min[mask])
+                    / divisor[mask]
+                    * (self.max - self.min)
+                ) + self.min
+                if self.fillna is not None:
+                    X[:, ~mask] = self.fillna
         except:
             raise
         if self.clip:

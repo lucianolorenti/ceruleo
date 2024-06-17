@@ -13,6 +13,8 @@ from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features_and_target
 import pandas as pd
 
+from ceruleo.utils.dataframe_utils import dataframe_select_column, dataframe_select_column_as_array
+
 
 class MetricType(str, Enum):
     std = "std"
@@ -213,7 +215,7 @@ def analyze_single_cycle(
     for column_index in range(len(column_names)):
         column_name = column_names[column_index]
         for what in what_to_compute:
-            x_ts = np.squeeze(X.loc[:, column_name].values)
+            x_ts = np.squeeze(dataframe_select_column_as_array(X, column_name))
 
             m = metrics[what](x_ts, y)
             metric_type = MetricType.from_str(what)
