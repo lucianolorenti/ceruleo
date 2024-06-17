@@ -180,7 +180,6 @@ class PHMDataset2018(PDMDataset):
 
         path = self.dataset_path / "raw"
         path.mkdir(parents=True, exist_ok=True)
-        print(path / OUTPUT)
         if not (path / OUTPUT).resolve().is_file():
             download(self.url, path)
         logger.info("Decompressing  dataset...")

@@ -13,14 +13,25 @@ from tqdm.auto import tqdm
 logger = logging.getLogger(__name__)
 
 
-def histogram_per_life(
-    life: pd.DataFrame,
+def histogram_per_cycle(
+    cycle: pd.DataFrame,
     feature: str,
     bins_to_use: np.ndarray,
     normalize: bool = True,
 ) -> List[np.ndarray]:
+    """Compute the histogram of a feature in a run-to-failure cycle
+
+    Args:
+        cycle (pd.DataFrame): The run-to-failure cycle
+        feature (str): The  feature to compute the histogram
+        bins_to_use (np.ndarray): Number of bins to use
+        normalize (bool, optional): Wheter to normalize the histogram. Defaults to True.
+
+    Returns:
+        List[np.ndarray]: The histogram of the feature
+    """
     try:
-        d = life[feature]
+        d = cycle[feature]
         h, _ = np.histogram(d, bins=bins_to_use)
 
         if normalize:
@@ -59,9 +70,9 @@ def features_divergeces(
     Returns:
         A DataFrame in which each row contains the distances between a feature of two run-to-failure cycle with the following columns:
 
-            - Life 1: Run-to-failure cycle 1
-            - Life 2: Run-to-failure cycle 2
-            - W: Wasserstein
+            - Cycle 1: Run-to-failure cycle 1
+            - Cycle 2: Run-to-failure cycle 2
+            - Wasserstein: Wasserstein
             - KL: KL Divergence
             - feature: The feature name
     """
@@ -80,7 +91,7 @@ def features_divergeces(
             if feature not in histograms:
                 histograms[feature] = []
             histograms[feature].append(
-                histogram_per_life(life, feature, features_bins[feature])
+                histogram_per_cycle(life, feature, features_bins[feature])
             )
 
     df_data = []
@@ -91,7 +102,30 @@ def features_divergeces(
         ):
             kl = (np.mean(kl_div(h1, h2)) + np.mean(kl_div(h2, h1))) / 2
             wd = wasserstein_distance(h1, h2)
-            df_data.append((i, j, wd, kl, feature))
-    df = pd.DataFrame(df_data, columns=["Life 1", "Life 2", "W", "KL", "feature"])
+            df_data.append(
+                (
+                    i,
+                    j,
+                    ds.get_features_of_life(i).shape[0],
+                    ds.get_features_of_life(j).shape[0],
+                    abs(ds.get_features_of_life(i).shape[0]-ds.get_features_of_life(j).shape[0]),
+                    wd,
+                    kl,
+                    feature,
+                )
+            )
+    df = pd.DataFrame(
+        df_data,
+        columns=[
+            "Cycle 1",
+            "Cycle 2",
+            "Cycle 1 length",
+            "Cycle 2 length",
+            "Abs Length difference",           
+            "Wasserstein",
+            "KL",
+            "feature",
+        ],
+    )
 
     return df
