@@ -2,11 +2,13 @@ from itertools import combinations
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+import polars as pl
 from ceruleo.dataset.ts_dataset import AbstractPDMDataset
 from ceruleo.dataset.utils import iterate_over_features
 from pydantic import BaseModel
 
 from ceruleo.utils import pydantic_to_dict
+from ceruleo.utils.dataframe_utils import dataframe_fillna, is_pandas
 
 
 class CorrelationAnalysisElement(BaseModel):
@@ -73,15 +75,18 @@ def correlation_analysis(
     correlated_features = []
 
     for ex in iterate_over_features(dataset):
-        ex = ex[features]
-        corr_m = ex.corr().fillna(0)
+        if is_pandas(ex):
+            ex = ex[features]
+            corr_m = dataframe_fillna(ex.corr(), 0)
+            for f1, f2 in combinations(features, 2):
+                correlated_features.append((f1, f2, corr_m.loc[f1, f2]))
+        else:
+            for f1, f2 in combinations(features, 2):
+                corr = ex.select(pl.corr(f1, f2, method="spearman"))[0, 0]
+                correlated_features.append((f1, f2, corr))
 
-        correlated_features_for_execution = []
-
-        for f1, f2 in combinations(features, 2):
-            correlated_features_for_execution.append((f1, f2, corr_m.loc[f1, f2]))
-
-        correlated_features.extend(correlated_features_for_execution)
+       
+        
 
     df = pd.DataFrame(correlated_features, columns=["Feature 1", "Feature 2", "Corr"])
     output = df.groupby(by=["Feature 1", "Feature 2"]).agg(

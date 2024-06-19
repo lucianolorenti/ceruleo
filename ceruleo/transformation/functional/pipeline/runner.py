@@ -12,6 +12,8 @@ from ceruleo.transformation.functional.pipeline.traversal import CachedGraphTrav
 from ceruleo.transformation.functional.transformerstep import TransformerStep
 from tqdm.auto import tqdm
 
+from ceruleo.utils.dataframe_utils import is_dataframe
+
 logger = logging.getLogger(__name__)
 
 
@@ -134,11 +136,11 @@ class CachedPipelineRunner:
                 new_element = node.transform(old_element)
                 self._update_step(cache, node, dataset_element, new_element)
         except Exception as e:
-            logger.error(f"There was an error when transforming with {node.name}")
-            raise
+            logger.error(f"There was an error when transforming with {node.name}: {e}")
+            raise e
 
     def transform(self, df: Union[pd.DataFrame, Iterable[pd.DataFrame]]):
-        if isinstance(df, pd.DataFrame):
+        if is_dataframe(df):
             return self._run([df], fit=False)
         else:
             return self._run(df, fit=False)

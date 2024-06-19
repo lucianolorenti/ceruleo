@@ -2,6 +2,8 @@ import logging
 from typing import List, Optional, Union
 
 import numpy as np
+from ceruleo.utils.dataframe_utils import is_pandas
+import polars as pl
 import pandas as pd
 from ceruleo.transformation import TransformerStep
 
@@ -17,12 +19,11 @@ class ByNameFeatureSelector(TransformerStep):
     Parameters:
             features: Feature name or List of features name to select
     """
-    def __init__(self, *, features:Union[str, List[str]]= [], name: Optional[str] = None):
+    def __init__(self, *, features:Union[str, List[str]], name: Optional[str] = None):
         super().__init__(name=name)
         if isinstance(features, str):
             features = [features]
         self.features = features
-        self.features_indices = None
         self.features_computed_ = []
 
     def partial_fit(self, df, y=None):
@@ -52,9 +53,9 @@ class ByNameFeatureSelector(TransformerStep):
             features = list(set(df.columns))
         self.features_computed_ = sorted(features)
         return self
-        return X.loc[:, self.features_computed_].copy()
+    
 
-    def transform(self, X:pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: Union[pd.DataFrame, pl.DataFrame]) -> pd.DataFrame:
         """ 
         Transform the input life
 
@@ -64,7 +65,17 @@ class ByNameFeatureSelector(TransformerStep):
         Returns:
             A new DataFrame containing only the selected features
         """
-        return X.loc[:, self.features_computed_].copy()
+
+        if set(self.features_computed_) - set(X.columns):
+            raise ValueError(f"Features {set(self.features_computed_) - set(X.columns)} not found in the input DataFrame")
+        
+        if is_pandas(X):
+            return X.loc[:, self.features_computed_].copy()
+        else:
+            try:
+                return X.select(self.features_computed_)
+            except:
+                raise ValueError(type(X))
 
     @property
     def n_features(self):
@@ -122,7 +133,6 @@ class DiscardByNameFeatureSelector(TransformerStep):
     def __init__(self, *, features: List=[], name: Optional[str] = None):
         super().__init__(name=name)
         self.features = features
-        self.features_indices = None
 
     def fit(self, df:pd.DataFrame, y=None):
         """

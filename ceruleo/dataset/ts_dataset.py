@@ -1,6 +1,8 @@
 from collections.abc import Iterable
 from pathlib import Path
 
+from ceruleo.utils.dataframe_utils import DataFrame, Series, get_numeric_features, is_pandas
+
 
 
 try: 
@@ -44,10 +46,16 @@ class AbstractPDMDataset(ABC):
     def __iter__(self):
         return DatasetIterator(self)
 
-    @abstractproperty
     @property
+    @abstractmethod
     def n_time_series(self) -> int:
         raise NotImplementedError
+    
+    def get_timestamp_column(self, df: DataFrame) -> Series:
+        if is_pandas(df):
+            return df.index
+        else:
+            return df.select("timestamp")
 
     @abstractmethod
     def get_time_series(self, i: int) -> pd.DataFrame:
@@ -61,7 +69,7 @@ class AbstractPDMDataset(ABC):
     def number_of_samples_of_time_series(self, i: int) -> int:
         return self[i].shape[0]
 
-    @abstractproperty
+    @abstractmethod
     def rul_column(self) -> str:
         raise NotImplementedError
 
@@ -80,7 +88,6 @@ class AbstractPDMDataset(ABC):
         return [
             self.number_of_samples_of_time_series(i) for i in tqdm(range(len(self)))
         ]
-
 
 
     def durations(self, show_progress: bool = False) -> List[float]:
@@ -104,7 +111,6 @@ class AbstractPDMDataset(ABC):
 
     def get_features_of_life(self, i: int) -> pd.DataFrame:
         return self[i]
-
 
     def __getitem__(
         self, i: Union[int, Iterable]
@@ -215,7 +221,7 @@ class AbstractPDMDataset(ABC):
             if proportion_of_lives < 1.0 and np.random.rand() > proportion_of_lives:
                 continue
             life = self.get_features_of_life(i)
-            common_features.append(set(life.columns.values))
+            common_features.append(set(life.columns))
         return sorted(list(common_features[0].intersection(*common_features)))
 
     def common_features(
@@ -229,7 +235,11 @@ class AbstractPDMDataset(ABC):
             show_progress: Whether to show progress when computing the common features, by default False
 
         Returns:
-            A list with the common features
+            A list with     def get_timestamp_column(self, df: DataFrame) -> Series:
+        if is_pandas(df):
+            return df.index
+        else:
+            return df.select("timestamp")the common features
         """
         if self._common_features is None:
             self._common_features = self._compute_common_features(
@@ -266,11 +276,7 @@ class AbstractPDMDataset(ABC):
 
         features = self.common_features(show_progress=show_progress)
         df = self.get_features_of_life(0)
-        return list(
-            df.loc[:, features]
-            .select_dtypes(include=[np.number], exclude=["datetime", "timedelta"])
-            .columns.values
-        )
+        return get_numeric_features(df, features)
 
     def categorical_features(self, show_progress: bool = False) -> List[str]:
         """Obtain the list of the common categorical features in the dataset
@@ -449,3 +455,5 @@ class PDMInMemoryDataset(AbstractPDMDataset):
     @property
     def rul_column(self) -> int:
         return self._rul_column
+    
+

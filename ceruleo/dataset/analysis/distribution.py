@@ -10,6 +10,8 @@ from scipy.special import kl_div
 from scipy.stats import wasserstein_distance
 from tqdm.auto import tqdm
 
+from ceruleo.utils.dataframe_utils import dataframe_select_column
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +49,9 @@ def compute_bins(ds: AbstractPDMDataset, feature: str, number_of_bins: int = 15)
     max_value = ds.get_features_of_life(0)[feature].max()
 
     for life in iterate_over_features(ds):
-        min_value = min(np.min(life[feature]), min_value)
-        max_value = max(np.max(life[feature]), max_value)
+        feature_df = dataframe_select_column(life, feature)
+        min_value = min(feature_df.min(), min_value)
+        max_value = max(feature_df.max(), max_value)
     bins_to_use = np.linspace(min_value, max_value, number_of_bins + 1)
     return bins_to_use
 
